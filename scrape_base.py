@@ -8,6 +8,8 @@ import time
 from tqdm import tqdm
 
 # %%
+
+
 def get_buysell_ads(soup: BeautifulSoup) -> List[str]:
     """Grab all buysell URL's from a response from Pinkbike's buysell results
 
@@ -72,12 +74,24 @@ def parse_buysell_ad(buysell_url: str) -> pd.DataFrame:
 
     # Get data about product
     for details in soup.find_all("div", class_="buysell-container details"):
-        data_dict = {tag.text: tag.next_sibling for tag in details.find_all("b")}
+        data_dict = {
+            tag.text: tag.next_sibling for tag in details.find_all("b")}
 
     # Get price
     for pricing in soup.find_all("div", class_="buysell-container buysell-price"):
-        data_dict["price"] = re.search("[^\s\$].*([0-9.,]+)", pricing.text).group(0)
-        data_dict["currency"] = re.search("([A-Za-z]{1,3})", pricing.text).group(0)
+
+        # Grab price and currency. In case of issue, store None and handle downstream
+        price_search = re.search("[^\s\$].*([0-9.,]+)", pricing.text)
+        if price_search is not None:
+            data_dict["price"] = price_search.group(0)
+        else:
+            data_dict["price"] = None
+
+        currency_search = re.search("([A-Za-z]{1,3})", pricing.text)
+        if currency_search is not None:
+            data_dict["currency"] = currency_search.group(0)
+        else:
+            data_dict["currency"] = None
 
     # Get description
     for description in soup.find_all("div", class_="buysell-container description"):
@@ -89,9 +103,9 @@ def parse_buysell_ad(buysell_url: str) -> pd.DataFrame:
 
     # Add scrape datetime
     data_dict["datetime_scraped"] = pd.Timestamp.today()
+    data_dict["url"] = buysell_url
 
     return pd.DataFrame(data=data_dict, index=list([buysell_url]))
-    # return soup.find_all("div", class_="buysell-container details")
 
 
 # %%
@@ -118,22 +132,58 @@ for page in tqdm(range(1, total_page_count)):
     all_mountain_base_url_for_page = (
         f"https://www.pinkbike.com/buysell/list/?region=3&page={page}&category=2"
     )
-    search_results = requests.get(all_mountain_base_url).content
+    search_results = requests.get(all_mountain_base_url_for_page).content
     soup = BeautifulSoup(search_results)
     ad_urls.extend(get_buysell_ads(soup))
 
-    time.sleep(1)
+    # time.sleep(0.1)
 
-ad_data = pd.read_csv("all_mountain_ad_data.csv", index_col=False)
+# %%
+# Ad data columns
+# ad_data = pd.read_csv("all_mountain_ad_data.csv", index_col=)
+ad_data = pd.DataFrame(
+    columns=[
+        "Category:",
+        "Condition:",
+        "Frame Size:",
+        "Wheel Size:",
+        "Material:",
+        "Front Travel:",
+        "Rear Travel:",
+        "Original Post Date:",
+        "Last Repost Date:",
+        "Still For Sale:",
+        "View Count:",
+        "Watch Count:",
+        "price",
+        "currency",
+        "description",
+        "ad_title",
+        "datetime_scraped",
+        "year",
+        "url",
+    ]
+)
+ad_data.to_csv("all_mountain_ad_data.csv")
 
 print(f"Extracting ad data from {len(ad_urls)} ads")
-for i, url in tqdm(enumerate(ad_urls)):
-    ad_intermediate_data = parse_buysell_ad(url)
+for i, url in tqdm(list(enumerate(ad_urls))):
+
+    if url in ad_data.index:
+        continue
+
+    try:
+        ad_intermediate_data = parse_buysell_ad(url)
+    except ValueError:
+        continue
+
     ad_data = pd.concat([ad_data, ad_intermediate_data], axis=0)
 
     if i % 100 == 0:
         # print(f"Logging ad data at ad {i}")
-        ad_data.to_csv("all_mountain_ad_data.csv", index=False, mode="a", header=False)
-    time.sleep(1)
+        ad_data.to_csv("all_mountain_ad_data.csv",
+                       index=False, mode="a", header=False)
+    time.sleep(0.1)
 
+ad_data.to_csv("all_mountain_ad_data.csv", index=False, mode="a", header=False)
 # %%
