@@ -1,0 +1,17 @@
+name: pb-buddy
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.8
+  - numpy
+  - pandas
+  - beautifulsoup4
+  - ipykernel
+  - requests
+  - black
+  - tqdm
+  - matplotlib
+  - seaborn
+  - joblib
+  - pyarrow
