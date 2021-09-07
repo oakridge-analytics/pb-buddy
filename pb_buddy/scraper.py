@@ -5,19 +5,23 @@ import re
 import pandas as pd
 
 
-def get_buysell_ads(soup: BeautifulSoup) -> List[str]:
-    """Grab all buysell URL's from a response from Pinkbike's buysell results
+def get_buysell_ads(url: str) -> List[str]:
+    """Grab all buysell URL's from a page of Pinkbike's buysell results
 
     Parameters
     ----------
-    soup : BeautifulSoup
-        A Beautiful Soup object to use for parsing
+    url : str
+        URL to a buysell results page to extract all ad links from
 
     Returns
     -------
     List[str]
         List of URL's to the buysell ads on that page
     """
+    search_results = requests.get(url)
+    if search_results.status_code > 200:
+        raise requests.exceptions.RequestException("Buysell url status error")
+    soup = BeautifulSoup(search_results.content, features="html.parser")
     buysell_ads = []
     for link in soup.find_all("a"):
         if re.match("https://www.pinkbike.com/buysell/[0-9]{7}", link.get("href")):
@@ -47,7 +51,7 @@ def get_total_pages(soup: BeautifulSoup) -> int:
     return largest_page_num
 
 
-def parse_buysell_ad(buysell_url: str) -> pd.DataFrame:
+def parse_buysell_ad(buysell_url: str) -> dict:
     """Takes a Pinkbike buysell URL and extracts all attributes listed for product.
 
     Parameters
@@ -57,17 +61,21 @@ def parse_buysell_ad(buysell_url: str) -> pd.DataFrame:
 
     Returns
     -------
-    pd.DataFrame
-        Dataframe with all ad data, plus URL and date scraped.
+    dict
+        dictionary with all ad data, plus URL and date scraped.
     """
+    # print("processing ad: ", buysell_url)
     page_request = requests.get(buysell_url)
     if page_request.status_code > 200:
-        raise ValueError("Error requesting Ad")
+        # raise requests.exceptions.RequestException("Error requesting Ad")
+        return {}
     soup = BeautifulSoup(page_request.content, features="html.parser")
 
+    data_dict = {}
     # Get data about product
     for details in soup.find_all("div", class_="buysell-container details"):
-        data_dict = {tag.text: tag.next_sibling for tag in details.find_all("b")}
+        for tag in details.find_all("b"):
+            data_dict[tag.text] = tag.next_sibling
 
     # Get price
     for pricing in soup.find_all("div", class_="buysell-container buysell-price"):
@@ -100,7 +108,14 @@ def parse_buysell_ad(buysell_url: str) -> pd.DataFrame:
             data_dict["location"] = location
 
     # Add scrape datetime
-    data_dict["datetime_scraped"] = pd.Timestamp.today()
+    data_dict["datetime_scraped"] = str(pd.Timestamp.today())
     data_dict["url"] = buysell_url
 
-    return pd.DataFrame(data=data_dict, index=list([buysell_url]))
+    # Clean whitespace a little:
+    pattern = re.compile(r"\s+")
+    data_dict = {
+        k: re.sub(pattern, " ", v) if type(v) == str else v
+        for k, v in data_dict.items()
+    }
+
+    return data_dict
