@@ -3,15 +3,18 @@ from typing import List
 from bs4 import BeautifulSoup
 import re
 import pandas as pd
+import time
 
 
-def get_buysell_ads(url: str) -> List[str]:
+def get_buysell_ads(url: str, delay_s: int = 1) -> List[str]:
     """Grab all buysell URL's from a page of Pinkbike's buysell results
 
     Parameters
     ----------
     url : str
         URL to a buysell results page to extract all ad links from
+    delay_s : int
+        Time in seconds to delay before returning.
 
     Returns
     -------
@@ -26,6 +29,8 @@ def get_buysell_ads(url: str) -> List[str]:
     for link in soup.find_all("a"):
         if re.match("https://www.pinkbike.com/buysell/[0-9]{7}", link.get("href")):
             buysell_ads.append(link.get("href"))
+
+    time.sleep(delay_s)
     return list(set(buysell_ads))
 
 
@@ -51,13 +56,15 @@ def get_total_pages(soup: BeautifulSoup) -> int:
     return largest_page_num
 
 
-def parse_buysell_ad(buysell_url: str) -> dict:
+def parse_buysell_ad(buysell_url: str, delay_s: int) -> dict:
     """Takes a Pinkbike buysell URL and extracts all attributes listed for product.
 
     Parameters
     ----------
     buysell_url : str
         URL to the buysell ad
+    delay_s : int
+        Number of seconds to sleep before returning
 
     Returns
     -------
@@ -118,4 +125,6 @@ def parse_buysell_ad(buysell_url: str) -> dict:
         for k, v in data_dict.items()
     }
 
+    time.sleep(delay_s)
+    
     return data_dict

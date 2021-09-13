@@ -3,72 +3,91 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import numpy as np
-import time
+from pathlib import Path
 from tqdm import tqdm
 from joblib import Parallel, delayed
-import sys
+import os
+import json
+import time
+from piapy import PiaVpn
 
 # Custom code
 import pb_buddy.scraper as scraper
 import pb_buddy.utils as ut
 
 
-#%%
-# Settings -----------------------------------------------------------------
-category_to_scrape = 6
-num_jobs = 7
+if __name__ == "__main__":
+    #%%
+    # Settings -----------------------------------------------------------------
+    categories_to_scrape = range(1, 101 + 1)
+    num_jobs = 8  # Curently only for initial link grab
+    delay_s = 0.1
 
-# %%
-# Logic:
-# - Initial check of how many pages
-# - Loop through each page with a delay -> append to list of add urls
-# - Loop through ad urls with a delay -> append to DF, with progressive save out
+    # Setup PIA vpn object for manipulation:
+    vpn = PiaVpn()
 
-base_url = f"https://www.pinkbike.com/buysell/list/?region=3&page=1&category={category_to_scrape}"
+    # Setup output folder
+    folder_name = str(pd.Timestamp("today").date())
+    output_dir = Path("data") / folder_name
+    os.makedirs(output_dir, exist_ok=True)
 
-search_results = requests.get(base_url).content
-soup = BeautifulSoup(search_results, features="html.parser")
-total_page_count = scraper.get_total_pages(soup)
+    # Get category lookup
+    with open("category_dict.json", "r") as fh:
+        cat_dict = json.load(fh)
 
-# %%
-# Build List of Ad URLS............................................
-ad_urls = []
-print(f"Scraping {total_page_count} pages of ads......")
-pages_to_check = list(range(1, total_page_count + 1))
-page_urls = [
-    f"https://www.pinkbike.com/buysell/list/?region=3&page={x}&category={category_to_scrape}"
-    for x in pages_to_check
-]
-ad_urls = Parallel(n_jobs=num_jobs)(
-    delayed(scraper.get_buysell_ads)(x) for x in tqdm(page_urls)
-)
-ad_urls = ut.flatten(ad_urls)
+    # Iterate through all categories in random order, prevent noticeable patterns?
+    num_categories_scraped = 0
+    for category_to_scrape in np.random.choice(
+        categories_to_scrape, size=len(categories_to_scrape), replace=False
+    ):
+        print(
+            f"*************Starting Category {[x for x,v in cat_dict.items() if v== category_to_scrape]} - Number: {category_to_scrape}. {num_categories_scraped} Categories Scraped So Far"
+        )
 
-# %%
-# Ad data columns
-# ad_data = pd.read_csv("all_mountain_ad_data.csv", index_col=)
-ad_data = pd.DataFrame()
-print(f"Extracting ad data from {len(ad_urls)} ads")
+        # Get total number of pages-----------------------------------------------
+        base_url = f"https://www.pinkbike.com/buysell/list/?region=3&page=1&category={category_to_scrape}"
+        search_results = requests.get(base_url).content
+        soup = BeautifulSoup(search_results, features="html.parser")
+        total_page_count = scraper.get_total_pages(soup)
 
-intermediate_ad_data = Parallel(n_jobs=1)(
-    delayed(scraper.parse_buysell_ad)(ad) for ad in tqdm(ad_urls)
-)
-# for i, url in tqdm(list(enumerate(ad_urls))):
-#     try:
-#         single_ad_data = scraper.parse_buysell_ad(url)
-#     except requests.exceptions.RequestException:
-#         continue
+        if total_page_count == 0:
+            print(search_results)
+            break
 
-#     intermediate_ad_data.append(single_ad_data)
+        # Build List of Ad URLS----------------------------------------------------
+        ad_urls = []
+        print(f"Scraping {total_page_count} pages of ads......")
+        pages_to_check = list(range(1, total_page_count + 1))
+        page_urls = [
+            f"https://www.pinkbike.com/buysell/list/?region=3&page={x}&category={category_to_scrape}"
+            for x in pages_to_check
+        ]
+        ad_urls = Parallel(n_jobs=num_jobs)(
+            delayed(scraper.get_buysell_ads)(x, delay_s=delay_s)
+            for x in tqdm(page_urls)
+        )
+        ad_urls = ut.flatten(ad_urls)
+        # Change region and wait for reconnect before continuing
+        vpn.set_region("random")
+        time.sleep(10)
 
-#     # Progress capture every so often
-#     if i % 100 == 0:
-#         # print(f"Logging ad data at ad {i}")
-#         ad_data = pd.concat([ad_data, pd.DataFrame(intermediate_ad_data)], axis=0)
-#         ad_data.to_csv(f"category_{category_to_scrape}_ad_data.csv", index=False)
-#     # time.sleep(0.1)
+        # Get ad data -----------------------------------------------------------
+        ad_data = pd.DataFrame()
+        print(f"Extracting ad data from {len(ad_urls)} ads")
 
-# Catch remainder
-ad_data = pd.concat([ad_data, pd.DataFrame(intermediate_ad_data)], axis=0)
-ad_data.to_csv(f"category_{category_to_scrape}_ad_data.csv", index=False)
-# %%
+        intermediate_ad_data = Parallel(n_jobs=num_jobs, backend="threading")(
+            delayed(scraper.parse_buysell_ad)(ad, delay_s=delay_s)
+            for ad in tqdm(ad_urls)
+        )
+
+        ad_data = pd.concat([ad_data, pd.DataFrame(intermediate_ad_data)], axis=0)
+        ad_data.to_csv(
+            output_dir.joinpath(f"category_{category_to_scrape}_ad_data.csv"),
+            index=False,
+        )
+        f"*************Finished Category {[x for x,v in cat_dict.items() if v== category_to_scrape]}"
+
+        num_categories_scraped += 1
+        # Change region and wait for reconnect before continuing
+        vpn.set_region("random")
+        time.sleep(10)
