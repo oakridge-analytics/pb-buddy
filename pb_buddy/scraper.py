@@ -34,19 +34,27 @@ def get_buysell_ads(url: str, delay_s: int = 1) -> List[str]:
     return list(set(buysell_ads))
 
 
-def get_total_pages(soup: BeautifulSoup) -> int:
+def get_total_pages(category_num: str, region: int = 3) -> int:
     """Get the total number of pages in the Pinkbike buysell results
+    for a given category number
 
     Parameters
     ----------
-    soup : BeautifulSoup
-        A Beautiful Soup object sorted by relevance for any category
+    category_num : int
+        Category number to grab total number of paes of ads for
+    region : int
+        Region to get results for. Default of 3 is North America.
 
     Returns
     -------
     int
         Total number of pages possible to click through to.
     """
+    # Get total number of pages-----------------------------------------------
+    base_url = f"https://www.pinkbike.com/buysell/list/?region={region}&page=1&category={category_num}"
+    search_results = requests.get(base_url).content
+    soup = BeautifulSoup(search_results, features="html.parser")
+
     largest_page_num = 0
     for link in soup.find_all("a"):
         page_num = re.match(".*page=([0-9]{1,20})", link.get("href"))
@@ -71,7 +79,6 @@ def parse_buysell_ad(buysell_url: str, delay_s: int) -> dict:
     dict
         dictionary with all ad data, plus URL and date scraped.
     """
-    # print("processing ad: ", buysell_url)
     page_request = requests.get(buysell_url)
     if page_request.status_code > 200:
         # raise requests.exceptions.RequestException("Error requesting Ad")
@@ -82,7 +89,11 @@ def parse_buysell_ad(buysell_url: str, delay_s: int) -> dict:
     # Get data about product
     for details in soup.find_all("div", class_="buysell-container details"):
         for tag in details.find_all("b"):
-            data_dict[tag.text] = tag.next_sibling
+            # Still For Sale has a filler element we need to skip to get text
+            if "Still For Sale" in tag.text:
+                data_dict[tag.text] = tag.next_sibling.next_sibling.text
+            else:
+                data_dict[tag.text] = tag.next_sibling
 
     # Get price
     for pricing in soup.find_all("div", class_="buysell-container buysell-price"):
@@ -126,5 +137,5 @@ def parse_buysell_ad(buysell_url: str, delay_s: int) -> dict:
     }
 
     time.sleep(delay_s)
-    
+
     return data_dict
