@@ -18,8 +18,8 @@ import pb_buddy.utils as ut
 
 # %%
 # Settings -----------------------------------------------------------------
-categories_to_scrape = range(1, 101 + 1)
-num_jobs = 8  # Curently only for initial link grab
+categories_to_scrape = range(2, 3)
+num_jobs = os.cpu_count()  # Curently only for initial link grab
 delay_s = 0.0
 use_vpn = False
 
@@ -50,11 +50,19 @@ for category_to_scrape in np.random.choice(
     )
 
     # Get existing open ads and stats of last scrape
-    base_data = pd.read_parquet(os.path.join(
+    base_data_path = os.path.join(
         "data",
         "base_data",
-        f"category_{category_to_scrape}_ad_data.parquet.gzip"))
-    last_scrape_dt = pd.to_datetime(base_data.datetime_scraped).max()
+        f"category_{category_to_scrape}_ad_data.parquet.gzip")
+    if os.path.isfile(base_data_path):
+        base_data = pd.read_parquet(os.path.join(
+            "data",
+            "base_data",
+            f"category_{category_to_scrape}_ad_data.parquet.gzip"))
+        last_scrape_dt = pd.to_datetime(base_data.datetime_scraped).max()
+    else:
+        base_data = pd.DataFrame()
+        last_scrape_dt = pd.to_datetime("01-JAN-1900")
 
     # Get total number of pages-----------------------------------------------
     total_page_count = scraper.get_total_pages(category_to_scrape)
@@ -67,7 +75,7 @@ for category_to_scrape in np.random.choice(
         f"https://www.pinkbike.com/buysell/list/?region=3&page={x}&category={category_to_scrape}"
         for x in pages_to_check
     ]
-    ad_urls = Parallel(n_jobs=1)(
+    ad_urls = Parallel(n_jobs=num_jobs)(
         delayed(scraper.get_buysell_ads)(x, delay_s=delay_s)
         for x in tqdm(page_urls)
     )
@@ -84,7 +92,7 @@ for category_to_scrape in np.random.choice(
     # Only add new ads
     for url in ad_urls:
         single_ad_data = scraper.parse_buysell_ad(url, delay_s=0)
-        display_string = f"\r Checking ad from {single_ad_data['Last Repost Date:']} vs. last scrape date {last_scrape_dt}"
+        display_string = f"\r Checking ad from {single_ad_data['Last Repost Date:'].strip()} vs. last scrape date {last_scrape_dt}"
         print(display_string, sep=' ', end='', flush=True)
         if pd.to_datetime(single_ad_data["Last Repost Date:"]).date() >= \
                 last_scrape_dt.date():
@@ -92,7 +100,7 @@ for category_to_scrape in np.random.choice(
         else:
             print("")
             print(
-                f"Repost datetime of {single_ad_data['Last Repost Date:']} before last scrape on {last_scrape_dt}")
+                f"Repost datetime of {single_ad_data['Last Repost Date:'].strip()} before last scrape on {last_scrape_dt}")
             break
 
     # New ads where not in existing urls
