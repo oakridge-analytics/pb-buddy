@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from tqdm import tqdm
+from tqdm import tqdm, utils
 from joblib import Parallel, delayed
 import os
 import json
@@ -18,7 +18,7 @@ import pb_buddy.utils as ut
 
 # %%
 # Settings -----------------------------------------------------------------
-categories_to_scrape = range(50, 60)
+categories_to_scrape = range(50, 51)
 num_jobs = os.cpu_count()  # Curently only for initial link grab
 delay_s = 0.0
 use_vpn = False
@@ -29,11 +29,6 @@ vpn = PiaVpn()
 vpn.connect(verbose=False, timeout=20)
 vpn.set_region("random")
 time.sleep(15)
-
-# Setup output folder
-folder_name = str(pd.Timestamp("today").date())
-output_dir = Path("data") / folder_name
-os.makedirs(output_dir, exist_ok=True)
 
 # Get category lookup
 with open("category_dict.json", "r") as fh:
@@ -80,9 +75,6 @@ for category_to_scrape in np.random.choice(
         for x in tqdm(page_urls)
     )
     ad_urls = ut.flatten(ad_urls)
-    # Change region and wait for reconnect before continuing
-    # vpn.set_region("random")
-    # time.sleep(10)
 
     # Get new ad data ---------------------------------------------------------
     intermediate_ad_data = []
@@ -167,15 +159,22 @@ for category_to_scrape in np.random.choice(
     print(
         f"Found {len(intermediate_ad_data)} sold ads, {len(urls_to_remove)} removed ads")
 
-    sold_ad_data = pd.concat(
-        [sold_ad_data, pd.DataFrame(intermediate_ad_data)], axis=0)
-    sold_ad_data.to_parquet(
-        sold_data_path,
-        compression="gzip",
-        index=False,
-    )
+    if len(intermediate_ad_data) > 0:
+        sold_ad_data = pd.concat(
+            [sold_ad_data, pd.DataFrame(intermediate_ad_data)], axis=0)
+        sold_ad_data = sold_ad_data.dropna()
+        sold_ad_data = ut.fix_dtypes(sold_ad_data, colnames=[
+            "price", "Watch Count:"], dtype_desired=int)
+        sold_ad_data.to_parquet(
+            sold_data_path,
+            compression="gzip",
+            index=False,
+        )
 
     # remove ads that didn't sell and shouldn't be in anymore ---------------
+    ad_data = ut.fix_dtypes(ad_data, colnames=[
+        "price", "Watch Count:"], dtype_desired=int)
+    ad_data = ad_data.dropna()
     ad_data.loc[~ ad_data.url.isin(urls_to_remove), :].to_parquet(
         base_data_path,
         index=False,
@@ -185,8 +184,6 @@ for category_to_scrape in np.random.choice(
         f"*************Finished Category {[x for x,v in cat_dict.items() if v== category_to_scrape]}")
 
     num_categories_scraped += 1
-    # Change region and wait for reconnect before continuing
-    # vpn.set_region("random")
-    # time.sleep(10)
+
 
 # %%
