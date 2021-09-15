@@ -1,4 +1,5 @@
 from typing import List
+import pandas as pd
 
 
 def convert_to_cad(price: float, currency: str) -> float:
@@ -44,3 +45,21 @@ def flatten(nested_list: List[List]) -> List:
         Flattened list
     """
     return [item for sublist in nested_list for item in sublist]
+
+
+def fix_dtypes(df: pd.DataFrame, colnames: List[str], dtype_desired:int = int):
+    """Convert multiple columns to a given dtype in a Pandas Dataframe
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Dataframe to fix columns dtypes in
+    colnames : List[str]
+        List of columns to change dtype
+    dtype : int, optional
+        Datatype to cast to, by default int
+    """
+    df = df.copy()
+    for col in colnames:
+        df[col] = df[col].astype(dtype_desired)
+    return df
