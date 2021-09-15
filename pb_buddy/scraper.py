@@ -31,7 +31,8 @@ def get_buysell_ads(url: str, delay_s: int = 1) -> List[str]:
             buysell_ads.append(link.get("href"))
 
     time.sleep(delay_s)
-    return list(set(buysell_ads))
+    # Return de duplicated, order maintained
+    return list(dict.fromkeys(buysell_ads))
 
 
 def get_total_pages(category_num: str, region: int = 3) -> int:
