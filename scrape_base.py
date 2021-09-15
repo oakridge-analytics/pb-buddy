@@ -1,17 +1,14 @@
 # %%
-import requests
-from bs4 import BeautifulSoup
 import pandas as pd
 import numpy as np
-from pathlib import Path
-from tqdm import tqdm, utils
+from tqdm import tqdm
 from joblib import Parallel, delayed
 import os
 import json
 import time
 from piapy import PiaVpn
-import seaborn as sns
 import logging
+from typing import List
 
 # Custom code
 import pb_buddy.scraper as scraper
@@ -19,20 +16,21 @@ import pb_buddy.utils as ut
 
 # %%
 # Settings -----------------------------------------------------------------
-categories_to_scrape = range(51, 52)
+categories_to_scrape = range(1, 101 + 1)
 num_jobs = os.cpu_count()  # Curently only for initial link grab
 delay_s = 0.0
 use_vpn = False
 log_level = "INFO"
 
 logging.basicConfig(filename='progress.log', level=getattr(
-    logging, log_level.upper(), None))
+    logging, log_level.upper(), None),
+    format='%(asctime)s %(message)s')
 
 # Setup PIA vpn object for manipulation. Make sure to connect
-vpn = PiaVpn()
-vpn.connect(verbose=False, timeout=20)
-vpn.set_region("random")
-time.sleep(15)
+# vpn = PiaVpn()
+# vpn.connect(verbose=False, timeout=20)
+# vpn.set_region("random")
+# time.sleep(15)
 
 # Get category lookup
 with open("category_dict.json", "r") as fh:
@@ -45,7 +43,7 @@ for category_to_scrape in np.random.choice(
     categories_to_scrape, size=len(categories_to_scrape), replace=False
 ):
     logging.info(
-        f"** ***********Starting Category {[x for x,v in cat_dict.items() if v == category_to_scrape]} \
+        f"**************Starting Category {[x for x,v in cat_dict.items() if v == category_to_scrape]} \
         - Number: {category_to_scrape}. {num_categories_scraped} Categories Scraped So Far"
     )
 
@@ -113,7 +111,7 @@ for category_to_scrape in np.random.choice(
             else:
                 break
 
-    # New ads where not in existing urls
+    # Split out brand new ads, versus updates ------------------
     if len(intermediate_ad_data) == 0:
         continue
     else:
@@ -135,16 +133,26 @@ for category_to_scrape in np.random.choice(
                              .reset_index(drop=True)
                              )
         unchanged_mask = updated_ads[cols_to_check].eq(
-            previous_versions[cols_to_check]).all(1)
+            previous_versions[cols_to_check]).all(axis=1)
         updated_ads = updated_ads.loc[~unchanged_mask.values,:]
 
+        # Log the changes in each field
+        if len(updated_ads) != 0:
+            changelog = pd.read_parquet(
+                "data/changed_data/changed_ad_data.parquet.gzip")
+            changes = ut.generate_changelog(previous_versions.loc[previous_versions.url.isin(updated_ads),:], updated_ads=updated_ads,
+                                            cols_to_check=cols_to_check)
+            logging.info(f"{len(changes)} changes across {len(updated_ads)}")
+            changelog = pd.concat([changelog, changes],
+                                  axis=0).drop_duplicates()
+            changelog.to_parquet(
+                "data/changed_data/changed_ad_data.parquet.gzip", compression="gzip", index=False)
         ad_data = pd.concat(
             [base_data.loc[~base_data.url.isin(updated_ads)],
              updated_ads,
              new_ads], axis=0)
 
     logging.info(f"Adding {len(new_ads)} new ads to base data")
-    logging.info(f"Updating {len(updated_ads)} ads")
 
     # Get sold ad data ------------------------------------------------
     potentially_sold_urls = base_data.loc[~ base_data.url.isin(ad_urls), "url"]
@@ -166,12 +174,15 @@ for category_to_scrape in np.random.choice(
     logging.info(
         f"Found {len(intermediate_sold_ad_data)} sold ads, {len(urls_to_remove)} removed ads")
 
+    # If any sold ads found in normal listings, or missing from new scrape.
+    # Write out to sold ad file.
     if len(intermediate_sold_ad_data) > 0:
         sold_ad_data = pd.concat(
             [sold_ad_data, pd.DataFrame(intermediate_sold_ad_data)], axis=0)
         sold_ad_data = sold_ad_data.dropna()
-        sold_ad_data = ut.fix_dtypes(sold_ad_data, colnames=[
-            "price", "Watch Count:"], dtype_desired=int)
+        sold_ad_data = ut.convert_to_float(sold_ad_data, colnames=[
+            "price", "Watch Count:", "View Count:"])
+        sold_ad_data = ut.cast_obj_to_string(sold_ad_data)
         sold_ad_data.to_parquet(
             sold_data_path,
             compression="gzip",
@@ -180,8 +191,9 @@ for category_to_scrape in np.random.choice(
 
     # remove ads that didn't sell and shouldn't be in anymore ---------------
     ad_data = ad_data.dropna()
-    ad_data = ut.fix_dtypes(ad_data, colnames=[
-        "price", "Watch Count:"], dtype_desired=int)
+    ad_data = ut.convert_to_float(ad_data, colnames=[
+        "price", "Watch Count:", "View Count:"])
+    ad_data = ut.cast_obj_to_string(ad_data)
     ad_data.loc[~ ad_data.url.isin(urls_to_remove), :].to_parquet(
         base_data_path,
         index=False,
