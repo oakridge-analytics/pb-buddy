@@ -94,7 +94,7 @@ def parse_buysell_ad(buysell_url: str, delay_s: int) -> dict:
             if "Still For Sale" in tag.text:
                 data_dict[tag.text] = tag.next_sibling.next_sibling.text
             else:
-                data_dict[tag.text] = tag.next_sibling
+                data_dict[tag.text] = tag.next_sibling.text
 
     # Get price
     for pricing in soup.find_all("div", class_="buysell-container buysell-price"):
