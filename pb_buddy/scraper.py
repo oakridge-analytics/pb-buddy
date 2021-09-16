@@ -102,7 +102,7 @@ def parse_buysell_ad(buysell_url: str, delay_s: int) -> dict:
         # Grab price and currency. In case of issue, store None and handle downstream
         price_search = re.search("([\d,]+)", pricing.text)
         if price_search is not None:
-            data_dict["price"] = price_search.group(0)
+            data_dict["price"] = float(price_search.group(0).replace(",",""))
         else:
             data_dict["price"] = None
 

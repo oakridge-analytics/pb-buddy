@@ -126,7 +126,9 @@ def generate_changelog(previous_ads:pd.DataFrame, updated_ads:pd.DataFrame, cols
     for url in previous_ads.url:
         for col in cols_to_check:
             old_value = previous_ads.loc[previous_ads.url == url, col]
-            new_value = updated_ads.loc[updated_ads.url == url, col]
+            old_dtype = old_value.dtype
+            new_value = updated_ads.loc[updated_ads.url == url, col].astype(
+                old_dtype)
             category = previous_ads.loc[previous_ads.url == url, "Category:"]
             update_date = pd.to_datetime(
                 updated_ads.loc[updated_ads.url == url, "Last Repost Date:"]).dt.date
