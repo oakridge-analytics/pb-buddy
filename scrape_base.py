@@ -146,7 +146,8 @@ for category_to_scrape in np.random.choice(
         # Log the changes in each field
         if len(updated_ads) != 0:
             changelog = pd.read_parquet(
-                os.path.join("data/","/changed_ad_data.parquet.gzip"),
+                os.path.join("data","changed_data",
+                             "changed_ad_data.parquet.gzip"),
                 engine="pyarrow")
             changes = ut.generate_changelog(
                 previous_versions.loc[previous_versions.url.isin(
