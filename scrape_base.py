@@ -24,7 +24,7 @@ log_level = "INFO"
 logging.basicConfig(
     filename=os.path.join(
         "logs", "scrape.log"),
-    # filemode="w",
+    filemode="w",
     level=getattr(logging, log_level.upper(), None),
     format='%(asctime)s %(message)s')
 
