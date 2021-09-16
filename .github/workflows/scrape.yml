@@ -21,13 +21,14 @@ jobs:
           activate-environment: pb-buddy
           environment-file: environment.yaml
           python-version: 3.8
-          # auto-activate-base: false
+          auto-activate-base: false
       - name: Set env vars
         run: |
           echo "DATE=$(python -c 'import datetime as dt; print((dt.datetime.now()).date())')" >> $GITHUB_ENV
       - name: Log env
         run: env
       - name: Run Scraper
+        shell: bash -l {0}
         run: python scrape_base.py
       - name: Commit files
         run: |
