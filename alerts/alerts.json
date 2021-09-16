@@ -1,37 +1,20 @@
 {
     "alerts": [
         {
-            "category_num": 102,
-            "alert_name": "Carbon Trail Bikes",
-            "search_string": "price > 3000 and price < 5000 and material.str.contains('Carbon') and location.str.contains('Canada') and (restrictions.str.contains('within') or restrictions.str.contains('globally')) and frame_size.str.contains('M') and (front_travel.str.contains('140') or front_travel.str.contains('130')) and (ad_title.str.contains('2019') or ad_title.str.contains('2020') or ad_title.str.contains('2021'))",
+            "category_num": 2,
+            "alert_name": "Carbon Instincts",
+            "search_string": "price > 3000 and price < 5000 and material.str.contains('Carbon') and ad_title.str.contains('Instinct')",
             "email_stem": "dustin.brown.andrews",
             "email_domain": "@gmail.com",
-            "last_checked": "2024-08-31 16:21:01.893826-06:00"
+            "last_checked": "2021-09-15 12:00"
         },
         {
             "category_num": 2,
-            "alert_name": "Carbon Enduro Bikes",
-            "search_string": "price > 3000 and price < 5000 and material.str.contains('Carbon') and location.str.contains('Canada') and (restrictions.str.contains('within') or restrictions.str.contains('globally')) and frame_size.str.contains('M') and (front_travel.str.contains('140') or front_travel.str.contains('130')) and (ad_title.str.contains('2019') or ad_title.str.contains('2020') or ad_title.str.contains('2021'))",
+            "alert_name": "Cheap Instincts",
+            "search_string": "price < 3000 and ad_title.str.contains('Instinct')",
             "email_stem": "dustin.brown.andrews",
             "email_domain": "@gmail.com",
-            "last_checked": "2024-08-31 16:21:05.360493-06:00"
-        },
-        {
-            "category_num": 2,
-            "alert_name": "Enduro Bike Good Deals",
-            "search_string": "material.str.contains('Carbon') and price > 3000 and price < 4000 and location.str.contains('Canada') and frame_size.str.contains('M') and (ad_title.str.contains('2019') or ad_title.str.contains('2020') or ad_title.str.contains('2021'))",
-            "price_search_string": "pred_price_diff > 500",
-            "email_stem": "dustin.brown.andrews",
-            "email_domain": "@gmail.com",
-            "last_checked": "2024-08-31 16:21:09.261017-06:00"
-        },
-        {
-            "category_num": 12,
-            "alert_name": "Craig Wheels Alert",
-            "search_string": "location.str.contains('Calgary|Edmonton|Canmore') and wheel_size == '29\"' and rear_axle.str.contains('12 x 148')",
-            "email_stem": "CraigcLogan",
-            "email_domain": "@outlook.com",
-            "last_checked": "2024-08-31 16:21:11.649205-06:00"
+            "last_checked": "2021-09-15 12:00"
         }
     ]
 }
