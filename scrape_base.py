@@ -10,10 +10,11 @@ import logging
 # Custom code
 import pb_buddy.scraper as scraper
 import pb_buddy.utils as ut
+import pb_buddy.data_processors as dt
 
 # %%
 # Settings -----------------------------------------------------------------
-categories_to_scrape = range(100, 101 + 1)
+categories_to_scrape = range(2, 2 + 1)
 num_jobs = os.cpu_count()  # Curently only for initial link grab
 delay_s = 0.0
 log_level = "INFO"
@@ -40,9 +41,10 @@ num_categories_scraped = 0
 for category_to_scrape in np.random.choice(
     categories_to_scrape, size=len(categories_to_scrape), replace=False
 ):
+    category_name = [x for x,v in cat_dict.items()
+                     if v == category_to_scrape][0]
     logging.info(
-        f"**************Starting Category {[x for x,v in cat_dict.items() if v == category_to_scrape]} \
-        - Number: {category_to_scrape}. {num_categories_scraped} Categories Scraped So Far"
+        f"**************Starting Category {category_name} - Number: {category_to_scrape}. {num_categories_scraped} Categories Scraped So Far"
     )
 
     # Get existing open ads and stats of last scrape
@@ -55,6 +57,7 @@ for category_to_scrape in np.random.choice(
             "data",
             "base_data",
             f"category_{category_to_scrape}_ad_data.parquet.gzip"))
+        base_data = dt.get_latest_by_scrape_dt(base_data)
         last_scrape_dt = pd.to_datetime(base_data.datetime_scraped).max()
     else:
         base_data = pd.DataFrame()
@@ -69,8 +72,9 @@ for category_to_scrape in np.random.choice(
     intermediate_sold_ad_data = []
     if os.path.isfile(sold_data_path):
         sold_ad_data = pd.read_parquet(sold_data_path)
+
     else:
-        sold_ad_data = pd.DataFrame()
+        sold_ad_data = pd.DataFrame({"url":[]})
 
     # Get total number of pages of ads-----------------------------------------------
     total_page_count = scraper.get_total_pages(category_to_scrape)
@@ -146,9 +150,11 @@ for category_to_scrape in np.random.choice(
                 updated_ads=updated_ads,
                 cols_to_check=cols_to_check
             )
-            logging.info(f"{len(changes)} changes across {len(updated_ads)}")
+            logging.info(
+                f"{len(changes)} changes across {len(updated_ads)} ads")
             changelog = pd.concat([changelog, changes],
                                   axis=0).drop_duplicates()
+            changelog = ut.cast_obj_to_string(changelog)
             changelog.to_parquet(
                 "data/changed_data/changed_ad_data.parquet.gzip", compression="gzip", index=False)
         ad_data = pd.concat(
@@ -159,18 +165,22 @@ for category_to_scrape in np.random.choice(
     logging.info(f"Adding {len(new_ads)} new ads to base data")
 
     # Get sold ad data ------------------------------------------------
-    potentially_sold_urls = base_data.loc[~ base_data.url.isin(ad_urls), "url"]
-
+    potentially_sold_urls = (
+        base_data
+        .loc[~ base_data.url.isin(ad_urls), "url"]
+        .dropna()
+    )
     # Rescrape sold ads to make sure, check for "SOLD"
     logging.info(
         f"Extracting ad data from {len(potentially_sold_urls)} potentially sold ads")
 
     # Do sequentially and check datetime of last scrape
-    # Only add new ads. Removed ads won't return a usable page
+    # Only add new ads. Removed ads won't return a usable page.
     urls_to_remove = []
     for url in tqdm(potentially_sold_urls):
         single_ad_data = scraper.parse_buysell_ad(url, delay_s=0)
-        if single_ad_data and "sold" in single_ad_data["Still For Sale:"].lower():
+        if single_ad_data and "sold" in single_ad_data["Still For Sale:"].lower() \
+                and single_ad_data not in sold_ad_data.url:
             intermediate_sold_ad_data.append(single_ad_data)
         else:
             urls_to_remove.append(url)
@@ -179,11 +189,12 @@ for category_to_scrape in np.random.choice(
         f"Found {len(intermediate_sold_ad_data)} sold ads, {len(urls_to_remove)} removed ads")
 
     # If any sold ads found in normal listings, or missing from new scrape.
-    # Write out to sold ad file.
+    # Write out to sold ad file. Deduplicate just in case
     if len(intermediate_sold_ad_data) > 0:
         sold_ad_data = pd.concat(
             [sold_ad_data, pd.DataFrame(intermediate_sold_ad_data)], axis=0)
         sold_ad_data = sold_ad_data.dropna()
+        sold_ad_data = dt.get_latest_by_scrape_dt(sold_ad_data)
         sold_ad_data = ut.convert_to_float(sold_ad_data, colnames=[
             "price", "Watch Count:", "View Count:"])
         sold_ad_data = ut.cast_obj_to_string(sold_ad_data)
@@ -204,6 +215,6 @@ for category_to_scrape in np.random.choice(
         compression="gzip"
     )
     logging.info(
-        f"*************Finished Category {[x for x,v in cat_dict.items() if v== category_to_scrape]}")
+        f"*************Finished Category {category_name}")
 
     num_categories_scraped += 1
