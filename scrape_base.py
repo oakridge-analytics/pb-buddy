@@ -14,22 +14,17 @@ import pb_buddy.data_processors as dt
 
 # %%
 # Settings -----------------------------------------------------------------
-categories_to_scrape = range(2, 2 + 1)
+categories_to_scrape = range(100, 100 + 1)
 num_jobs = os.cpu_count()  # Curently only for initial link grab
 delay_s = 0.0
 log_level = "INFO"
 
 logging.basicConfig(
     filename=os.path.join(
-        "logs", pd.Timestamp.now().strftime("%Y_%m_%d_%H_%M") + '.log'),
+        "logs", "scrape.log"),
+    filemode="w",
     level=getattr(logging, log_level.upper(), None),
     format='%(asctime)s %(message)s')
-
-# Setup PIA vpn object for manipulation. Make sure to connect
-# vpn = PiaVpn()
-# vpn.connect(verbose=False, timeout=20)
-# vpn.set_region("random")
-# time.sleep(15)
 
 # Get category lookup
 with open("category_dict.json", "r") as fh:
@@ -143,7 +138,7 @@ for category_to_scrape in np.random.choice(
         # Log the changes in each field
         if len(updated_ads) != 0:
             changelog = pd.read_parquet(
-                "data/changed_data/changed_ad_data.parquet.gzip")
+                "data/","/changed_ad_data.parquet.gzip")
             changes = ut.generate_changelog(
                 previous_versions.loc[previous_versions.url.isin(
                     updated_ads.url),:],
@@ -156,7 +151,11 @@ for category_to_scrape in np.random.choice(
                                   axis=0).drop_duplicates()
             changelog = ut.cast_obj_to_string(changelog)
             changelog.to_parquet(
-                "data/changed_data/changed_ad_data.parquet.gzip", compression="gzip", index=False)
+                os.path.join(
+                    "data","changed_data","changed_ad_data.parquet.gzip"),
+                compression="gzip",
+                index=False)
+
         ad_data = pd.concat(
             [base_data.loc[(~base_data.url.isin(updated_ads.url)) & (~base_data.url.isin(sold_ad_data.url)),:],
              updated_ads,

@@ -66,7 +66,9 @@ def convert_to_float(df: pd.DataFrame, colnames: List[str]) -> pd.DataFrame:
     df = df.copy()
     for col in colnames:
         df[col] = df.loc[:,col].fillna("0")
-        df[col] = df[col].astype(str).str.replace(",","").astype(float)
+        # Replace all non digits or decimal
+        df[col] = df[col].astype(str).str.replace(
+            "[^\d.]","", regex=True).astype(float)
     return df
 
 
