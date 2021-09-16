@@ -14,7 +14,7 @@ import pb_buddy.data_processors as dt
 
 # %%
 # Settings -----------------------------------------------------------------
-categories_to_scrape = range(1, 100 + 1)
+categories_to_scrape = range(100, 100 + 1)
 num_jobs = os.cpu_count()  # Curently only for initial link grab
 delay_s = 0.0
 log_level = "INFO"
@@ -179,7 +179,7 @@ for category_to_scrape in np.random.choice(
     for url in tqdm(potentially_sold_urls):
         single_ad_data = scraper.parse_buysell_ad(url, delay_s=0)
         if single_ad_data and "sold" in single_ad_data["Still For Sale:"].lower() \
-                and single_ad_data not in sold_ad_data.url:
+                and single_ad_data["url"] not in sold_ad_data.url:
             intermediate_sold_ad_data.append(single_ad_data)
         else:
             urls_to_remove.append(url)
