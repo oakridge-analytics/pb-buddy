@@ -24,7 +24,8 @@ def get_latest_by_scrape_dt(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def get_category_base_data(category_num: int) -> pd.DataFrame:
-    """Get active ad data for a given category number.
+    """Get active ad data for a given category number. Normalizes column 
+    names into nicer forms.
 
     Parameters
     ----------
@@ -36,15 +37,17 @@ def get_category_base_data(category_num: int) -> pd.DataFrame:
     pd.DataFrame
         Dataframe of existing data for given category
     """
-    return (
-        pd.read_parquet(
-            f"data/base_data/category_{category_num}_ad_data.parquet.gzip",
-        )
+    df = pd.read_parquet(
+        f"data/base_data/category_{category_num}_ad_data.parquet.gzip",
     )
+    df.columns = [x.replace(":","").replace(" ","_").lower()
+                  for x in df.columns]
+    return df
 
 
 def get_category_sold_data(category_num: int) -> pd.DataFrame:
-    """Get sold ad data for the category.
+    """Get sold ad data for the category. Normalizes column 
+    names into nicer forms.
 
     Parameters
     ----------
@@ -56,8 +59,9 @@ def get_category_sold_data(category_num: int) -> pd.DataFrame:
     pd.DataFrame
         Sold ad data
     """
-    return (
-        pd.read_parquet(
-            f"data/sold_ads/category_{category_num}_sold_ad_data.parquet.gzip",
-        )
+    df = pd.read_parquet(
+        f"data/sold_ads/category_{category_num}_sold_ad_data.parquet.gzip",
     )
+    df.columns = [x.replace(":","").replace(" ","_").lower()
+                  for x in df.columns]
+    return df
