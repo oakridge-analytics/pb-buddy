@@ -39,8 +39,12 @@ num_categories_scraped = 0
 for category_to_scrape in np.random.choice(
     categories_to_scrape, size=len(categories_to_scrape), replace=False
 ):
+    # Get category, some don't have entries so skip to next.(category 10 etc.)
     category_name = [x for x,v in cat_dict.items()
-                     if v == category_to_scrape][0]
+                     if v == category_to_scrape]
+    if not category_name:
+        continue
+
     logging.info(
         f"**************Starting Category {category_name} - Number: {category_to_scrape}. {num_categories_scraped} Categories Scraped So Far"
     )
