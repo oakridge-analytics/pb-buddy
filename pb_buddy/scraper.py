@@ -127,7 +127,7 @@ def parse_buysell_ad(buysell_url: str, delay_s: int) -> dict:
             data_dict["location"] = location
 
     # Add scrape datetime
-    data_dict["datetime_scraped"] = str(pd.Timestamp.today())
+    data_dict["datetime_scraped"] = str(pd.Timestamp.today(tz="US/Mountain"))
     data_dict["url"] = buysell_url
 
     # Clean whitespace a little:

@@ -2,7 +2,7 @@ name: Scrape
 
 on:
   schedule:
-    - cron: "23 8 * * *"
+    - cron: "23 6,12,18 * * *"
   workflow_dispatch:
 
 env:
@@ -30,6 +30,12 @@ jobs:
       - name: Run Scraper
         shell: bash -l {0}
         run: python scrape_base.py
+      # - name: Email alerts
+      #   shell: bash -l {0}
+      #   run: python email_alerts.py
+      #   env: 
+      #     HOTMAIL_USER: ${{secrets.HOTMAIL_USER}}
+      #     HOTMAIL_PASS: ${{secrets.HOTMAIL_PASS}}
       - name: Commit files
         run: |
           git config --local user.email "action@github.com"
