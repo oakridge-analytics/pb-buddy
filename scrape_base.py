@@ -14,11 +14,13 @@ import pb_buddy.data_processors as dt
 
 # %%
 # Settings -----------------------------------------------------------------
-categories_to_scrape = range(100, 100 + 1)
+categories_to_scrape = range(1, 101 + 1)
 num_jobs = os.cpu_count()  # Curently only for initial link grab
 delay_s = 0.0
 log_level = "INFO"
 
+
+# Config main settings -----------------------------------------------
 logging.basicConfig(
     filename=os.path.join(
         "logs", "scrape.log"),
@@ -32,6 +34,7 @@ with open("category_dict.json", "r") as fh:
 
 # Main loop --------------------------------------------------
 # Iterate through all categories in random order, prevent noticeable patterns?
+logging.info("######## Starting new scrape session #########")
 num_categories_scraped = 0
 for category_to_scrape in np.random.choice(
     categories_to_scrape, size=len(categories_to_scrape), replace=False
@@ -217,3 +220,6 @@ for category_to_scrape in np.random.choice(
         f"*************Finished Category {category_name}")
 
     num_categories_scraped += 1
+
+
+logging.info("######## Finished scrape session #########")
