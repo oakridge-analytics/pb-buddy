@@ -39,8 +39,12 @@ num_categories_scraped = 0
 for category_to_scrape in np.random.choice(
     categories_to_scrape, size=len(categories_to_scrape), replace=False
 ):
+    # Get category, some don't have entries so skip to next.(category 10 etc.)
     category_name = [x for x,v in cat_dict.items()
-                     if v == category_to_scrape][0]
+                     if v == category_to_scrape]
+    if not category_name:
+        continue
+
     logging.info(
         f"**************Starting Category {category_name} - Number: {category_to_scrape}. {num_categories_scraped} Categories Scraped So Far"
     )
@@ -54,7 +58,8 @@ for category_to_scrape in np.random.choice(
         base_data = pd.read_parquet(os.path.join(
             "data",
             "base_data",
-            f"category_{category_to_scrape}_ad_data.parquet.gzip"))
+            f"category_{category_to_scrape}_ad_data.parquet.gzip"),
+            engine="pyarrow")
         base_data = dt.get_latest_by_scrape_dt(base_data)
         last_scrape_dt = pd.to_datetime(base_data.datetime_scraped).max()
     else:
@@ -69,7 +74,7 @@ for category_to_scrape in np.random.choice(
     )
     intermediate_sold_ad_data = []
     if os.path.isfile(sold_data_path):
-        sold_ad_data = pd.read_parquet(sold_data_path)
+        sold_ad_data = pd.read_parquet(sold_data_path, engine="pyarrow")
 
     else:
         sold_ad_data = pd.DataFrame({"url":[]})
@@ -141,7 +146,9 @@ for category_to_scrape in np.random.choice(
         # Log the changes in each field
         if len(updated_ads) != 0:
             changelog = pd.read_parquet(
-                "data/","/changed_ad_data.parquet.gzip")
+                os.path.join("data","changed_data",
+                             "changed_ad_data.parquet.gzip"),
+                engine="pyarrow")
             changes = ut.generate_changelog(
                 previous_versions.loc[previous_versions.url.isin(
                     updated_ads.url),:],
@@ -157,7 +164,9 @@ for category_to_scrape in np.random.choice(
                 os.path.join(
                     "data","changed_data","changed_ad_data.parquet.gzip"),
                 compression="gzip",
-                index=False)
+                index=False,
+                engine="pyarrow"
+            )
 
         ad_data = pd.concat(
             [base_data.loc[(~base_data.url.isin(updated_ads.url)) & (~base_data.url.isin(sold_ad_data.url)),:],
@@ -204,6 +213,7 @@ for category_to_scrape in np.random.choice(
             sold_data_path,
             compression="gzip",
             index=False,
+            engine="pyarrow"
         )
 
     # remove ads that didn't sell and shouldn't be in anymore ---------------
@@ -214,7 +224,8 @@ for category_to_scrape in np.random.choice(
     ad_data.loc[~ ad_data.url.isin(urls_to_remove), :].to_parquet(
         base_data_path,
         index=False,
-        compression="gzip"
+        compression="gzip",
+        engine="pyarrow"
     )
     logging.info(
         f"*************Finished Category {category_name}")
