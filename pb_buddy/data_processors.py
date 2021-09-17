@@ -3,7 +3,8 @@ import pandas as pd
 
 def get_latest_by_scrape_dt(df: pd.DataFrame) -> pd.DataFrame:
     """Get latest rows for each 'url' sorted by 'datetime_scraped'.
-    For deduplicating ad data.
+    For deduplicating ad data. Converts datetime_scraped to UTC, then Mountain 
+    time zone for consistent comparisons.
 
     Parameters
     ----------
@@ -17,7 +18,7 @@ def get_latest_by_scrape_dt(df: pd.DataFrame) -> pd.DataFrame:
     """
     return (
         df
-        .assign(datetime_scraped=lambda x: pd.to_datetime(x.datetime_scraped))
+        .assign(datetime_scraped=lambda x: pd.to_datetime(x.datetime_scraped,utc=True).dt.tz_convert("US/Mountain"))
         .sort_values("datetime_scraped", ascending=False)
         .drop_duplicates(subset="url")
     )
