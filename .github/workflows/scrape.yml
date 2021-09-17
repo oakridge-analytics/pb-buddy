@@ -27,15 +27,15 @@ jobs:
           echo "DATE=$(python -c 'import datetime as dt; print((dt.datetime.now()).date())')" >> $GITHUB_ENV
       - name: Log env
         run: env
-      - name: Run Scraper
-        shell: bash -l {0}
-        run: python scrape_base.py
-      # - name: Email alerts
+      # - name: Run Scraper
       #   shell: bash -l {0}
-      #   run: python email_alerts.py
-      #   env: 
-      #     HOTMAIL_USER: ${{secrets.HOTMAIL_USER}}
-      #     HOTMAIL_PASS: ${{secrets.HOTMAIL_PASS}}
+      #   run: python scrape_base.py
+      - name: Email alerts
+        shell: bash -l {0}
+        run: python email_alerts.py
+        env: 
+          HOTMAIL_USER: ${{secrets.HOTMAIL_USER}}
+          HOTMAIL_PASS: ${{secrets.HOTMAIL_PASS}}
       - name: Commit files
         run: |
           git config --local user.email "action@github.com"
