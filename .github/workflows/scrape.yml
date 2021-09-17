@@ -24,7 +24,7 @@ jobs:
           auto-activate-base: false
       - name: Set env vars
         run: |
-          echo "DATE=$(python -c 'import datetime as dt; print((dt.datetime.now()).date())')" >> $GITHUB_ENV
+          echo "DATE=$(python -c 'import datetime as dt; print((dt.datetime.now()))')" >> $GITHUB_ENV
       - name: Log env
         run: env
       - name: Run Scraper
