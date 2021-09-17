@@ -8,7 +8,7 @@ import os
 
 def email_df(df: pd.DataFrame, email_to: str, email_subject: str):
     """Email a pandas Dataframe as an HTML table to a specific
-    recipient. Relies on environment variables being set to handle
+    recipient using Hotmail(Outlook) SMTP server. Relies on environment variables being set to handle
     sender's email and password.
 
     Required env variables:
