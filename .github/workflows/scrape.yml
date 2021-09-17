@@ -2,7 +2,7 @@ name: Scrape
 
 on:
   schedule:
-    - cron: "23 6,12,18 * * *"
+    - cron: "23 13,19,23 * * *"
   workflow_dispatch:
 
 env:
@@ -27,9 +27,9 @@ jobs:
           echo "DATE=$(python -c 'import datetime as dt; print((dt.datetime.now()).date())')" >> $GITHUB_ENV
       - name: Log env
         run: env
-      # - name: Run Scraper
-      #   shell: bash -l {0}
-      #   run: python scrape_base.py
+      - name: Run Scraper
+        shell: bash -l {0}
+        run: python scrape_base.py
       - name: Email alerts
         shell: bash -l {0}
         run: python email_alerts.py
@@ -42,6 +42,7 @@ jobs:
           git config --local user.name "GitHub Action"        
           git add data/
           git add logs/
+          git add alerts/
           git commit -m "Add data for $DATE"
       - name: Push changes
         uses: ad-m/github-push-action@master
