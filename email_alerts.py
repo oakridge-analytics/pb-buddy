@@ -16,24 +16,39 @@ for alert in alerts["alerts"]:
     df = dt.get_category_base_data(alert["category_num"])
     last_check_dt = pd.to_datetime(
         alert['last_checked'],utc=True).tz_convert("US/Mountain")
-    # Check for matches in recent data
-    filtered_df = df.query(alert["search_string"])
-    filtered_df = (
-        filtered_df
-        .assign(
-            datetime_scraped=lambda x: pd.to_datetime(
-                x.datetime_scraped, utc=True).dt.tz_convert("US/Mountain")
+    # Check for matches in recent data.
+    # Handle query errors and provide some sort of feedback in email.
+    try:
+        filtered_df = df.query(alert["search_string"])
+        filtered_df = (
+            filtered_df
+            .assign(
+                datetime_scraped=lambda x: pd.to_datetime(
+                    x.datetime_scraped, utc=True).dt.tz_convert("US/Mountain")
+            )
+            .query("datetime_scraped > @last_check_dt")
+            [["url", "ad_title", "price","currency","location", "last_repost_date"]]
         )
-        .query("datetime_scraped > @last_check_dt")
-        [["url", "ad_title", "price","currency", "last_repost_date"]]
-    )
+        error_message = None
+    except pd.core.computation.ops.UndefinedVariableError:
+        error_message = "Check all columns in alert are spelled correctly!"
+        filtered_df = pd.DataFrame(
+            {"error":"Check alert search string definition"})
+    except AttributeError:
+        error_message = ("Ensure you are using Pandas query syntax"
+                         " correctly and '.str' accesor only on string columns!")
+        filtered_df = pd.DataFrame(
+            {"error":"Check alert search string definition"})
 
-    timestamp = pd.Timestamp.now(
-        tz='US/Mountain').strftime('%Y-%m-%d %H:%M')
+    timestamp = str(pd.Timestamp.now(tz='US/Mountain'))
 
     if len(filtered_df) != 0:
         target_email = alert["email_stem"] + alert["email_domain"]
-        email_subject = f"{alert['alert_name']} alert updates at {timestamp} US/Mtn time"
+
+        if error_message is not None:
+            email_subject = error_message
+        else:
+            email_subject = f"{alert['alert_name']} alert updates at {timestamp} US/Mtn time"
         et.email_df(filtered_df,
                     email_to=target_email,
                     email_subject=email_subject)
