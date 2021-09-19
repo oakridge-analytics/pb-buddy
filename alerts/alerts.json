@@ -1,1 +1,36 @@
-{"alerts": [{"category_num": 2, "alert_name": "Carbon Instincts", "search_string": "price > 3000 and price < 5000 and material.str.contains('Carbon') and ad_title.str.contains('Instinct')", "email_stem": "dustin.brown.andrews", "email_domain": "@gmail.com", "last_checked": "2021-09-19 13:53"}, {"category_num": 2, "alert_name": "Cheap Instincts", "search_string": "price < 3000 and ad_title.str.contains('Instinct')", "email_stem": "dustin.brown.andrews", "email_domain": "@gmail.com", "last_checked": "2021-09-19 13:53"}, {"category_num": 2, "alert_name": "Sights Alert", "search_string": "ad_title.str.contains('Sight') and ad_title.str.contains('7.4') ", "email_stem": "bvmcknight", "email_domain": "@icloud.com", "last_checked": "2021-09-19 13:53"}, {"category_num": 2, "alert_name": "Sights Alert Tracker", "search_string": "ad_title.str.contains('Sight') and ad_title.str.contains('7.4') ", "email_stem": "dustin.brown.andrews", "email_domain": "@gmail.com", "last_checked": "2021-09-19 13:53"}]}
+{
+    "alerts": [
+        {
+            "category_num": 2,
+            "alert_name": "Carbon Instincts",
+            "search_string": "price > 3000 and price < 5000 and material.str.contains('Carbon') and ad_title.str.contains('Instinct') and location.str.contains('Canada')",
+            "email_stem": "dustin.brown.andrews",
+            "email_domain": "@gmail.com",
+            "last_checked": "2021-09-19 15:23:13.616402-06:00"
+        },
+        {
+            "category_num": 2,
+            "alert_name": "Cheap Instincts",
+            "search_string": "price < 3000 and ad_title.str.contains('Instinct')",
+            "email_stem": "dustin.brown.andrews",
+            "email_domain": "@gmail.com",
+            "last_checked": "2021-09-19 15:23:13.695563-06:00"
+        },
+        {
+            "category_num": 2,
+            "alert_name": "Sights Alert",
+            "search_string": "ad_title.str.contains('Sight') and ad_title.str.contains('7.4') ",
+            "email_stem": "bvmcknight",
+            "email_domain": "@icloud.com",
+            "last_checked": "2021-09-19 15:23:13.756887-06:00"
+        },
+        {
+            "category_num": 2,
+            "alert_name": "Sights Alert Tracker",
+            "search_string": "ad_title.str.contains('Sight') and ad_title.str.contains('7.4') ",
+            "email_stem": "dustin.brown.andrews",
+            "email_domain": "@gmail.com",
+            "last_checked": "2021-09-19 15:23:13.833895-06:00"
+        }
+    ]
+}
