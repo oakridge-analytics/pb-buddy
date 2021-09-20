@@ -92,9 +92,9 @@ def parse_buysell_ad(buysell_url: str, delay_s: int) -> dict:
         for tag in details.find_all("b"):
             # Still For Sale has a filler element we need to skip to get text
             if "Still For Sale" in tag.text:
-                data_dict[tag.text] = tag.next_sibling.next_sibling.text
+                data_dict[tag.text] = str(tag.next_sibling.next_sibling)
             else:
-                data_dict[tag.text] = tag.next_sibling.text
+                data_dict[tag.text] = str(tag.next_sibling)
 
     # Get price
     for pricing in soup.find_all("div", class_="buysell-container buysell-price"):
