@@ -16,6 +16,6 @@ dependencies:
   - joblib
   - pyarrow
   - pip:
-    -python-dotenv
-    -certifi
-    -pymongo[srv]
+    - python-dotenv
+    - certifi
+    - pymongo[srv]
