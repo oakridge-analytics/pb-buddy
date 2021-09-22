@@ -13,7 +13,7 @@ alerts = json.load(open(os.path.join("alerts","alerts.json")))
 
 # %%
 for alert in alerts["alerts"]:
-    df = dt.get_category_base_data(alert["category_num"])
+    df = dt.get_dataset(alert["category_num"], data_type="base")
     last_check_dt = pd.to_datetime(
         alert['last_checked'],utc=True).tz_convert("US/Mountain")
     # Check for matches in recent data.

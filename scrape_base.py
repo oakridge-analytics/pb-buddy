@@ -4,13 +4,13 @@ import numpy as np
 from tqdm import tqdm
 from joblib import Parallel, delayed
 import os
-import json
 import logging
 
 # Custom code
 import pb_buddy.scraper as scraper
 import pb_buddy.utils as ut
 import pb_buddy.data_processors as dt
+from pb_buddy.resources import category_dict
 
 # %%
 # Settings -----------------------------------------------------------------
@@ -28,19 +28,20 @@ logging.basicConfig(
     level=getattr(logging, log_level.upper(), None),
     format='%(asctime)s %(message)s')
 
-# Get category lookup
-with open("category_dict.json", "r") as fh:
-    cat_dict = json.load(fh)
-
+# Setup ------------------------------------------------------------
+logging.info("######## Starting new scrape session #########")
+all_base_data = dt.get_dataset(category_num=-1, data_type="base")
+all_sold_data = dt.get_dataset(category_num=-1, data_type="sold")
+logging.info("All previous data loaded from MongoDB")
 # Main loop --------------------------------------------------
 # Iterate through all categories in random order, prevent noticeable patterns?
-logging.info("######## Starting new scrape session #########")
+
 num_categories_scraped = 0
 for category_to_scrape in np.random.choice(
     categories_to_scrape, size=len(categories_to_scrape), replace=False
 ):
     # Get category, some don't have entries so skip to next.(category 10 etc.)
-    category_name = [x for x,v in cat_dict.items()
+    category_name = [x for x,v in category_dict.items()
                      if v == category_to_scrape]
     if not category_name:
         continue
@@ -50,34 +51,15 @@ for category_to_scrape in np.random.choice(
     )
 
     # Get existing open ads and stats of last scrape
-    base_data_path = os.path.join(
-        "data",
-        "base_data",
-        f"category_{category_to_scrape}_ad_data.parquet.gzip")
-    if os.path.isfile(base_data_path):
-        base_data = pd.read_parquet(os.path.join(
-            "data",
-            "base_data",
-            f"category_{category_to_scrape}_ad_data.parquet.gzip"),
-            engine="pyarrow")
-        base_data = dt.get_latest_by_scrape_dt(base_data)
-        last_scrape_dt = pd.to_datetime(base_data.datetime_scraped).max()
-    else:
-        base_data = pd.DataFrame()
+    base_data = all_base_data.query("category_num == @category_to_scrape")
+    if len(base_data) == 0:
         last_scrape_dt = pd.to_datetime("01-JAN-1900")
+    else:
+        last_scrape_dt = pd.to_datetime(base_data.datetime_scraped).max()
 
     # Setup for sold ad data
-    sold_data_path = os.path.join(
-        "data",
-        "sold_ads",
-        f"category_{category_to_scrape}_sold_ad_data.parquet.gzip"
-    )
+    sold_ad_data = all_sold_data.query("category_num == @category_to_scrape")
     intermediate_sold_ad_data = []
-    if os.path.isfile(sold_data_path):
-        sold_ad_data = pd.read_parquet(sold_data_path, engine="pyarrow")
-
-    else:
-        sold_ad_data = pd.DataFrame({"url":[]})
 
     # Get total number of pages of ads-----------------------------------------------
     total_page_count = scraper.get_total_pages(category_to_scrape)
@@ -108,10 +90,10 @@ for category_to_scrape in np.random.choice(
     for url in tqdm(ad_urls):
         single_ad_data = scraper.parse_buysell_ad(url, delay_s=0)
         if single_ad_data != {}:
-            if pd.to_datetime(single_ad_data["Last Repost Date:"]).date() >= \
+            if pd.to_datetime(single_ad_data["last_repost_date"]).date() >= \
                     last_scrape_dt.date():
                 # Sometimes sold ads kept in main results, ad for later
-                if "sold" in single_ad_data["Still For Sale:"].lower():
+                if "sold" in single_ad_data["still_for_sale"].lower() and url not in sold_ad_data.url.values:
                     intermediate_sold_ad_data.append(single_ad_data)
                 else:
                     intermediate_ad_data.append(single_ad_data)
@@ -123,55 +105,51 @@ for category_to_scrape in np.random.choice(
         continue
     else:
         recently_added_ads = pd.DataFrame(intermediate_ad_data)
-        new_ads = recently_added_ads.loc[~recently_added_ads.url.isin(
-            base_data.url),:]
+        # Check membership across categories in case of changes!
+        new_ads = recently_added_ads.loc[
+            ~recently_added_ads.url.isin(all_base_data.url),:]
 
-        # Get ads that might have an update. check price, description and title
-        # for change.
-        cols_to_check = ["price", "description", "ad_title"]
+        # Get ads that might have an update. check price, description,title and category
+        # for change. If category has changed, capture change here and update old entry.
+        cols_to_check = ["price", "description", "ad_title", "category"]
         updated_ads = (recently_added_ads
-                       .loc[recently_added_ads.url.isin(base_data.url),:]
+                       .loc[recently_added_ads.url.isin(all_base_data.url),:]
                        .sort_values("url")
                        .reset_index(drop=True)
                        )
-        previous_versions = (base_data
-                             .loc[base_data.url.isin(updated_ads.url)]
+        previous_versions = (all_base_data
+                             .loc[all_base_data.url.isin(updated_ads.url)]
                              .sort_values("url")
                              .reset_index(drop=True)
                              )
         unchanged_mask = updated_ads[cols_to_check].eq(
             previous_versions[cols_to_check]).all(axis=1)
+
+        # Filter to adds that actually had changes in columns of interest
         updated_ads = updated_ads.loc[~unchanged_mask.values,:]
+        previous_versions = previous_versions.loc[~unchanged_mask.values,:]
 
         # Log the changes in each field
         if len(updated_ads) != 0:
-            changelog = pd.read_parquet(
-                os.path.join("data","changed_data",
-                             "changed_ad_data.parquet.gzip"),
-                engine="pyarrow")
             changes = ut.generate_changelog(
-                previous_versions.loc[previous_versions.url.isin(
-                    updated_ads.url),:],
+                previous_ads=previous_versions,
                 updated_ads=updated_ads,
                 cols_to_check=cols_to_check
             )
             logging.info(
                 f"{len(changes)} changes across {len(updated_ads)} ads")
-            changelog = pd.concat([changelog, changes],
-                                  axis=0).drop_duplicates()
-            changelog = ut.cast_obj_to_string(changelog)
-            changelog.to_parquet(
-                os.path.join(
-                    "data","changed_data","changed_ad_data.parquet.gzip"),
-                compression="gzip",
-                index=False,
-                engine="pyarrow"
-            )
+            dt.write_dataset(changes.assign(
+                category_num=category_to_scrape), data_type="changes")
 
-        ad_data = pd.concat(
-            [base_data.loc[(~base_data.url.isin(updated_ads.url)) & (~base_data.url.isin(sold_ad_data.url)),:],
-             updated_ads,
-             new_ads], axis=0)
+        # Update ads that had changes in key columns
+        dt.update_base_data(updated_ads, index_col="url",
+                            cols_to_update=cols_to_check)
+
+        # Write new ones !
+        if len(new_ads) > 0:
+            dt.write_dataset(new_ads.assign(
+                category_num=category_to_scrape),
+                data_type="base")
 
     logging.info(f"Adding {len(new_ads)} new ads to base data")
 
@@ -190,8 +168,8 @@ for category_to_scrape in np.random.choice(
     urls_to_remove = []
     for url in tqdm(potentially_sold_urls):
         single_ad_data = scraper.parse_buysell_ad(url, delay_s=0)
-        if single_ad_data and "sold" in single_ad_data["Still For Sale:"].lower() \
-                and single_ad_data["url"] not in sold_ad_data.url:
+        if single_ad_data and "sold" in single_ad_data["still_for_sale"].lower() \
+                and url not in sold_ad_data.url.values:
             intermediate_sold_ad_data.append(single_ad_data)
         else:
             urls_to_remove.append(url)
@@ -202,30 +180,23 @@ for category_to_scrape in np.random.choice(
     # If any sold ads found in normal listings, or missing from new scrape.
     # Write out to sold ad file. Deduplicate just in case
     if len(intermediate_sold_ad_data) > 0:
-        sold_ad_data = pd.concat(
-            [sold_ad_data, pd.DataFrame(intermediate_sold_ad_data)], axis=0)
-        sold_ad_data = sold_ad_data.dropna()
-        sold_ad_data = dt.get_latest_by_scrape_dt(sold_ad_data)
-        sold_ad_data = ut.convert_to_float(sold_ad_data, colnames=[
-            "price", "Watch Count:", "View Count:"])
-        sold_ad_data = ut.cast_obj_to_string(sold_ad_data)
-        sold_ad_data.to_parquet(
-            sold_data_path,
-            compression="gzip",
-            index=False,
-            engine="pyarrow"
+        new_sold_ad_data = (
+            pd.DataFrame(intermediate_sold_ad_data)
+            .dropna()
+            .pipe(dt.get_latest_by_scrape_dt)
+            .pipe(ut.convert_to_float,colnames=["price", "watch_count", "view_count"])
+            .pipe(dt.get_latest_by_scrape_dt)
+        )
+        dt.write_dataset(
+            new_sold_ad_data.assign(category_num=category_to_scrape),
+            data_type="sold"
         )
 
-    # remove ads that didn't sell and shouldn't be in anymore ---------------
-    ad_data = ad_data.dropna()
-    ad_data = ut.convert_to_float(ad_data, colnames=[
-        "price", "Watch Count:", "View Count:"])
-    ad_data = ut.cast_obj_to_string(ad_data)
-    ad_data.loc[~ ad_data.url.isin(urls_to_remove), :].to_parquet(
-        base_data_path,
-        index=False,
-        compression="gzip",
-        engine="pyarrow"
+    # remove ads that didn't sell or sold and shouldn't be in anymore ---------------
+    dt.remove_from_base_data(
+        removal_df=base_data.loc[(base_data.url.isin(urls_to_remove)) |
+                                 (base_data.url.isin(sold_ad_data.url)),:],
+        index_col="url"
     )
     logging.info(
         f"*************Finished Category {category_name}")
