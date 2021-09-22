@@ -131,9 +131,9 @@ def generate_changelog(previous_ads:pd.DataFrame, updated_ads:pd.DataFrame, cols
             old_dtype = old_value.dtype
             new_value = updated_ads.loc[updated_ads.url == url, col].astype(
                 old_dtype)
-            category = previous_ads.loc[previous_ads.url == url, "Category:"]
+            category = previous_ads.loc[previous_ads.url == url, "category"]
             update_date = pd.to_datetime(
-                updated_ads.loc[updated_ads.url == url, "Last Repost Date:"]).dt.date
+                updated_ads.loc[updated_ads.url == url, "last_repost_date"]).dt.date
             if (old_value != new_value).all():
                 changed = {
                     "url": url,
@@ -141,7 +141,7 @@ def generate_changelog(previous_ads:pd.DataFrame, updated_ads:pd.DataFrame, cols
                     "field": col,
                     "old_value": old_value.values[0],
                     "new_value": new_value.values[0],
-                    "update_date": update_date.values[0]
+                    "update_date": str(update_date.values[0])
                 }
                 changes.append(changed)
 
