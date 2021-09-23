@@ -1,4 +1,6 @@
 import pandas as pd
+import os
+import pymongo
 
 
 def get_latest_by_scrape_dt(df: pd.DataFrame) -> pd.DataFrame:
@@ -24,45 +26,43 @@ def get_latest_by_scrape_dt(df: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def get_category_base_data(category_num: int) -> pd.DataFrame:
-    """Get active ad data for a given category number. Normalizes column 
-    names into nicer forms.
+def get_data_set(category_num: int, type: str) -> pd.DataFrame:
+    """Get either active ad data of sold ad data for a given category number. Normalizes column
+    names into nicer forms. Requires env variables "MONGO_USER", "MONGO_PASS" to
+    be set correctly for MongoDB cluster.
 
     Parameters
     ----------
     category_num : int
         Category num to lookup.
+    type : str
+        Either "base" or "sold" for active ads and sold ads respectively.
 
     Returns
     -------
     pd.DataFrame
         Dataframe of existing data for given category
     """
-    df = pd.read_parquet(
-        f"data/base_data/category_{category_num}_ad_data.parquet.gzip",
-    )
-    df.columns = [x.replace(":","").replace(" ","_").lower()
-                  for x in df.columns]
-    return df
+    mongo_user = os.environ['MONGO_USER']
+    mongo_pass = os.environ['MONGO_PASS']
+    # Replace the uri string with your MongoDB deployment's connection string.
+    conn_str = f"mongodb+srv://{mongo_user}:{mongo_pass}@cluster0.sce8f.mongodb.net/pb-buddy?retryWrites=true&w=majority"
+    # set a 5-second connection timeout
+    client = pymongo.MongoClient(
+        conn_str, tlsCAFile=certifi.where(),serverSelectionTimeoutMS=5000)
+    db = client['pb-buddy']
 
+    if type == "base":
+        database_mongo = db.base_data
+    else:
+        database_mongo = db.sold_data
 
-def get_category_sold_data(category_num: int) -> pd.DataFrame:
-    """Get sold ad data for the category. Normalizes column 
-    names into nicer forms.
-
-    Parameters
-    ----------
-    category_num : int
-        Category number
-
-    Returns
-    -------
-    pd.DataFrame
-        Sold ad data
-    """
-    df = pd.read_parquet(
-        f"data/sold_ads/category_{category_num}_sold_ad_data.parquet.gzip",
-    )
-    df.columns = [x.replace(":","").replace(" ","_").lower()
-                  for x in df.columns]
-    return df
+    query_result = list(database_mongo.find({'category_num': category_num}))
+    if len(query_result) == 0:
+        df_out = pd.DataFrame({"url":[]})
+    else:
+        df_out = (
+            pd.DataFrame(query_result)
+            .assign(datetime_scraped=lambda x: pd.to_datetime(x.datetime_scraped))
+        )
+    return df_out

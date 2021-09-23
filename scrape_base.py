@@ -50,21 +50,9 @@ for category_to_scrape in np.random.choice(
     )
 
     # Get existing open ads and stats of last scrape
-    base_data_path = os.path.join(
-        "data",
-        "base_data",
-        f"category_{category_to_scrape}_ad_data.parquet.gzip")
-    if os.path.isfile(base_data_path):
-        base_data = pd.read_parquet(os.path.join(
-            "data",
-            "base_data",
-            f"category_{category_to_scrape}_ad_data.parquet.gzip"),
-            engine="pyarrow")
-        base_data = dt.get_latest_by_scrape_dt(base_data)
-        last_scrape_dt = pd.to_datetime(base_data.datetime_scraped).max()
-    else:
-        base_data = pd.DataFrame()
-        last_scrape_dt = pd.to_datetime("01-JAN-1900")
+    base_data = dt.get_data_set(category_to_scrape, type="base")
+    last_scrape_dt = pd.to_datetime(base_data.datetime_scraped).max()
+    last_scrape_dt = pd.to_datetime("01-JAN-1900")
 
     # Setup for sold ad data
     sold_data_path = os.path.join(

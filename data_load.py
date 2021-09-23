@@ -29,7 +29,7 @@ with open("category_dict.json","r") as fh:
     category_dict = json.load(fh)
 
 # %%
-# LOAD ALL DATA!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# LOAD Base DATA!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 base_data_mongo = db.base_data
 
 
@@ -51,11 +51,36 @@ for i in tqdm(list(range(1,101 + 1))):
     )
 
     base_data_mongo.insert_many(data.to_dict(orient="records"))
+
+# %%
+# LOAD Sold DATA!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+sold_data_mongo = db.sold_data
+
+
+for i in tqdm(list(range(1,101 + 1))):
+    try:
+        data = dt.get_category_sold_data(i)
+    except:
+        continue
+
+    if len(data) == 0:
+        continue
+
+    data = (
+        data
+        .assign(
+            category_num=lambda x: category_dict[data.category.str.strip().unique()[
+                0]],
+            still_for_sale=lambda x:x.still_for_sale.str.replace('<[^<]+?>', "", regex=True))
+    )
+
+    sold_data_mongo.insert_many(data.to_dict(orient="records"))
 # %%
 # CHECKS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-cat2_output = cat2_docs.find(
-    {'category': {"$regex":'.*All Mountain/Enduro Bikes.*'}})
+total_output = base_data_mongo.find(
+    {'category': {"$regex":'.*'}})
+
 # %%
-cat2_output_df = pd.DataFrame(list(cat2_output))
-cat2_output_df.shape
+total_output = pd.DataFrame(list(total_output))
+total_output.shape
 # %%
