@@ -1,6 +1,7 @@
 import pandas as pd
 import os
 import pymongo
+import certifi
 
 
 def get_latest_by_scrape_dt(df: pd.DataFrame) -> pd.DataFrame:
@@ -26,16 +27,18 @@ def get_latest_by_scrape_dt(df: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def get_data_set(category_num: int, type: str) -> pd.DataFrame:
+def get_data_set(category_num: int, data_type: str) -> pd.DataFrame:
     """Get either active ad data of sold ad data for a given category number. Normalizes column
     names into nicer forms. Requires env variables "MONGO_USER", "MONGO_PASS" to
     be set correctly for MongoDB cluster.
+
+    Use `category_num` == -1 to access all data of a certain type.
 
     Parameters
     ----------
     category_num : int
         Category num to lookup.
-    type : str
+    data_type : str
         Either "base" or "sold" for active ads and sold ads respectively.
 
     Returns
@@ -43,6 +46,8 @@ def get_data_set(category_num: int, type: str) -> pd.DataFrame:
     pd.DataFrame
         Dataframe of existing data for given category
     """
+    if data_type not in ["base","sold"]:
+        raise ValueError("data")
     mongo_user = os.environ['MONGO_USER']
     mongo_pass = os.environ['MONGO_PASS']
     # Replace the uri string with your MongoDB deployment's connection string.
@@ -52,12 +57,18 @@ def get_data_set(category_num: int, type: str) -> pd.DataFrame:
         conn_str, tlsCAFile=certifi.where(),serverSelectionTimeoutMS=5000)
     db = client['pb-buddy']
 
-    if type == "base":
+    if data_type == "base":
         database_mongo = db.base_data
     else:
         database_mongo = db.sold_data
 
-    query_result = list(database_mongo.find({'category_num': category_num}))
+    if category_num == -1:
+        # Blank query returns all data
+        query_result = list(database_mongo.find({}))
+    else:
+        query_result = list(database_mongo.find(
+            {'category_num': category_num}))
+
     if len(query_result) == 0:
         df_out = pd.DataFrame({"url":[]})
     else:

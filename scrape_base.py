@@ -32,6 +32,10 @@ logging.basicConfig(
 with open("category_dict.json", "r") as fh:
     cat_dict = json.load(fh)
 
+# Setup ------------------------------------------------------------
+all_base_data = dt.get_data_set(category_num=-1, data_type="base")
+all_sold_data = dt.get_data_set(category_num=-1, data_type="sold")
+
 # Main loop --------------------------------------------------
 # Iterate through all categories in random order, prevent noticeable patterns?
 logging.info("######## Starting new scrape session #########")
@@ -50,22 +54,15 @@ for category_to_scrape in np.random.choice(
     )
 
     # Get existing open ads and stats of last scrape
-    base_data = dt.get_data_set(category_to_scrape, type="base")
-    last_scrape_dt = pd.to_datetime(base_data.datetime_scraped).max()
-    last_scrape_dt = pd.to_datetime("01-JAN-1900")
+    base_data = all_base_data.query("category_num == @category_to_scrape")
+    if len(base_data) == 0:
+        last_scrape_dt = pd.to_datetime("01-JAN-1900")
+    else:
+        last_scrape_dt = pd.to_datetime(base_data.datetime_scraped).max()
 
     # Setup for sold ad data
-    sold_data_path = os.path.join(
-        "data",
-        "sold_ads",
-        f"category_{category_to_scrape}_sold_ad_data.parquet.gzip"
-    )
+    sold_ad_data = all_sold_data.query("category_num == @category_to_scrape")
     intermediate_sold_ad_data = []
-    if os.path.isfile(sold_data_path):
-        sold_ad_data = pd.read_parquet(sold_data_path, engine="pyarrow")
-
-    else:
-        sold_ad_data = pd.DataFrame({"url":[]})
 
     # Get total number of pages of ads-----------------------------------------------
     total_page_count = scraper.get_total_pages(category_to_scrape)

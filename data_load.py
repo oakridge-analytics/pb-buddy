@@ -20,7 +20,7 @@ mongo_pass = os.environ['MONGO_PASS']
 conn_str = f"mongodb+srv://{mongo_user}:{mongo_pass}@cluster0.sce8f.mongodb.net/pb-buddy?retryWrites=true&w=majority"
 # set a 5-second connection timeout
 client = pymongo.MongoClient(
-    conn_str, tlsCAFile=certifi.where(),serverSelectionTimeoutMS=5000)
+    conn_str, tlsCAFile=certifi.where(),serverSelectionTimeoutMS=10000)
 
 # %%
 db = client['pb-buddy']
@@ -75,8 +75,22 @@ for i in tqdm(list(range(1,101 + 1))):
     )
 
     sold_data_mongo.insert_many(data.to_dict(orient="records"))
+
+# %%
+# LOAD CHANGE RECORDS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+change_data_mongo = db.change_data
+change_data_in = (
+    pd.read_parquet("data/changed_data/changed_ad_data.parquet.gzip")
+    .assign(
+        category_num=lambda x: category_dict[x.category.str.strip().unique()[
+            0]]
+    )
+)
+change_data_mongo = change_data_mongo.insert_many(
+    change_data_in.to_dict(orient="records"))
 # %%
 # CHECKS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+base_data_mongo = db.base_data
 total_output = base_data_mongo.find(
     {'category': {"$regex":'.*'}})
 
