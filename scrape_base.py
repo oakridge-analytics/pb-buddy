@@ -33,8 +33,8 @@ with open("category_dict.json", "r") as fh:
     cat_dict = json.load(fh)
 
 # Setup ------------------------------------------------------------
-all_base_data = dt.get_data_set(category_num=-1, data_type="base")
-all_sold_data = dt.get_data_set(category_num=-1, data_type="sold")
+all_base_data = dt.get_dataset(category_num=-1, data_type="base")
+all_sold_data = dt.get_dataset(category_num=-1, data_type="sold")
 
 # Main loop --------------------------------------------------
 # Iterate through all categories in random order, prevent noticeable patterns?
@@ -130,10 +130,6 @@ for category_to_scrape in np.random.choice(
 
         # Log the changes in each field
         if len(updated_ads) != 0:
-            changelog = pd.read_parquet(
-                os.path.join("data","changed_data",
-                             "changed_ad_data.parquet.gzip"),
-                engine="pyarrow")
             changes = ut.generate_changelog(
                 previous_versions.loc[previous_versions.url.isin(
                     updated_ads.url),:],
@@ -142,16 +138,11 @@ for category_to_scrape in np.random.choice(
             )
             logging.info(
                 f"{len(changes)} changes across {len(updated_ads)} ads")
-            changelog = pd.concat([changelog, changes],
-                                  axis=0).drop_duplicates()
-            changelog = ut.cast_obj_to_string(changelog)
-            changelog.to_parquet(
-                os.path.join(
-                    "data","changed_data","changed_ad_data.parquet.gzip"),
-                compression="gzip",
-                index=False,
-                engine="pyarrow"
-            )
+            dt.write_dataset(changes, data_type="changes")
+
+        # Update ads !
+
+        # Write new ones !
 
         ad_data = pd.concat(
             [base_data.loc[(~base_data.url.isin(updated_ads.url)) & (~base_data.url.isin(sold_ad_data.url)),:],
