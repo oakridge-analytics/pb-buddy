@@ -34,8 +34,9 @@ jobs:
         shell: bash -l {0}
         run: python email_alerts.py
         env: 
-          HOTMAIL_USER: ${{secrets.HOTMAIL_USER}}
-          HOTMAIL_PASS: ${{secrets.HOTMAIL_PASS}}
+          TWILIO_USER: ${{secrets.TWILIO_USER}}
+          TWILIO_PASS: ${{secrets.TWILIO_PASS}}
+          HOTMAIL_ADDRESS: ${{secrets.HOTMAIL_ADDRESS}}
       - name: Commit files
         run: |
           git config --local user.email "action@github.com"
