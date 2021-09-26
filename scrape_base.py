@@ -11,6 +11,7 @@ import logging
 import pb_buddy.scraper as scraper
 import pb_buddy.utils as ut
 import pb_buddy.data_processors as dt
+from pb_buddy.resources import category_dict
 
 # %%
 # Settings -----------------------------------------------------------------
@@ -28,10 +29,6 @@ logging.basicConfig(
     level=getattr(logging, log_level.upper(), None),
     format='%(asctime)s %(message)s')
 
-# Get category lookup
-with open("category_dict.json", "r") as fh:
-    cat_dict = json.load(fh)
-
 # Setup ------------------------------------------------------------
 all_base_data = dt.get_dataset(category_num=-1, data_type="base")
 all_sold_data = dt.get_dataset(category_num=-1, data_type="sold")
@@ -44,7 +41,7 @@ for category_to_scrape in np.random.choice(
     categories_to_scrape, size=len(categories_to_scrape), replace=False
 ):
     # Get category, some don't have entries so skip to next.(category 10 etc.)
-    category_name = [x for x,v in cat_dict.items()
+    category_name = [x for x,v in category_dict.items()
                      if v == category_to_scrape]
     if not category_name:
         continue
@@ -140,14 +137,14 @@ for category_to_scrape in np.random.choice(
                 f"{len(changes)} changes across {len(updated_ads)} ads")
             dt.write_dataset(changes, data_type="changes")
 
-        # Update ads !
+        # Update ads that had changes
+        dt.update_base_data(updated_ads, index_col="url",
+                            cols_to_update=cols_to_check)
 
         # Write new ones !
-
-        ad_data = pd.concat(
-            [base_data.loc[(~base_data.url.isin(updated_ads.url)) & (~base_data.url.isin(sold_ad_data.url)),:],
-             updated_ads,
-             new_ads], axis=0)
+        dt.write_dataset(new_ads.assign(
+            category_num=category_to_scrape),
+            data_type="base")
 
     logging.info(f"Adding {len(new_ads)} new ads to base data")
 
@@ -178,30 +175,23 @@ for category_to_scrape in np.random.choice(
     # If any sold ads found in normal listings, or missing from new scrape.
     # Write out to sold ad file. Deduplicate just in case
     if len(intermediate_sold_ad_data) > 0:
-        sold_ad_data = pd.concat(
-            [sold_ad_data, pd.DataFrame(intermediate_sold_ad_data)], axis=0)
+        sold_ad_data = pd.DataFrame(intermediate_sold_ad_data)
         sold_ad_data = sold_ad_data.dropna()
         sold_ad_data = dt.get_latest_by_scrape_dt(sold_ad_data)
-        sold_ad_data = ut.convert_to_float(sold_ad_data, colnames=[
-            "price", "Watch Count:", "View Count:"])
-        sold_ad_data = ut.cast_obj_to_string(sold_ad_data)
-        sold_ad_data.to_parquet(
-            sold_data_path,
-            compression="gzip",
-            index=False,
-            engine="pyarrow"
+        sold_ad_data = ut.convert_to_float(
+            sold_ad_data,
+            colnames=["price", "Watch Count:", "View Count:"]
+        )
+        dt.write_dataset(
+            sold_ad_data.assign(category_num=category_to_scrape),
+            data_type="sold"
         )
 
-    # remove ads that didn't sell and shouldn't be in anymore ---------------
-    ad_data = ad_data.dropna()
-    ad_data = ut.convert_to_float(ad_data, colnames=[
-        "price", "Watch Count:", "View Count:"])
-    ad_data = ut.cast_obj_to_string(ad_data)
-    ad_data.loc[~ ad_data.url.isin(urls_to_remove), :].to_parquet(
-        base_data_path,
-        index=False,
-        compression="gzip",
-        engine="pyarrow"
+    # remove ads that didn't sell or sold and shouldn't be in anymore ---------------
+    dt.remove_from_base_data(
+        removal_df=base_data.loc[(base_data.url.isin(urls_to_remove)) |
+                                 (base_data.url.isin(sold_ad_data.url)),:],
+        index_col="url"
     )
     logging.info(
         f"*************Finished Category {category_name}")
