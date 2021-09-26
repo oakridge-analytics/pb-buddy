@@ -4,8 +4,6 @@ import pymongo
 import certifi
 from typing import List
 
-from pymongo import database
-
 
 def get_latest_by_scrape_dt(df: pd.DataFrame) -> pd.DataFrame:
     """Get latest rows for each 'url' sorted by 'datetime_scraped'.

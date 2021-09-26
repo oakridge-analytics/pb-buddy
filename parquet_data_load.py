@@ -7,7 +7,8 @@ import os
 import json
 import pb_buddy.scraper as scraper
 import pb_buddy.utils as ut
-import pb_buddy.data_processors as dt
+import pb_buddy.old_data_processors as dt
+from pb_buddy.resources import category_dict
 
 # %%
 from dotenv import load_dotenv
@@ -24,9 +25,6 @@ client = pymongo.MongoClient(
 
 # %%
 db = client['pb-buddy']
-
-with open("category_dict.json","r") as fh:
-    category_dict = json.load(fh)
 
 # %%
 # LOAD Base DATA!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -51,7 +49,7 @@ for i in tqdm(list(range(1,101 + 1))):
     )
 
     base_data_mongo.insert_many(data.to_dict(orient="records"))
-
+    base_data_mongo.create_index([('url', pymongo.ASCENDING)],unique=True)
 # %%
 # LOAD Sold DATA!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 sold_data_mongo = db.sold_data
@@ -75,7 +73,7 @@ for i in tqdm(list(range(1,101 + 1))):
     )
 
     sold_data_mongo.insert_many(data.to_dict(orient="records"))
-
+    sold_data_mongo.create_index([('url', pymongo.ASCENDING)],unique=True)
 # %%
 # LOAD CHANGE RECORDS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 change_data_mongo = db.change_data
@@ -86,8 +84,9 @@ change_data_in = (
             0]]
     )
 )
-change_data_mongo = change_data_mongo.insert_many(
+change_data_mongo.insert_many(
     change_data_in.to_dict(orient="records"))
+
 # %%
 # CHECKS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 base_data_mongo = db.base_data
