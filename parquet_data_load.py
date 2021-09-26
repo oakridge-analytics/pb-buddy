@@ -89,11 +89,11 @@ change_data_mongo.insert_many(
 
 # %%
 # CHECKS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-base_data_mongo = db.base_data
-total_output = base_data_mongo.find(
-    {'category': {"$regex":'.*'}})
+# base_data_mongo = db.base_data
+# total_output = base_data_mongo.find(
+#     {'category': {"$regex":'.*'}})
 
-# %%
-total_output = pd.DataFrame(list(total_output))
-total_output.shape
+# # %%
+# total_output = pd.DataFrame(list(total_output))
+# total_output.shape
 # %%

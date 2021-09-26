@@ -4,7 +4,6 @@ import numpy as np
 from tqdm import tqdm
 from joblib import Parallel, delayed
 import os
-import json
 import logging
 
 # Custom code
@@ -15,7 +14,7 @@ from pb_buddy.resources import category_dict
 
 # %%
 # Settings -----------------------------------------------------------------
-categories_to_scrape = range(100, 101 + 1)
+categories_to_scrape = range(12, 12 + 1)
 num_jobs = os.cpu_count()  # Curently only for initial link grab
 delay_s = 0.0
 log_level = "INFO"
@@ -30,12 +29,13 @@ logging.basicConfig(
     format='%(asctime)s %(message)s')
 
 # Setup ------------------------------------------------------------
+logging.info("######## Starting new scrape session #########")
 all_base_data = dt.get_dataset(category_num=-1, data_type="base")
 all_sold_data = dt.get_dataset(category_num=-1, data_type="sold")
-
+logging.info("All previous data loaded from MongoDB")
 # Main loop --------------------------------------------------
 # Iterate through all categories in random order, prevent noticeable patterns?
-logging.info("######## Starting new scrape session #########")
+
 num_categories_scraped = 0
 for category_to_scrape in np.random.choice(
     categories_to_scrape, size=len(categories_to_scrape), replace=False
@@ -90,10 +90,10 @@ for category_to_scrape in np.random.choice(
     for url in tqdm(ad_urls):
         single_ad_data = scraper.parse_buysell_ad(url, delay_s=0)
         if single_ad_data != {}:
-            if pd.to_datetime(single_ad_data["Last Repost Date:"]).date() >= \
+            if pd.to_datetime(single_ad_data["last_repost_date"]).date() >= \
                     last_scrape_dt.date():
                 # Sometimes sold ads kept in main results, ad for later
-                if "sold" in single_ad_data["Still For Sale:"].lower():
+                if "sold" in single_ad_data["still_for_sale"].lower() and url not in sold_ad_data.url.values:
                     intermediate_sold_ad_data.append(single_ad_data)
                 else:
                     intermediate_ad_data.append(single_ad_data)
@@ -135,7 +135,8 @@ for category_to_scrape in np.random.choice(
             )
             logging.info(
                 f"{len(changes)} changes across {len(updated_ads)} ads")
-            dt.write_dataset(changes, data_type="changes")
+            dt.write_dataset(changes.assign(
+                category_num=category_to_scrape), data_type="changes")
 
             # Update ads that had changes
             dt.update_base_data(updated_ads, index_col="url",
@@ -164,8 +165,8 @@ for category_to_scrape in np.random.choice(
     urls_to_remove = []
     for url in tqdm(potentially_sold_urls):
         single_ad_data = scraper.parse_buysell_ad(url, delay_s=0)
-        if single_ad_data and "sold" in single_ad_data["Still For Sale:"].lower() \
-                and single_ad_data["url"] not in sold_ad_data.url:
+        if single_ad_data and "sold" in single_ad_data["still_for_sale"].lower() \
+                and url not in sold_ad_data.url.values:
             intermediate_sold_ad_data.append(single_ad_data)
         else:
             urls_to_remove.append(url)
@@ -176,15 +177,15 @@ for category_to_scrape in np.random.choice(
     # If any sold ads found in normal listings, or missing from new scrape.
     # Write out to sold ad file. Deduplicate just in case
     if len(intermediate_sold_ad_data) > 0:
-        sold_ad_data = pd.DataFrame(intermediate_sold_ad_data)
-        sold_ad_data = sold_ad_data.dropna()
-        sold_ad_data = dt.get_latest_by_scrape_dt(sold_ad_data)
-        sold_ad_data = ut.convert_to_float(
-            sold_ad_data,
-            colnames=["price", "Watch Count:", "View Count:"]
+        new_sold_ad_data = (
+            pd.DataFrame(intermediate_sold_ad_data)
+            .dropna()
+            .pipe(dt.get_latest_by_scrape_dt)
+            .pipe(ut.convert_to_float,colnames=["price", "watch_count", "view_count"])
+            .pipe(dt.get_latest_by_scrape_dt)
         )
         dt.write_dataset(
-            sold_ad_data.assign(category_num=category_to_scrape),
+            new_sold_ad_data.assign(category_num=category_to_scrape),
             data_type="sold"
         )
 
