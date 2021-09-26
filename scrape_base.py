@@ -15,7 +15,7 @@ from pb_buddy.resources import category_dict
 
 # %%
 # Settings -----------------------------------------------------------------
-categories_to_scrape = range(1, 101 + 1)
+categories_to_scrape = range(100, 101 + 1)
 num_jobs = os.cpu_count()  # Curently only for initial link grab
 delay_s = 0.0
 log_level = "INFO"
@@ -137,14 +137,15 @@ for category_to_scrape in np.random.choice(
                 f"{len(changes)} changes across {len(updated_ads)} ads")
             dt.write_dataset(changes, data_type="changes")
 
-        # Update ads that had changes
-        dt.update_base_data(updated_ads, index_col="url",
-                            cols_to_update=cols_to_check)
+            # Update ads that had changes
+            dt.update_base_data(updated_ads, index_col="url",
+                                cols_to_update=cols_to_check)
 
         # Write new ones !
-        dt.write_dataset(new_ads.assign(
-            category_num=category_to_scrape),
-            data_type="base")
+        if len(new_ads) > 0:
+            dt.write_dataset(new_ads.assign(
+                category_num=category_to_scrape),
+                data_type="base")
 
     logging.info(f"Adding {len(new_ads)} new ads to base data")
 
