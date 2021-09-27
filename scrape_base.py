@@ -14,7 +14,7 @@ from pb_buddy.resources import category_dict
 
 # %%
 # Settings -----------------------------------------------------------------
-categories_to_scrape = range(12, 12 + 1)
+categories_to_scrape = range(2, 2 + 1)
 num_jobs = os.cpu_count()  # Curently only for initial link grab
 delay_s = 0.0
 log_level = "INFO"
@@ -105,14 +105,15 @@ for category_to_scrape in np.random.choice(
         continue
     else:
         recently_added_ads = pd.DataFrame(intermediate_ad_data)
-        new_ads = recently_added_ads.loc[~recently_added_ads.url.isin(
-            base_data.url),:]
+        # Check membership across categories in case of changes!
+        new_ads = recently_added_ads.loc[
+            ~recently_added_ads.url.isin(all_base_data.url),:]
 
-        # Get ads that might have an update. check price, description and title
-        # for change.
-        cols_to_check = ["price", "description", "ad_title"]
+        # Get ads that might have an update. check price, description,title and category
+        # for change. If category has changed, capture change here and update old entry.
+        cols_to_check = ["price", "description", "ad_title", "category"]
         updated_ads = (recently_added_ads
-                       .loc[recently_added_ads.url.isin(base_data.url),:]
+                       .loc[recently_added_ads.url.isin(all_base_data.url),:]
                        .sort_values("url")
                        .reset_index(drop=True)
                        )
