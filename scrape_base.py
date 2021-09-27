@@ -124,12 +124,15 @@ for category_to_scrape in np.random.choice(
                              )
         unchanged_mask = updated_ads[cols_to_check].eq(
             previous_versions[cols_to_check]).all(axis=1)
+
+        # Filter to adds that actually had changes in columns of interest
         updated_ads = updated_ads.loc[~unchanged_mask.values,:]
+        previous_versions = previous_versions.loc[~unchanged_mask.values,:]
 
         # Log the changes in each field
         if len(updated_ads) != 0:
             changes = ut.generate_changelog(
-                previous_versions=previous_versions,
+                previous_ads=previous_versions,
                 updated_ads=updated_ads,
                 cols_to_check=cols_to_check
             )
@@ -138,9 +141,9 @@ for category_to_scrape in np.random.choice(
             dt.write_dataset(changes.assign(
                 category_num=category_to_scrape), data_type="changes")
 
-            # Update ads that had changes
-            dt.update_base_data(updated_ads, index_col="url",
-                                cols_to_update=cols_to_check)
+        # Update ads that had changes in key columns
+        dt.update_base_data(updated_ads, index_col="url",
+                            cols_to_update=cols_to_check)
 
         # Write new ones !
         if len(new_ads) > 0:
