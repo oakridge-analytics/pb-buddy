@@ -117,8 +117,8 @@ for category_to_scrape in np.random.choice(
                        .sort_values("url")
                        .reset_index(drop=True)
                        )
-        previous_versions = (base_data
-                             .loc[base_data.url.isin(updated_ads.url)]
+        previous_versions = (all_base_data
+                             .loc[all_base_data.url.isin(updated_ads.url)]
                              .sort_values("url")
                              .reset_index(drop=True)
                              )
@@ -129,8 +129,7 @@ for category_to_scrape in np.random.choice(
         # Log the changes in each field
         if len(updated_ads) != 0:
             changes = ut.generate_changelog(
-                previous_versions.loc[previous_versions.url.isin(
-                    updated_ads.url),:],
+                previous_versions=previous_versions,
                 updated_ads=updated_ads,
                 cols_to_check=cols_to_check
             )
