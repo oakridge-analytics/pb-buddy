@@ -77,16 +77,16 @@ def get_dataset(category_num: int, data_type: str) -> pd.DataFrame:
 
 
 def write_dataset(category_df: pd.DataFrame, data_type: str):
-    """Write active, sold or changed ad data from a given DataFrame. Normalizes column
+    """Write active/sold/changed ad data from a given DataFrame. Normalizes column
     names into nicer forms (lower case, "_" separated). Requires env variables "MONGO_USER", "MONGO_PASS" to
     be set correctly for MongoDB cluster.
 
     Parameters
     ----------
     category_df : pd.DataFrame
-        Data to be written to MongoDB collection. 
+        Data to be written to MongoDB collection.
     data_type : str
-        Either "base","sold" or "changes" for active ads and sold ads respectively.
+        Either "base","sold","changes" for active ads, sold ads, or changes
 
     """
     if data_type not in ["base","sold","changes"]:
