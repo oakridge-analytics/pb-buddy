@@ -159,10 +159,10 @@ def remove_from_base_data(removal_df: pd.DataFrame, index_col: str):
 
 def get_mongodb():
     """Return a `pymongo` database object to work with pb-buddy data"""
-    mongo_user = os.environ['MONGO_USER']
-    mongo_pass = os.environ['MONGO_PASS']
+    # mongo_user = os.environ['MONGO_USER']
+    # mongo_pass = os.environ['MONGO_PASS']
     # Replace the uri string with your MongoDB deployment's connection string.
-    conn_str = f"mongodb+srv://{mongo_user}:{mongo_pass}@cluster0.sce8f.mongodb.net/pb-buddy?retryWrites=true&w=majority"
+    conn_str = os.environ["COSMOS_CONN_STR"]
     # set a 5-second connection timeout
     client = pymongo.MongoClient(
         conn_str, tlsCAFile=certifi.where(),serverSelectionTimeoutMS=5000)

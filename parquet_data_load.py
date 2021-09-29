@@ -8,6 +8,7 @@ import json
 import pb_buddy.scraper as scraper
 import pb_buddy.utils as ut
 import pb_buddy.old_data_processors as dt
+import pb_buddy.data_processors as new_dt
 from pb_buddy.resources import category_dict
 
 # %%
@@ -15,16 +16,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # %%
-mongo_user = os.environ['MONGO_USER']
-mongo_pass = os.environ['MONGO_PASS']
-# Replace the uri string with your MongoDB deployment's connection string.
-conn_str = f"mongodb+srv://{mongo_user}:{mongo_pass}@cluster0.sce8f.mongodb.net/pb-buddy?retryWrites=true&w=majority"
-# set a 5-second connection timeout
-client = pymongo.MongoClient(
-    conn_str, tlsCAFile=certifi.where(),serverSelectionTimeoutMS=10000)
+db = new_dt.get_mongodb()
 
 # %%
-db = client['pb-buddy']
+db = db['pb-buddy']
 
 # %%
 # LOAD Base DATA!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -49,7 +44,7 @@ for i in tqdm(list(range(1,101 + 1))):
     )
 
     base_data_mongo.insert_many(data.to_dict(orient="records"))
-    base_data_mongo.create_index([('url', pymongo.ASCENDING)],unique=True)
+    # base_data_mongo.create_index([('url', pymongo.ASCENDING)],unique=True)
 # %%
 # LOAD Sold DATA!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 sold_data_mongo = db.sold_data
