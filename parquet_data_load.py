@@ -23,7 +23,7 @@ db = new_dt.get_mongodb()
 base_data_mongo = db.base_data
 
 
-for i in tqdm(list(range(100,100 + 1))):
+for i in tqdm(list(range(1,101 + 1))):
     try:
         data = dt.get_category_base_data(i)
     except:
@@ -47,7 +47,7 @@ for i in tqdm(list(range(100,100 + 1))):
 sold_data_mongo = db.sold_data
 
 
-for i in tqdm(list(range(100,100 + 1))):
+for i in tqdm(list(range(1,101 + 1))):
     try:
         data = dt.get_category_sold_data(i)
     except:
