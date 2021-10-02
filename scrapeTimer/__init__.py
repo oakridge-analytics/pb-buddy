@@ -90,7 +90,7 @@ def main(mytimer: func.TimerRequest) -> None:
             f"https://www.pinkbike.com/buysell/list/?region=3&page={x}&category={category_to_scrape}"
             for x in pages_to_check
         ]
-        ad_urls = Parallel(n_jobs=num_jobs)(
+        ad_urls = Parallel(n_jobs=1)(
             delayed(scraper.get_buysell_ads)(x, delay_s=delay_s)
             for x in tqdm(page_urls)
         )
