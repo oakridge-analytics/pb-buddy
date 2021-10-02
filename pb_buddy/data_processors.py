@@ -21,8 +21,11 @@ def get_latest_by_scrape_dt(df: pd.DataFrame) -> pd.DataFrame:
         Dataframe deduplicated for each 'url' using 'datetime_scraped'
     """
     return (
-        df
-        .assign(datetime_scraped=lambda x: pd.to_datetime(x.datetime_scraped,utc=True).dt.tz_convert("US/Mountain"))
+        df.assign(
+            datetime_scraped=lambda x: pd.to_datetime(
+                x.datetime_scraped, utc=True
+            ).dt.tz_convert("US/Mountain")
+        )
         .sort_values("datetime_scraped", ascending=False)
         .drop_duplicates(subset="url")
     )
@@ -47,8 +50,8 @@ def get_dataset(category_num: int, data_type: str) -> pd.DataFrame:
     pd.DataFrame
         Dataframe of existing data for given category
     """
-    if data_type not in ["base","sold","changes"]:
-        raise ValueError("data")
+    if data_type not in ["base", "sold", "changes"]:
+        raise ValueError("data_type should be one of 'base','sold','changes'")
 
     db = get_mongodb()
 
@@ -63,16 +66,17 @@ def get_dataset(category_num: int, data_type: str) -> pd.DataFrame:
         # Blank query returns all data
         query_result = list(database_mongo.find({}))
     else:
-        query_result = list(database_mongo.find(
-            {'category_num': category_num}))
+        query_result = list(database_mongo.find({"category_num": category_num}))
 
     if len(query_result) == 0:
-        df_out = pd.DataFrame({"url":[]})
+        df_out = pd.DataFrame({"url": []})
     else:
-        df_out = (
-            pd.DataFrame(query_result)
-            .assign(datetime_scraped=lambda x: pd.to_datetime(x.datetime_scraped))
-        )
+        df_out = pd.DataFrame(query_result)
+
+        if "datetime_scraped" in df_out.columns:
+            df_out = df_out.assign(
+                datetime_scraped=lambda x: pd.to_datetime(x.datetime_scraped)
+            )
     return df_out
 
 
@@ -89,7 +93,7 @@ def write_dataset(category_df: pd.DataFrame, data_type: str):
         Either "base","sold","changes" for active ads, sold ads, or changes
 
     """
-    if data_type not in ["base","sold","changes"]:
+    if data_type not in ["base", "sold", "changes"]:
         raise ValueError("data")
     db = get_mongodb()
 
@@ -101,15 +105,16 @@ def write_dataset(category_df: pd.DataFrame, data_type: str):
         database_mongo = db.change_data
 
     # normalize column names
-    category_df.columns = [x.replace(":","").replace(
-        " ","_").lower() for x in category_df.columns]
+    category_df.columns = [
+        x.replace(":", "").replace(" ", "_").lower() for x in category_df.columns
+    ]
 
-    database_mongo.insert_many(
-        category_df.to_dict(orient="records")
-    )
+    database_mongo.insert_many(category_df.to_dict(orient="records"))
 
 
-def update_base_data(category_df: pd.DataFrame, index_col: str, cols_to_update: List[str]):
+def update_base_data(
+    category_df: pd.DataFrame, index_col: str, cols_to_update: List[str]
+):
     """Update MongoDB collection for base ad data documents uniquely identified by `index_col` and update fields
     with values in `cols_to_update` from `category_df`.
 
@@ -123,18 +128,21 @@ def update_base_data(category_df: pd.DataFrame, index_col: str, cols_to_update: 
     cols_to_update : List[str]
         Columns to use for updating data in MongoDB documents. Must all be existing fields in MongoDB documents.
     """
-    if len(set(category_df.columns).intersection([index_col] + cols_to_update)) != \
-            len([index_col] + cols_to_update):
+    if len(set(category_df.columns).intersection([index_col] + cols_to_update)) != len(
+        [index_col] + cols_to_update
+    ):
         raise ValueError(
-            "index_col and cols_to_update must all be present in category_df")
+            "index_col and cols_to_update must all be present in category_df"
+        )
 
     db = get_mongodb()
     database_mongo = db.base_data
 
     for row in category_df.itertuples():
         updates_dict = {x: getattr(row, x) for x in cols_to_update}
-        database_mongo.update_one({index_col:getattr(row,index_col)},
-                                  {"$set":updates_dict})
+        database_mongo.update_one(
+            {index_col: getattr(row, index_col)}, {"$set": updates_dict}
+        )
 
 
 def remove_from_base_data(removal_df: pd.DataFrame, index_col: str):
@@ -154,7 +162,7 @@ def remove_from_base_data(removal_df: pd.DataFrame, index_col: str):
     database_mongo = db.base_data
 
     for val in removal_df[index_col]:
-        database_mongo.delete_one({index_col:val})
+        database_mongo.delete_one({index_col: val})
 
 
 def get_mongodb():
@@ -165,6 +173,7 @@ def get_mongodb():
     conn_str = os.environ["COSMOS_CONN_STR"]
     # set a 5-second connection timeout
     client = pymongo.MongoClient(
-        conn_str, tlsCAFile=certifi.where(),serverSelectionTimeoutMS=5000)
-    db = client['pb-buddy']
+        conn_str, tlsCAFile=certifi.where(), serverSelectionTimeoutMS=5000
+    )
+    db = client["pb-buddy"]
     return db
