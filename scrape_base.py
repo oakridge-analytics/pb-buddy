@@ -14,7 +14,7 @@ from pb_buddy.resources import category_dict
 
 # %%
 # Settings -----------------------------------------------------------------
-categories_to_scrape = range(100, 100 + 1)
+categories_to_scrape = range(1, 101 + 1)
 num_jobs = os.cpu_count()  # Curently only for initial link grab
 delay_s = 0.0
 log_level = "INFO"
