@@ -92,9 +92,11 @@ def parse_buysell_ad(buysell_url: str, delay_s: int) -> dict:
         for tag in details.find_all("b"):
             # Still For Sale has a filler element we need to skip to get text
             if "Still For Sale" in tag.text:
-                data_dict[tag.text] = str(tag.next_sibling.next_sibling)
+                data_dict[tag.text] = re.sub(
+                    '<[^<]+?>', "",str(tag.next_sibling.next_sibling))
             else:
-                data_dict[tag.text] = str(tag.next_sibling)
+                data_dict[tag.text] = re.sub(
+                    '<[^<]+?>', "",str(tag.next_sibling))
 
     # Get price
     for pricing in soup.find_all("div", class_="buysell-container buysell-price"):
@@ -130,10 +132,10 @@ def parse_buysell_ad(buysell_url: str, delay_s: int) -> dict:
     data_dict["datetime_scraped"] = str(pd.Timestamp.today(tz="US/Mountain"))
     data_dict["url"] = buysell_url
 
-    # Clean whitespace a little:
+    # Clean non standard whitespace, fix key names:
     pattern = re.compile(r"\s+")
     data_dict = {
-        k: re.sub(pattern, " ", v) if type(v) == str else v
+        k.replace(":","").replace(" ","_").lower(): re.sub(pattern, " ", v) if type(v) == str else v
         for k, v in data_dict.items()
     }
 
