@@ -44,7 +44,6 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"        
-          git add data/
           git add logs/
           git add alerts/
           git commit -m "Add data for $DATE"
