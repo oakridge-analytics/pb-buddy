@@ -79,7 +79,7 @@ for category_to_scrape in np.random.choice(
         delayed(scraper.get_buysell_ads)(x, delay_s=delay_s) for x in tqdm(page_urls)
     )
     ad_urls = ut.flatten(ad_urls)
-
+    ad_urls = list(dict.fromkeys(ad_urls))
     # Get new ad data ---------------------------------------------------------
     intermediate_ad_data = []
     logging.info(f"Extracting ad data from {len(ad_urls)} ads")
