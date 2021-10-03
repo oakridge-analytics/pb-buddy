@@ -51,7 +51,7 @@ def get_dataset(category_num: int, data_type: str) -> pd.DataFrame:
         Dataframe of existing data for given category
     """
     if data_type not in ["base", "sold", "changes"]:
-        raise ValueError("data")
+        raise ValueError("data_type should be one of 'base','sold','changes'")
 
     db = get_mongodb()
 
@@ -71,9 +71,12 @@ def get_dataset(category_num: int, data_type: str) -> pd.DataFrame:
     if len(query_result) == 0:
         df_out = pd.DataFrame({"url": []})
     else:
-        df_out = pd.DataFrame(query_result).assign(
-            datetime_scraped=lambda x: pd.to_datetime(x.datetime_scraped)
-        )
+        df_out = pd.DataFrame(query_result)
+
+        if "datetime_scraped" in df_out.columns:
+            df_out = df_out.assign(
+                datetime_scraped=lambda x: pd.to_datetime(x.datetime_scraped)
+            )
     return df_out
 
 
