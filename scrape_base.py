@@ -14,13 +14,15 @@ from pb_buddy.resources import category_dict
 
 # %%
 # Settings -----------------------------------------------------------------
-categories_to_scrape = range(1, 101 + 1)
+start_category = 1
+end_category = 101
 num_jobs = os.cpu_count()  # Curently only for initial link grab
 delay_s = 0.0
 log_level = "INFO"
 
 
 # Config main settings -----------------------------------------------
+categories_to_scrape = range(start_category, end_category + 1)
 logging.basicConfig(
     filename=os.path.join("logs", "scrape.log"),
     filemode="w",
