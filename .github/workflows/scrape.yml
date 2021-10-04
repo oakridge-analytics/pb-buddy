@@ -15,17 +15,10 @@ jobs:
     steps:
       - name: Setup repo
         uses: actions/checkout@v2
-      # - name: Setup Conda env
-      #   uses: conda-incubator/setup-miniconda@v2
-      #   with:
-      #     activate-environment: pb-buddy
-      #     environment-file: environment.yaml
-      #     python-version: 3.8
-      #     auto-activate-base: false
       - name: Install package
         run : |
-        pip install poetry
-        poetry install
+          pip install poetry
+          poetry install
       - name: Set env vars
         run: |
           echo "DATE=$(python -c 'import datetime as dt; print((dt.datetime.now()))')" >> $GITHUB_ENV
