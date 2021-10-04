@@ -2,9 +2,7 @@
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
-from joblib import Parallel, delayed
-import os
-import logging
+from dotenv import load_dotenv
 
 # Custom code
 import pb_buddy.scraper as scraper
@@ -12,6 +10,7 @@ import pb_buddy.utils as ut
 import pb_buddy.data_processors as dt
 from pb_buddy.resources import category_dict
 
+load_dotenv("/workspaces/pb-buddy/.env")
 
 # %%
 # Clean base data -----------------------------------------------------
