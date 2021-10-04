@@ -15,13 +15,17 @@ jobs:
     steps:
       - name: Setup repo
         uses: actions/checkout@v2
-      - name: Setup Conda env
-        uses: conda-incubator/setup-miniconda@v2
-        with:
-          activate-environment: pb-buddy
-          environment-file: environment.yaml
-          python-version: 3.8
-          auto-activate-base: false
+      # - name: Setup Conda env
+      #   uses: conda-incubator/setup-miniconda@v2
+      #   with:
+      #     activate-environment: pb-buddy
+      #     environment-file: environment.yaml
+      #     python-version: 3.8
+      #     auto-activate-base: false
+      - name: Install package
+        run : |
+        pip install poetry
+        poetry install
       - name: Set env vars
         run: |
           echo "DATE=$(python -c 'import datetime as dt; print((dt.datetime.now()))')" >> $GITHUB_ENV
@@ -29,12 +33,12 @@ jobs:
         run: env
       - name: Run Scraper
         shell: bash -l {0}
-        run: python scrape_base.py
+        run: poetry run python scrape_base.py
         env: 
           COSMOS_CONN_STR : ${{secrets.COSMOS_CONN_STR}}
       - name: Email alerts
         shell: bash -l {0}
-        run: python email_alerts.py
+        run: poetry run python email_alerts.py
         env: 
           TWILIO_USER: ${{secrets.TWILIO_USER}}
           TWILIO_PASS: ${{secrets.TWILIO_PASS}}
