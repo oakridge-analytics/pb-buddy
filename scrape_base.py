@@ -194,9 +194,10 @@ for category_to_scrape in np.random.choice(
             .pipe(ut.convert_to_float, colnames=["price", "watch_count", "view_count"])
             .pipe(dt.get_latest_by_scrape_dt)
         )
-        dt.write_dataset(
-            new_sold_ad_data.assign(category_num=category_to_scrape), data_type="sold"
-        )
+        if len(new_sold_ad_data) > 0:
+            dt.write_dataset(
+                new_sold_ad_data.assign(category_num=category_to_scrape), data_type="sold"
+            )
 
     # remove ads that didn't sell or sold and shouldn't be in anymore ---------------
     dt.remove_from_base_data(
