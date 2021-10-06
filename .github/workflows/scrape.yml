@@ -2,7 +2,7 @@ name: Scrape
 
 on:
   schedule:
-    - cron: "23 3,6,9,12,15,18,21,24 * * *"
+    - cron: "23 */3 * * *"
   workflow_dispatch:
 
 env:
