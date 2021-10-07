@@ -54,7 +54,6 @@ for alert in alerts["alerts"]:
                 ]
             ]
             .sort_values("price", ascending=False)
-            .style.background_gradient(cmap="viridis", subset="price")
         )
         error_message = None
     except pd.core.computation.ops.UndefinedVariableError:
@@ -78,7 +77,7 @@ for alert in alerts["alerts"]:
             email_subject = (
                 f"{alert['alert_name']} alert updates at {timestamp} US/Mtn time"
             )
-        et.email_df(filtered_df, email_to=target_email, email_subject=email_subject)
+        et.email_df(filtered_df.style.background_gradient(cmap="viridis", subset="price"), email_to=target_email, email_subject=email_subject)
 
     # Update last_checked so we only send new ads
     alert["last_checked"] = timestamp
