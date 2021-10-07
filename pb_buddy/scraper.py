@@ -80,7 +80,21 @@ def parse_buysell_ad(buysell_url: str, delay_s: int) -> dict:
     dict
         dictionary with all ad data, plus URL and date scraped.
     """
-    page_request = requests.get(buysell_url)
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"
+    }
+
+    try:
+        page_request = requests.get(buysell_url, headers=headers, timeout=20)
+    except TimeoutError:
+        return {}
+    except requests.exceptions.Timeout:
+        print("Timeout occured")
+        return {}
+    except requests.exceptions.ConnectionError as e:
+        print(f"Connection Error: {e}")
+        return {}
+
     if page_request.status_code > 200:
         # raise requests.exceptions.RequestException("Error requesting Ad")
         return {}
@@ -90,7 +104,8 @@ def parse_buysell_ad(buysell_url: str, delay_s: int) -> dict:
     # Get data about product
     for details in soup.find_all("div", class_="buysell-container details"):
         for tag in details.find_all("b"):
-            # Still For Sale has a filler element we need to skip to get text
+            # Still For Sale has a filler element we need to skip to get text.
+            # Sometimes using text attribute of next_sibling fails, cast to str and strip HTML instead.
             if "Still For Sale" in tag.text:
                 data_dict[tag.text] = re.sub(
                     '<[^<]+?>', "",str(tag.next_sibling.next_sibling))
