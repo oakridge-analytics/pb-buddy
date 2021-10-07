@@ -39,7 +39,7 @@ dt.remove_from_base_data(data_remove, index_col="_id")
 changes = dt.get_dataset(-1, data_type="changes")
 # %%
 # %%
-# Clean base data -----------------------------------------------------
+# Clean sold data -----------------------------------------------------
 all_sold_data = dt.get_dataset(-1, data_type="sold")
 print(all_sold_data.shape)
 
