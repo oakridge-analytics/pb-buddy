@@ -10,6 +10,7 @@ import pb_buddy.data_processors as dt
 # %%
 # Get rules to check and email for each
 alerts = json.load(open(os.path.join("alerts", "alerts.json")))
+changes = dt.get_dataset(-1, data_type="changes")
 
 # %%
 for alert in alerts["alerts"]:
@@ -17,7 +18,9 @@ for alert in alerts["alerts"]:
     last_check_dt = pd.to_datetime(alert["last_checked"], utc=True).tz_convert(
         "US/Mountain"
     )
-    changes = dt.get_dataset(-1, data_type="changes")
+
+    # Get price drop data
+
     price_changes = (
         changes.assign(update_date=lambda x: pd.to_datetime(x.update_date))
         .query(
@@ -53,7 +56,8 @@ for alert in alerts["alerts"]:
                     "last_repost_date",
                 ]
             ]
-            .sort_values("price", ascending=False)
+            .sort_values("price", ascending=True)
+            .fillna("0")
         )
         error_message = None
     except pd.core.computation.ops.UndefinedVariableError:
@@ -77,7 +81,11 @@ for alert in alerts["alerts"]:
             email_subject = (
                 f"{alert['alert_name']} alert updates at {timestamp} US/Mtn time"
             )
-        et.email_df(filtered_df.style.background_gradient(cmap="viridis", subset="price"), email_to=target_email, email_subject=email_subject)
+        et.email_df(
+            filtered_df,
+            email_to=target_email,
+            email_subject=email_subject,
+        )
 
     # Update last_checked so we only send new ads
     alert["last_checked"] = timestamp
