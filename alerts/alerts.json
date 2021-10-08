@@ -43,7 +43,7 @@
         {
             "category_num": 2,
             "alert_name": "All Mtn Check",
-            "search_string": "price > 3000 and price < 5000 and ad_title.str.contains('Instinct') and location.str.contains('Canada')",
+            "search_string": "price > 3000 and price < 5000 and location.str.contains('Canada')",
             "email_stem": "dustin.brown.andrews",
             "email_domain": "@gmail.com",
             "last_checked": "2021-10-08 15:46:32.665317-06:00"
