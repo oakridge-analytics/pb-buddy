@@ -75,7 +75,9 @@ def get_dataset(category_num: int, data_type: str) -> pd.DataFrame:
 
         if "datetime_scraped" in df_out.columns:
             df_out = df_out.assign(
-                datetime_scraped=lambda x: pd.to_datetime(x.datetime_scraped)
+                datetime_scraped=lambda x: pd.to_datetime(
+                    x.datetime_scraped, utc=True
+                ).dt.tz_convert("US/Mountain")
             )
     return df_out
 
