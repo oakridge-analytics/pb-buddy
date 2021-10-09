@@ -108,10 +108,10 @@ def parse_buysell_ad(buysell_url: str, delay_s: int) -> dict:
             # Sometimes using text attribute of next_sibling fails, cast to str and strip HTML instead.
             if "Still For Sale" in tag.text:
                 data_dict[tag.text] = re.sub(
-                    '<[^<]+?>', "",str(tag.next_sibling.next_sibling))
+                    "<[^<]+?>", "", str(tag.next_sibling.next_sibling)
+                )
             else:
-                data_dict[tag.text] = re.sub(
-                    '<[^<]+?>', "",str(tag.next_sibling))
+                data_dict[tag.text] = re.sub("<[^<]+?>", "", str(tag.next_sibling))
 
     # Get price
     for pricing in soup.find_all("div", class_="buysell-container buysell-price"):
@@ -119,7 +119,7 @@ def parse_buysell_ad(buysell_url: str, delay_s: int) -> dict:
         # Grab price and currency. In case of issue, store None and handle downstream
         price_search = re.search("([\d,]+)", pricing.text)
         if price_search is not None:
-            data_dict["price"] = float(price_search.group(0).replace(",",""))
+            data_dict["price"] = float(price_search.group(0).replace(",", ""))
         else:
             data_dict["price"] = None
 
@@ -143,6 +143,11 @@ def parse_buysell_ad(buysell_url: str, delay_s: int) -> dict:
             location = sp.text.split("\n")[2].strip()
             data_dict["location"] = location
 
+    # Get restrictions on shipping
+    for sp in soup.find_all("div", class_="buysell-container"):
+        if "Restrictions" in sp.text:
+            data_dict["restrictions"] = sp.text.split(":")[-1]
+
     # Add scrape datetime
     data_dict["datetime_scraped"] = str(pd.Timestamp.today(tz="US/Mountain"))
     data_dict["url"] = buysell_url
@@ -150,7 +155,9 @@ def parse_buysell_ad(buysell_url: str, delay_s: int) -> dict:
     # Clean non standard whitespace, fix key names:
     pattern = re.compile(r"\s+")
     data_dict = {
-        k.replace(":","").replace(" ","_").lower(): re.sub(pattern, " ", v) if type(v) == str else v
+        k.replace(":", "").replace(" ", "_").lower(): re.sub(pattern, " ", v)
+        if type(v) == str
+        else v
         for k, v in data_dict.items()
     }
 
