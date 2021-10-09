@@ -1,4 +1,5 @@
 # %%
+from matplotlib.pyplot import show
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
@@ -19,6 +20,7 @@ end_category = 101
 num_jobs = os.cpu_count()  # Curently only for initial link grab
 delay_s = 0.0
 log_level = "INFO"
+show_progress = False if os.environ.get("PROGRESS", "0") == "0" else True
 
 
 # Config main settings -----------------------------------------------
@@ -76,7 +78,8 @@ for category_to_scrape in np.random.choice(
         for x in pages_to_check
     ]
     ad_urls = Parallel(n_jobs=num_jobs)(
-        delayed(scraper.get_buysell_ads)(x, delay_s=delay_s) for x in tqdm(page_urls)
+        delayed(scraper.get_buysell_ads)(x, delay_s=delay_s)
+        for x in tqdm(page_urls, disable=(not show_progress))
     )
     ad_urls = ut.flatten(ad_urls)
     ad_urls = list(dict.fromkeys(ad_urls))
@@ -87,7 +90,7 @@ for category_to_scrape in np.random.choice(
     # Do sequentially and check datetime of last scrape
     # Only add new ads. Note Pinkbike doesn't note AM/PM so can't do by time.
     # Have to round to date and check anything >= last scrape date.
-    for url in tqdm(ad_urls):
+    for url in tqdm(ad_urls, disable=(not show_progress)):
         single_ad_data = scraper.parse_buysell_ad(url, delay_s=0)
         if single_ad_data != {}:
             if (
@@ -157,6 +160,8 @@ for category_to_scrape in np.random.choice(
             dt.write_dataset(
                 new_ads.assign(category_num=category_to_scrape), data_type="base"
             )
+            # Add to lookup for future categories, save a db query
+            all_base_data = pd.concat([all_base_data, new_ads], axis=0)
 
     logging.info(f"Adding {len(new_ads)} new ads to base data")
 
@@ -170,7 +175,7 @@ for category_to_scrape in np.random.choice(
     # Do sequentially and check datetime of last scrape
     # Only add new ads. Removed ads won't return a usable page.
     urls_to_remove = []
-    for url in tqdm(potentially_sold_urls):
+    for url in tqdm(potentially_sold_urls, disable=(not show_progress)):
         single_ad_data = scraper.parse_buysell_ad(url, delay_s=0)
         if (
             single_ad_data
