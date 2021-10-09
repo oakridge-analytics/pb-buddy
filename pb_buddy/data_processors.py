@@ -111,7 +111,7 @@ def write_dataset(category_df: pd.DataFrame, data_type: str):
         x.replace(":", "").replace(" ", "_").lower() for x in category_df.columns
     ]
 
-    database_mongo.insert_many(category_df.to_dict(orient="records"))
+    database_mongo.insert_many(category_df.to_dict(orient="records"), ordered=False)
 
 
 def update_base_data(
