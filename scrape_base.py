@@ -157,6 +157,8 @@ for category_to_scrape in np.random.choice(
             dt.write_dataset(
                 new_ads.assign(category_num=category_to_scrape), data_type="base"
             )
+            # Add to lookup for future categories, save a db query
+            all_base_data = pd.concat([all_base_data, new_ads], axis=1)
 
     logging.info(f"Adding {len(new_ads)} new ads to base data")
 
