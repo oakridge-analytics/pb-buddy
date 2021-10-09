@@ -36,7 +36,19 @@ all_data.loc[
 dt.remove_from_base_data(data_remove, index_col="_id")
 
 # %%
+# Remove fake changes ----------------------------------------
 changes = dt.get_dataset(-1, data_type="changes")
+
+# %%
+fake_changes = changes.query("old_value.str.strip() == new_value.str.strip()")
+
+# %%
+db = dt.get_mongodb()
+changes_collection = db.change_data
+
+for val in fake_changes["_id"]:
+    changes_collection.delete_one({"_id": val})
+
 # %%
 # %%
 # Clean sold data -----------------------------------------------------
