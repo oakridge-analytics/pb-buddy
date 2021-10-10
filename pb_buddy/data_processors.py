@@ -33,8 +33,8 @@ def get_latest_by_scrape_dt(df: pd.DataFrame) -> pd.DataFrame:
 
 def get_dataset(category_num: int, data_type: str) -> pd.DataFrame:
     """Get active, sold or changed ad data for a given category number. Normalizes column
-    names into nicer forms. Requires env variables "MONGO_USER", "MONGO_PASS" to
-    be set correctly for MongoDB cluster.
+    names into nicer forms. Requires env variable "COSMOS_CONN_STR" to
+    be set for MongoDB api on CosmosDB access.
 
     Use `category_num` == -1 to access all data of a certain type.
 
@@ -84,8 +84,9 @@ def get_dataset(category_num: int, data_type: str) -> pd.DataFrame:
 
 def write_dataset(category_df: pd.DataFrame, data_type: str):
     """Write active/sold/changed ad data from a given DataFrame. Normalizes column
-    names into nicer forms (lower case, "_" separated). Requires env variables "MONGO_USER", "MONGO_PASS" to
-    be set correctly for MongoDB cluster.
+    names into nicer forms (lower case, "_" separated). Uses unordered insert, ignores index errors.
+    Requires env variable "COSMOS_CONN_STR" to
+    be set for MongoDB api on CosmosDB access.
 
     Parameters
     ----------
@@ -111,14 +112,19 @@ def write_dataset(category_df: pd.DataFrame, data_type: str):
         x.replace(":", "").replace(" ", "_").lower() for x in category_df.columns
     ]
 
-    database_mongo.insert_many(category_df.to_dict(orient="records"), ordered=False)
+    # Insert as many as possible, return without printing errors for now.
+    try:
+        database_mongo.insert_many(category_df.to_dict(orient="records"), ordered=False)
+    except pymongo.errors.BulkWriteError:
+        pass
 
 
 def update_base_data(
     category_df: pd.DataFrame, index_col: str, cols_to_update: List[str]
 ):
     """Update MongoDB collection for base ad data documents uniquely identified by `index_col` and update fields
-    with values in `cols_to_update` from `category_df`.
+    with values in `cols_to_update` from `category_df`. Requires env variable "COSMOS_CONN_STR" to
+    be set for MongoDB api on CosmosDB access.
 
     Parameters
     ----------
@@ -148,7 +154,8 @@ def update_base_data(
 
 
 def remove_from_base_data(removal_df: pd.DataFrame, index_col: str):
-    """Remove documents from MongoDB `base_data` database based on `index_col`.
+    """Remove documents from MongoDB `base_data` database based on `index_col`. Requires env variable "COSMOS_CONN_STR" to
+    be set for MongoDB api on CosmosDB access.
 
     Parameters
     ----------
@@ -168,7 +175,11 @@ def remove_from_base_data(removal_df: pd.DataFrame, index_col: str):
 
 
 def get_mongodb():
-    """Return a `pymongo` database object to work with pb-buddy data"""
+    """
+    Return a `pymongo` database object to work with pb-buddy data
+    Requires env variable "COSMOS_CONN_STR" to
+    be set for MongoDB api on CosmosDB access.
+    """
     # mongo_user = os.environ['MONGO_USER']
     # mongo_pass = os.environ['MONGO_PASS']
     # Replace the uri string with your MongoDB deployment's connection string.
