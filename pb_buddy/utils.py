@@ -65,10 +65,11 @@ def convert_to_float(df: pd.DataFrame, colnames: List[str]) -> pd.DataFrame:
     """
     df = df.copy()
     for col in colnames:
-        df[col] = df.loc[:,col].fillna("0")
+        df[col] = df.loc[:, col].fillna("0")
         # Replace all non digits or decimal
-        df[col] = df[col].astype(str).str.replace(
-            "[^\d.]","", regex=True).astype(float)
+        df[col] = df[col].astype(str).str.replace("[^\d.]", "", regex=True)
+        df = df.loc[df[col] != "", :]
+        df[col] = df[col].astype(float)
     return df
 
 
@@ -89,12 +90,14 @@ def cast_obj_to_string(df: pd.DataFrame) -> pd.DataFrame:
 
     """
     for c in df.columns:
-        if df[c].dtype == 'object':
+        if df[c].dtype == "object":
             df[c] = df[c].astype(str)
     return df
 
 
-def generate_changelog(previous_ads:pd.DataFrame, updated_ads:pd.DataFrame, cols_to_check: List[str]) -> pd.DataFrame:
+def generate_changelog(
+    previous_ads: pd.DataFrame, updated_ads: pd.DataFrame, cols_to_check: List[str]
+) -> pd.DataFrame:
     """Generate a log of column, old value, new value between two
     dataframes of ads. Both dataframes must be sorted by URL and have the
     same membership of ad urls. Uses Last Repost Date of updated version to timestamp
@@ -120,20 +123,22 @@ def generate_changelog(previous_ads:pd.DataFrame, updated_ads:pd.DataFrame, cols
             - new_value
             - update_date
     """
-    if (previous_ads.url == updated_ads.url).sum() != len(previous_ads) \
-            or len(previous_ads) != len(updated_ads):
+    if (previous_ads.url == updated_ads.url).sum() != len(previous_ads) or len(
+        previous_ads
+    ) != len(updated_ads):
         raise ValueError(
-            "previous_ads and updated_ads must have same number of ads, and identical ordering of url column")
+            "previous_ads and updated_ads must have same number of ads, and identical ordering of url column"
+        )
     changes = []
     for url in previous_ads.url:
         for col in cols_to_check:
             old_value = previous_ads.loc[previous_ads.url == url, col]
             old_dtype = old_value.dtype
-            new_value = updated_ads.loc[updated_ads.url == url, col].astype(
-                old_dtype)
+            new_value = updated_ads.loc[updated_ads.url == url, col].astype(old_dtype)
             category = previous_ads.loc[previous_ads.url == url, "category"]
             update_date = pd.to_datetime(
-                updated_ads.loc[updated_ads.url == url, "last_repost_date"]).dt.date
+                updated_ads.loc[updated_ads.url == url, "last_repost_date"]
+            ).dt.date
             if (old_value != new_value).all():
                 changed = {
                     "url": url,
@@ -141,7 +146,7 @@ def generate_changelog(previous_ads:pd.DataFrame, updated_ads:pd.DataFrame, cols
                     "field": col,
                     "old_value": old_value.values[0],
                     "new_value": new_value.values[0],
-                    "update_date": str(update_date.values[0])
+                    "update_date": str(update_date.values[0]),
                 }
                 changes.append(changed)
 
