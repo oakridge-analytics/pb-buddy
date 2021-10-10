@@ -5,6 +5,7 @@ import os
 
 # Custom code
 import pb_buddy.emailer as et
+import pb_buddy.utils as ut
 import pb_buddy.data_processors as dt
 
 # %%
@@ -26,6 +27,7 @@ for alert in alerts["alerts"]:
         .query(
             "field == 'price' and new_value < old_value and update_date >= @last_check_dt.date()"
         )
+        .pipe(ut.convert_to_float, colnames=["old_value", "new_value"])
         .assign(
             price_change=lambda x: x.old_value - x.new_value,
             url=lambda x: x.url.astype(object),
