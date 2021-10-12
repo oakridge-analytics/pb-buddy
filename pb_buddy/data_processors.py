@@ -186,7 +186,14 @@ def get_mongodb():
     conn_str = os.environ["COSMOS_CONN_STR"]
     # set a 5-second connection timeout
     client = pymongo.MongoClient(
-        conn_str, tlsCAFile=certifi.where(), serverSelectionTimeoutMS=5000
+        conn_str,
+        tlsCAFile=certifi.where(),
+        serverSelectionTimeoutMS=5000,
+        connectTimeoutMS=30000,
+        socketTimeoutMS=None,
+        socketKeepAlive=True,
+        connect=False,
+        maxPoolsize=1,
     )
     db = client["pb-buddy"]
     return db
