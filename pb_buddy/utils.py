@@ -139,15 +139,30 @@ def generate_changelog(
             update_date = pd.to_datetime(
                 updated_ads.loc[updated_ads.url == url, "last_repost_date"]
             ).dt.date
-            if (old_value != new_value).all():
-                changed = {
-                    "url": url,
-                    "category": category.values[0],
-                    "field": col,
-                    "old_value": old_value.values[0],
-                    "new_value": new_value.values[0],
-                    "update_date": str(update_date.values[0]),
-                }
-                changes.append(changed)
+
+            # if comparing string like, strip first
+            if old_dtype in [str, object]:
+
+                if (old_value.str.strip() != new_value.str.strip()).all():
+                    changed = {
+                        "url": url,
+                        "category": category.values[0],
+                        "field": col,
+                        "old_value": old_value.values[0],
+                        "new_value": new_value.values[0],
+                        "update_date": str(update_date.values[0]),
+                    }
+                    changes.append(changed)
+            else:
+                if (old_value != new_value).all():
+                    changed = {
+                        "url": url,
+                        "category": category.values[0],
+                        "field": col,
+                        "old_value": old_value.values[0],
+                        "new_value": new_value.values[0],
+                        "update_date": str(update_date.values[0]),
+                    }
+                    changes.append(changed)
 
     return pd.DataFrame(changes)
