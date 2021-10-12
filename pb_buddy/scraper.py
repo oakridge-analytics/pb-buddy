@@ -155,7 +155,7 @@ def parse_buysell_ad(buysell_url: str, delay_s: int) -> dict:
     # Clean non standard whitespace, fix key names:
     pattern = re.compile(r"\s+")
     data_dict = {
-        k.replace(":", "").replace(" ", "_").lower(): re.sub(pattern, " ", v)
+        k.replace(":", "").replace(" ", "_").lower(): re.sub(pattern, " ", v).strip()
         if type(v) == str
         else v
         for k, v in data_dict.items()
