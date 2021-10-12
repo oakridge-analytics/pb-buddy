@@ -17,7 +17,7 @@ from pb_buddy.resources import category_dict
 # Settings -----------------------------------------------------------------
 start_category = 1
 end_category = 101
-num_jobs = os.cpu_count()  # Curently only for initial link grab
+num_jobs = 2  # os.cpu_count()  # Curently only for initial link grab
 delay_s = 0.0
 log_level = "INFO"
 show_progress = False if os.environ.get("PROGRESS", "0") == "0" else True
@@ -147,10 +147,11 @@ for category_to_scrape in np.random.choice(
                 updated_ads=updated_ads,
                 cols_to_check=cols_to_check,
             )
-            logging.info(f"{len(changes)} changes across {len(updated_ads)} ads")
-            dt.write_dataset(
-                changes.assign(category_num=category_to_scrape), data_type="changes"
-            )
+            if len(changes) > 0:
+                logging.info(f"{len(changes)} changes across {len(updated_ads)} ads")
+                dt.write_dataset(
+                    changes.assign(category_num=category_to_scrape), data_type="changes"
+                )
 
         # Update ads that had changes in key columns
         dt.update_base_data(updated_ads, index_col="url", cols_to_update=cols_to_check)

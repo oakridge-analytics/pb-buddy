@@ -21,8 +21,13 @@ def get_buysell_ads(url: str, delay_s: int = 1) -> List[str]:
     List[str]
         List of URL's to the buysell ads on that page
     """
-    search_results = requests.get(url)
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"
+    }
+    search_results = requests.get(url, headers=headers, timeout=20)
     if search_results.status_code > 200:
+        print(search_results.content)
+        print(search_results.status_code)
         raise requests.exceptions.RequestException("Buysell url status error")
     soup = BeautifulSoup(search_results.content, features="html.parser")
     buysell_ads = []
