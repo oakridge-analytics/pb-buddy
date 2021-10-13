@@ -2,35 +2,11 @@
     "alerts": [
         {
             "category_num": 2,
-            "alert_name": "Carbon Instincts",
-            "search_string": "price > 3000 and price < 5000 and material.str.contains('Carbon') and ad_title.str.contains('Instinct') and location.str.contains('Canada')",
+            "alert_name": "Carbon All Mtn",
+            "search_string": "price > 3000 and price < 5000 and material.str.contains('Carbon') and location.str.contains('Canada') and (restrictions.str.contains('within') or restrictions.str.contains('globally')) and frame_size.str.contains('M') and (front_travel.str.contains('140') or front_travel.str.contains('130')) and (ad_title.str.contains('2018') or ad_title.str.contains('2017') or ad_title.str.contains('2019'))",
             "email_stem": "dustin.brown.andrews",
             "email_domain": "@gmail.com",
-            "last_checked": "2021-10-12 21:56:34.316848-06:00"
-        },
-        {
-            "category_num": 2,
-            "alert_name": "Cheap Instincts",
-            "search_string": "price < 3000 and ad_title.str.contains('Instinct')",
-            "email_stem": "dustin.brown.andrews",
-            "email_domain": "@gmail.com",
-            "last_checked": "2021-10-12 21:56:37.077186-06:00"
-        },
-        {
-            "category_num": 2,
-            "alert_name": "Sights Alert",
-            "search_string": "ad_title.str.contains('Sight') and ad_title.str.contains('7.4') ",
-            "email_stem": "bvmcknight",
-            "email_domain": "@icloud.com",
-            "last_checked": "2021-10-12 21:56:40.466499-06:00"
-        },
-        {
-            "category_num": 2,
-            "alert_name": "Sights Alert Tracker",
-            "search_string": "ad_title.str.contains('Sight') and ad_title.str.contains('7.4') ",
-            "email_stem": "dustin.brown.andrews",
-            "email_domain": "@gmail.com",
-            "last_checked": "2021-10-12 21:56:41.886312-06:00"
+            "last_checked": "2021-10-12 22:48:52.690933-06:00"
         },
         {
             "category_num": 12,
@@ -38,7 +14,7 @@
             "search_string": "price > 200 and price < 1200 and wheel_size.str.contains('700') and ad_title.str.contains('disc') ",
             "email_stem": "ty.elgin.andrews",
             "email_domain": "@gmail.com",
-            "last_checked": "2021-10-12 21:56:42.270970-06:00"
+            "last_checked": "2021-10-12 22:48:56.054605-06:00"
         },
         {
             "category_num": 2,
@@ -46,7 +22,7 @@
             "search_string": "price > 3000 and price < 5000 and location.str.contains('Canada')",
             "email_stem": "dustin.brown.andrews",
             "email_domain": "@gmail.com",
-            "last_checked": "2021-10-12 21:56:44.863734-06:00"
+            "last_checked": "2021-10-12 22:49:08.413249-06:00"
         },
         {
             "category_num": 2,
@@ -54,7 +30,7 @@
             "search_string": "price > 1500 and price < 4000 and location.str.contains('Canada') and (frame_size.str.contains('L') or frame_size.str.contains('XL') or frame_size.str.contains('21') or frame_size.str.contains('19') or frame_size.str.contains('21.5'))",
             "email_stem": "dustin.brown.andrews",
             "email_domain": "@gmail.com",
-            "last_checked": "2021-10-12 21:56:46.926794-06:00"
+            "last_checked": "2021-10-12 22:49:20.721650-06:00"
         }
     ]
 }
