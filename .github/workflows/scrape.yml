@@ -2,7 +2,7 @@ name: Scrape
 
 on:
   schedule:
-    - cron: "23 */6 * * *"
+    - cron: "23 */1 * * *"
   workflow_dispatch:
 
 env:
@@ -10,8 +10,8 @@ env:
 
 jobs:
   scrape-latest:
-    runs-on: ubuntu-latest
-#     runs-on: self-hosted
+#     runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: Setup repo
