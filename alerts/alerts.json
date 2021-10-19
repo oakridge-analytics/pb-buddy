@@ -23,14 +23,6 @@
             "email_stem": "dustin.brown.andrews",
             "email_domain": "@gmail.com",
             "last_checked": "2021-10-18 19:48:54.095008-06:00"
-        },
-        {
-            "category_num": 2,
-            "alert_name": "All Mtn Alert for Mat",
-            "search_string": "price > 1500 and price < 4000 and location.str.contains('Canada') and (frame_size.str.contains('L') or frame_size.str.contains('XL') or frame_size.str.contains('21') or frame_size.str.contains('19') or frame_size.str.contains('21.5'))",
-            "email_stem": "dustin.brown.andrews",
-            "email_domain": "@gmail.com",
-            "last_checked": "2021-10-18 19:48:57.085900-06:00"
         }
     ]
 }
