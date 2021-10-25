@@ -50,11 +50,11 @@ jobs:
           git add logs/
           git add alerts/
           git commit -m "Add data for $DATE"
-          git pull
-          git checkout --ours logs/
-          git add logs/
-          git checkout --ours alerts/
-          git add alerts/
+#          git pull
+#          git checkout --ours logs/
+#          git add logs/
+#          git checkout --ours alerts/
+#          git add alerts/
       - name: Push changes
         uses: ad-m/github-push-action@master
         with:
