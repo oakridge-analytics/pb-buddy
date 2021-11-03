@@ -20,7 +20,7 @@ jobs:
 #           python-version: 3.8
       - name: Install package
         run : |
-          pip install poetry
+          python3 -m pip install poetry
           poetry install
       - name: Set env vars
         run: |
