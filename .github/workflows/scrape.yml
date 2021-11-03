@@ -21,7 +21,7 @@ jobs:
       - name: Install package
         run : |
           python3 -m pip install poetry
-          poetry install
+          python3 -m poetry install
       - name: Set env vars
         run: |
           echo "DATE=$(python -c 'import datetime as dt; print((dt.datetime.now()))')" >> $GITHUB_ENV
