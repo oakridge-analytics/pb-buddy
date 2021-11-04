@@ -17,7 +17,7 @@ from pb_buddy.resources import category_dict
 # Settings -----------------------------------------------------------------
 start_category = 1
 end_category = 101
-num_jobs = 2  # os.cpu_count()  # Curently only for initial link grab
+num_jobs = os.cpu_count()  # Curently only for initial link grab
 delay_s = 0.0
 log_level = "INFO"
 show_progress = False if os.environ.get("PROGRESS", "0") == "0" else True
