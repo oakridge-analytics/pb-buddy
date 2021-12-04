@@ -20,7 +20,7 @@ jobs:
 #           python-version: 3.7
       - name: Add setuptools
         run: |
-          sudo apt-get install python3-setuptools
+          apt-get install python3-setuptools
       - name: Install package
         run : |
           python3 -m pip install poetry
