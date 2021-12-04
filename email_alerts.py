@@ -58,7 +58,7 @@ for alert in alerts["alerts"]:
                     "last_repost_date",
                 ]
             ]
-            .sort_values("price", ascending=True)
+            .sort_values(["price_change", "price"], ascending=[False, True])
             .fillna("0")
         )
         error_message = None

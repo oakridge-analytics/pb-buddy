@@ -154,7 +154,11 @@ for category_to_scrape in np.random.choice(
                 )
 
         # Update ads that had changes in key columns
-        dt.update_base_data(updated_ads, index_col="url", cols_to_update=cols_to_check)
+        dt.update_base_data(
+            updated_ads,
+            index_col="url",
+            cols_to_update=cols_to_check + ["datetime_scraped"],
+        )
 
         # Write new ones !
         if len(new_ads) > 0:
