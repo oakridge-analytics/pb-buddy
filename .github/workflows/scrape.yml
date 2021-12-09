@@ -10,8 +10,8 @@ env:
 
 jobs:
   scrape-latest:
-    concurrency: 
-      group: ${{ github.head_ref }}
+    concurrency:
+      group: scrape
       cancel-in-progress: true
     runs-on: self-hosted
     steps:
