@@ -6,6 +6,7 @@ from tqdm import tqdm
 from joblib import Parallel, delayed
 import os
 import logging
+import warnings
 
 # Custom code
 import pb_buddy.scraper as scraper
@@ -37,6 +38,8 @@ logging.info("######## Starting new scrape session #########")
 all_base_data = dt.get_dataset(category_num=-1, data_type="base")
 all_sold_data = dt.get_dataset(category_num=-1, data_type="sold")
 logging.info("All previous data loaded from MongoDB")
+warnings.filterwarnings(action="ignore")
+
 # Main loop --------------------------------------------------
 # Iterate through all categories in random order, prevent noticeable patterns?
 
@@ -220,6 +223,9 @@ for category_to_scrape in np.random.choice(
     logging.info(f"*************Finished Category {category_name}")
 
     num_categories_scraped += 1
+    print(
+        f"Done Category {category_name} - Number: {category_to_scrape}. {num_categories_scraped} Categories Scraped So Far"
+    )
 
 
 logging.info("######## Finished scrape session #########")
