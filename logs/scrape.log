@@ -1,683 +1,704 @@
-2022-01-18 14:31:39,410 ######## Starting new scrape session #########
-2022-01-18 14:32:11,484 All previous data loaded from MongoDB
-2022-01-18 14:32:11,486 **************Starting Category ['DH Frames'] - Number: 5. 0 Categories Scraped So Far
-2022-01-18 14:32:12,334 Scraping 9 pages of ads......
-2022-01-18 14:32:16,786 Extracting ad data from 162 ads
-2022-01-18 14:32:22,370 2 changes across 1 ads
-2022-01-18 14:32:25,050 Adding 0 new ads to base data
-2022-01-18 14:32:25,053 Extracting ad data from 2 potentially sold ads
-2022-01-18 14:32:25,784 Found 2 sold ads, 0 removed ads
-2022-01-18 14:32:25,829 *************Finished Category ['DH Frames']
-2022-01-18 14:32:25,830 **************Starting Category ['Seatpost Parts'] - Number: 82. 1 Categories Scraped So Far
-2022-01-18 14:32:26,524 Scraping 8 pages of ads......
-2022-01-18 14:32:29,309 Extracting ad data from 153 ads
-2022-01-18 14:32:37,539 Adding 0 new ads to base data
-2022-01-18 14:32:37,542 Extracting ad data from 2 potentially sold ads
-2022-01-18 14:32:38,256 Found 0 sold ads, 2 removed ads
-2022-01-18 14:32:39,796 *************Finished Category ['Seatpost Parts']
-2022-01-18 14:32:39,797 **************Starting Category ['Chain Guides'] - Number: 93. 2 Categories Scraped So Far
-2022-01-18 14:32:40,548 Scraping 9 pages of ads......
-2022-01-18 14:32:43,813 Extracting ad data from 172 ads
-2022-01-18 14:32:50,738 Adding 0 new ads to base data
-2022-01-18 14:32:50,743 Extracting ad data from 1 potentially sold ads
-2022-01-18 14:32:51,080 Found 0 sold ads, 1 removed ads
-2022-01-18 14:32:52,650 *************Finished Category ['Chain Guides']
-2022-01-18 14:32:52,652 **************Starting Category ['Road Frames'] - Number: 27. 3 Categories Scraped So Far
-2022-01-18 14:32:53,385 Scraping 17 pages of ads......
-2022-01-18 14:32:59,484 Extracting ad data from 329 ads
-2022-01-18 14:33:12,610 Adding 0 new ads to base data
-2022-01-18 14:33:12,612 Extracting ad data from 0 potentially sold ads
-2022-01-18 14:33:12,613 Found 0 sold ads, 0 removed ads
-2022-01-18 14:33:12,632 *************Finished Category ['Road Frames']
-2022-01-18 14:33:12,633 **************Starting Category ['Bike Bags'] - Number: 67. 4 Categories Scraped So Far
-2022-01-18 14:33:13,250 Scraping 9 pages of ads......
-2022-01-18 14:33:16,636 Extracting ad data from 169 ads
-2022-01-18 14:33:27,330 Adding 0 new ads to base data
-2022-01-18 14:33:27,333 Extracting ad data from 0 potentially sold ads
-2022-01-18 14:33:27,333 Found 0 sold ads, 0 removed ads
-2022-01-18 14:33:27,354 *************Finished Category ['Bike Bags']
-2022-01-18 14:33:27,355 **************Starting Category ['Trainers / Rollers'] - Number: 101. 5 Categories Scraped So Far
-2022-01-18 14:33:28,161 Scraping 17 pages of ads......
-2022-01-18 14:33:34,355 Extracting ad data from 321 ads
-2022-01-18 14:33:36,861 Adding 1 new ads to base data
-2022-01-18 14:33:36,864 Extracting ad data from 2 potentially sold ads
-2022-01-18 14:33:37,547 Found 1 sold ads, 1 removed ads
-2022-01-18 14:33:40,097 *************Finished Category ['Trainers / Rollers']
-2022-01-18 14:33:40,098 **************Starting Category ['Fat Bikes'] - Number: 71. 6 Categories Scraped So Far
-2022-01-18 14:33:40,771 Scraping 9 pages of ads......
-2022-01-18 14:33:44,170 Extracting ad data from 163 ads
-2022-01-18 14:33:46,191 Adding 1 new ads to base data
-2022-01-18 14:33:46,194 Extracting ad data from 7 potentially sold ads
-2022-01-18 14:33:48,741 Found 7 sold ads, 0 removed ads
-2022-01-18 14:33:51,488 *************Finished Category ['Fat Bikes']
-2022-01-18 14:33:51,490 **************Starting Category ['Fat Bike Parts'] - Number: 73. 7 Categories Scraped So Far
-2022-01-18 14:33:52,171 Scraping 6 pages of ads......
-2022-01-18 14:33:54,469 Extracting ad data from 112 ads
-2022-01-18 14:34:02,669 Adding 2 new ads to base data
-2022-01-18 14:34:02,671 Extracting ad data from 4 potentially sold ads
-2022-01-18 14:34:04,157 Found 0 sold ads, 4 removed ads
-2022-01-18 14:34:05,610 *************Finished Category ['Fat Bike Parts']
-2022-01-18 14:34:05,611 **************Starting Category ['Stems'] - Number: 19. 8 Categories Scraped So Far
-2022-01-18 14:34:06,303 Scraping 41 pages of ads......
-2022-01-18 14:34:20,977 Extracting ad data from 807 ads
-2022-01-18 14:34:26,293 3 changes across 1 ads
-2022-01-18 14:34:30,214 Adding 1 new ads to base data
-2022-01-18 14:34:30,232 Extracting ad data from 8 potentially sold ads
-2022-01-18 14:34:32,980 Found 0 sold ads, 8 removed ads
-2022-01-18 14:34:34,918 *************Finished Category ['Stems']
-2022-01-18 14:34:34,919 **************Starting Category ['Road Bikes'] - Number: 26. 9 Categories Scraped So Far
-2022-01-18 14:34:35,774 Scraping 186 pages of ads......
-2022-01-18 14:35:45,620 Extracting ad data from 3702 ads
-2022-01-18 14:35:52,845 1 changes across 1 ads
-2022-01-18 14:35:57,159 Adding 2 new ads to base data
-2022-01-18 14:35:57,165 Extracting ad data from 16 potentially sold ads
-2022-01-18 14:36:03,016 Found 0 sold ads, 16 removed ads
-2022-01-18 14:36:05,597 *************Finished Category ['Road Bikes']
-2022-01-18 14:36:05,599 **************Starting Category ['Tools/Bike Stands'] - Number: 46. 10 Categories Scraped So Far
-2022-01-18 14:36:06,313 Scraping 20 pages of ads......
-2022-01-18 14:36:13,252 Extracting ad data from 386 ads
-2022-01-18 14:36:16,401 1 changes across 1 ads
-2022-01-18 14:36:19,172 Adding 0 new ads to base data
-2022-01-18 14:36:19,176 Extracting ad data from 4 potentially sold ads
-2022-01-18 14:36:20,628 Found 1 sold ads, 3 removed ads
-2022-01-18 14:36:23,510 *************Finished Category ['Tools/Bike Stands']
-2022-01-18 14:36:23,512 **************Starting Category ['Headsets'] - Number: 95. 11 Categories Scraped So Far
-2022-01-18 14:36:24,239 Scraping 10 pages of ads......
-2022-01-18 14:36:27,994 Extracting ad data from 200 ads
-2022-01-18 14:36:28,772 Adding 0 new ads to base data
-2022-01-18 14:36:28,774 Extracting ad data from 3 potentially sold ads
-2022-01-18 14:36:29,805 Found 1 sold ads, 2 removed ads
-2022-01-18 14:36:32,452 *************Finished Category ['Headsets']
-2022-01-18 14:36:32,453 **************Starting Category ['Saddles'] - Number: 80. 12 Categories Scraped So Far
-2022-01-18 14:36:33,174 Scraping 34 pages of ads......
-2022-01-18 14:36:45,253 Extracting ad data from 677 ads
-2022-01-18 14:36:48,694 Adding 0 new ads to base data
-2022-01-18 14:36:48,696 Extracting ad data from 2 potentially sold ads
-2022-01-18 14:36:49,374 Found 0 sold ads, 2 removed ads
-2022-01-18 14:36:50,781 *************Finished Category ['Saddles']
-2022-01-18 14:36:50,782 **************Starting Category ['Road Parts'] - Number: 28. 13 Categories Scraped So Far
-2022-01-18 14:36:51,436 Scraping 68 pages of ads......
-2022-01-18 14:37:15,690 Extracting ad data from 1345 ads
-2022-01-18 14:37:20,132 2 changes across 1 ads
-2022-01-18 14:37:22,833 Adding 0 new ads to base data
-2022-01-18 14:37:22,835 Extracting ad data from 0 potentially sold ads
-2022-01-18 14:37:22,836 Found 0 sold ads, 0 removed ads
-2022-01-18 14:37:24,226 *************Finished Category ['Road Parts']
-2022-01-18 14:37:24,228 **************Starting Category ['Lights'] - Number: 44. 14 Categories Scraped So Far
-2022-01-18 14:37:24,952 Scraping 4 pages of ads......
-2022-01-18 14:37:26,409 Extracting ad data from 78 ads
-2022-01-18 14:37:27,535 Adding 0 new ads to base data
-2022-01-18 14:37:27,538 Extracting ad data from 1 potentially sold ads
-2022-01-18 14:37:27,885 Found 1 sold ads, 0 removed ads
-2022-01-18 14:37:30,579 *************Finished Category ['Lights']
-2022-01-18 14:37:30,582 **************Starting Category ['Paintball'] - Number: 51. 15 Categories Scraped So Far
-2022-01-18 14:37:31,380 Scraping 1 pages of ads......
-2022-01-18 14:37:32,000 Extracting ad data from 8 ads
-2022-01-18 14:37:32,758 Adding 0 new ads to base data
-2022-01-18 14:37:32,761 Extracting ad data from 0 potentially sold ads
-2022-01-18 14:37:32,761 Found 0 sold ads, 0 removed ads
-2022-01-18 14:37:32,780 *************Finished Category ['Paintball']
-2022-01-18 14:37:32,781 **************Starting Category ['Vintage Bikes'] - Number: 99. 16 Categories Scraped So Far
-2022-01-18 14:37:33,436 Scraping 44 pages of ads......
-2022-01-18 14:37:49,972 Extracting ad data from 869 ads
-2022-01-18 14:38:01,767 Adding 0 new ads to base data
-2022-01-18 14:38:01,770 Extracting ad data from 3 potentially sold ads
-2022-01-18 14:38:02,896 Found 0 sold ads, 3 removed ads
-2022-01-18 14:38:04,762 *************Finished Category ['Vintage Bikes']
-2022-01-18 14:38:04,763 **************Starting Category ['All Mountain/Enduro Bikes'] - Number: 2. 17 Categories Scraped So Far
-2022-01-18 14:38:05,550 Scraping 533 pages of ads......
-2022-01-18 14:41:22,889 Extracting ad data from 10641 ads
-2022-01-18 14:41:43,842 6 changes across 4 ads
-2022-01-18 14:41:48,353 Adding 6 new ads to base data
-2022-01-18 14:41:48,359 Extracting ad data from 90 potentially sold ads
-2022-01-18 14:42:21,020 Found 35 sold ads, 55 removed ads
-2022-01-18 14:42:26,707 *************Finished Category ['All Mountain/Enduro Bikes']
-2022-01-18 14:42:26,708 **************Starting Category ['E-Bikes MTB'] - Number: 74. 18 Categories Scraped So Far
-2022-01-18 14:42:27,445 Scraping 39 pages of ads......
-2022-01-18 14:42:41,222 Extracting ad data from 774 ads
-2022-01-18 14:42:42,394 Adding 0 new ads to base data
-2022-01-18 14:42:42,397 Extracting ad data from 4 potentially sold ads
-2022-01-18 14:42:43,868 Found 4 sold ads, 0 removed ads
-2022-01-18 14:42:46,874 *************Finished Category ['E-Bikes MTB']
-2022-01-18 14:42:46,877 **************Starting Category ['BMX Forks/Headsets/Pegs'] - Number: 55. 19 Categories Scraped So Far
-2022-01-18 14:42:47,653 Scraping 1 pages of ads......
-2022-01-18 14:42:48,346 Extracting ad data from 14 ads
-2022-01-18 14:42:50,658 Adding 0 new ads to base data
-2022-01-18 14:42:50,661 Extracting ad data from 0 potentially sold ads
-2022-01-18 14:42:50,662 Found 0 sold ads, 0 removed ads
-2022-01-18 14:42:50,680 *************Finished Category ['BMX Forks/Headsets/Pegs']
-2022-01-18 14:42:50,681 **************Starting Category ['Shoes'] - Number: 40. 20 Categories Scraped So Far
-2022-01-18 14:42:51,352 Scraping 67 pages of ads......
-2022-01-18 14:43:15,224 Extracting ad data from 1337 ads
-2022-01-18 14:43:20,962 3 changes across 2 ads
-2022-01-18 14:43:23,582 Adding 0 new ads to base data
-2022-01-18 14:43:23,585 Extracting ad data from 4 potentially sold ads
-2022-01-18 14:43:25,005 Found 0 sold ads, 4 removed ads
-2022-01-18 14:43:26,538 *************Finished Category ['Shoes']
-2022-01-18 14:43:26,539 **************Starting Category ['IPODs/Music Players'] - Number: 49. 21 Categories Scraped So Far
-2022-01-18 14:43:27,315 Scraping 1 pages of ads......
-2022-01-18 14:43:27,996 Extracting ad data from 5 ads
-2022-01-18 14:43:28,756 1 changes across 1 ads
-2022-01-18 14:43:31,287 Adding 0 new ads to base data
-2022-01-18 14:43:31,289 Extracting ad data from 0 potentially sold ads
-2022-01-18 14:43:31,289 Found 0 sold ads, 0 removed ads
-2022-01-18 14:43:31,303 *************Finished Category ['IPODs/Music Players']
-2022-01-18 14:43:31,304 **************Starting Category ['Trades'] - Number: 54. 22 Categories Scraped So Far
-2022-01-18 14:43:32,045 Scraping 4 pages of ads......
-2022-01-18 14:43:33,501 Extracting ad data from 75 ads
-2022-01-18 14:43:35,300 Adding 0 new ads to base data
-2022-01-18 14:43:35,303 Extracting ad data from 0 potentially sold ads
-2022-01-18 14:43:35,304 Found 0 sold ads, 0 removed ads
-2022-01-18 14:43:35,323 *************Finished Category ['Trades']
-2022-01-18 14:43:35,325 **************Starting Category ['DJ/Street/Park Frames'] - Number: 7. 23 Categories Scraped So Far
-2022-01-18 14:43:36,019 Scraping 7 pages of ads......
-2022-01-18 14:43:38,999 Extracting ad data from 132 ads
-2022-01-18 14:43:39,342 **************Starting Category ['BMX Bikes'] - Number: 23. 23 Categories Scraped So Far
-2022-01-18 14:43:39,985 Scraping 23 pages of ads......
-2022-01-18 14:43:49,082 Extracting ad data from 452 ads
-2022-01-18 14:43:53,444 Adding 0 new ads to base data
-2022-01-18 14:43:53,447 Extracting ad data from 4 potentially sold ads
-2022-01-18 14:43:54,942 Found 3 sold ads, 1 removed ads
-2022-01-18 14:43:56,521 *************Finished Category ['BMX Bikes']
-2022-01-18 14:43:56,522 **************Starting Category ['Helmets'] - Number: 39. 24 Categories Scraped So Far
-2022-01-18 14:43:57,229 Scraping 39 pages of ads......
-2022-01-18 14:44:11,716 Extracting ad data from 774 ads
-2022-01-18 14:44:34,545 Adding 2 new ads to base data
-2022-01-18 14:44:34,552 Extracting ad data from 4 potentially sold ads
-2022-01-18 14:44:36,082 Found 1 sold ads, 4 removed ads
-2022-01-18 14:44:38,826 *************Finished Category ['Helmets']
-2022-01-18 14:44:38,827 **************Starting Category ['Pedals ( Flat )'] - Number: 85. 25 Categories Scraped So Far
-2022-01-18 14:44:39,523 Scraping 11 pages of ads......
-2022-01-18 14:44:43,791 Extracting ad data from 218 ads
-2022-01-18 14:44:59,373 Adding 1 new ads to base data
-2022-01-18 14:44:59,376 Extracting ad data from 2 potentially sold ads
-2022-01-18 14:45:00,106 Found 0 sold ads, 2 removed ads
-2022-01-18 14:45:01,423 *************Finished Category ['Pedals ( Flat )']
-2022-01-18 14:45:01,425 **************Starting Category ['Handle Bars ( 31.8 mm )'] - Number: 20. 26 Categories Scraped So Far
-2022-01-18 14:45:02,407 Scraping 25 pages of ads......
-2022-01-18 14:45:12,564 Extracting ad data from 492 ads
-2022-01-18 14:45:14,492 Adding 0 new ads to base data
-2022-01-18 14:45:14,497 Extracting ad data from 4 potentially sold ads
-2022-01-18 14:45:15,971 Found 0 sold ads, 4 removed ads
-2022-01-18 14:45:19,578 *************Finished Category ['Handle Bars ( 31.8 mm )']
-2022-01-18 14:45:19,579 **************Starting Category ['Tires'] - Number: 14. 27 Categories Scraped So Far
-2022-01-18 14:45:20,362 Scraping 64 pages of ads......
-2022-01-18 14:45:43,948 Extracting ad data from 1269 ads
-2022-01-18 14:45:50,363 1 changes across 1 ads
-2022-01-18 14:45:54,191 Adding 2 new ads to base data
-2022-01-18 14:45:54,195 Extracting ad data from 0 potentially sold ads
-2022-01-18 14:45:54,195 Found 0 sold ads, 0 removed ads
-2022-01-18 14:45:54,219 *************Finished Category ['Tires']
-2022-01-18 14:45:54,221 **************Starting Category ['BMX Parts'] - Number: 25. 28 Categories Scraped So Far
-2022-01-18 14:45:54,905 Scraping 1 pages of ads......
-2022-01-18 14:45:55,558 Extracting ad data from 14 ads
-2022-01-18 14:45:57,023 Adding 0 new ads to base data
-2022-01-18 14:45:57,025 Extracting ad data from 0 potentially sold ads
-2022-01-18 14:45:57,026 Found 0 sold ads, 0 removed ads
-2022-01-18 14:45:57,045 *************Finished Category ['BMX Parts']
-2022-01-18 14:45:57,046 **************Starting Category ['Dual Crown Forks'] - Number: 8. 29 Categories Scraped So Far
-2022-01-18 14:45:57,760 Scraping 6 pages of ads......
-2022-01-18 14:46:00,029 Extracting ad data from 114 ads
-2022-01-18 14:46:01,174 Adding 0 new ads to base data
-2022-01-18 14:46:01,176 Extracting ad data from 3 potentially sold ads
-2022-01-18 14:46:02,967 Found 2 sold ads, 1 removed ads
-2022-01-18 14:46:05,619 *************Finished Category ['Dual Crown Forks']
-2022-01-18 14:46:05,621 **************Starting Category ['E-Bikes Road/Gravel'] - Number: 64. 30 Categories Scraped So Far
-2022-01-18 14:46:06,458 Scraping 8 pages of ads......
-2022-01-18 14:46:09,406 Extracting ad data from 157 ads
-2022-01-18 14:46:14,105 Adding 0 new ads to base data
-2022-01-18 14:46:14,108 Extracting ad data from 0 potentially sold ads
-2022-01-18 14:46:14,108 Found 0 sold ads, 0 removed ads
-2022-01-18 14:46:14,124 *************Finished Category ['E-Bikes Road/Gravel']
-2022-01-18 14:46:14,125 **************Starting Category ['BMX Hubs'] - Number: 60. 31 Categories Scraped So Far
-2022-01-18 14:46:14,794 Scraping 1 pages of ads......
-2022-01-18 14:46:15,436 Extracting ad data from 10 ads
-2022-01-18 14:46:15,803 **************Starting Category ['Rear Shocks ( Coil )'] - Number: 83. 31 Categories Scraped So Far
-2022-01-18 14:46:16,498 Scraping 16 pages of ads......
-2022-01-18 14:46:22,335 Extracting ad data from 309 ads
-2022-01-18 14:46:24,382 Adding 0 new ads to base data
-2022-01-18 14:46:24,385 Extracting ad data from 1 potentially sold ads
-2022-01-18 14:46:24,755 Found 0 sold ads, 1 removed ads
-2022-01-18 14:46:25,942 *************Finished Category ['Rear Shocks ( Coil )']
-2022-01-18 14:46:25,946 **************Starting Category ['Handle Bars ( 35 mm )'] - Number: 86. 32 Categories Scraped So Far
-2022-01-18 14:46:26,646 Scraping 16 pages of ads......
-2022-01-18 14:46:32,393 Extracting ad data from 316 ads
-2022-01-18 14:46:33,176 1 changes across 1 ads
-2022-01-18 14:46:35,726 Adding 0 new ads to base data
-2022-01-18 14:46:35,729 Extracting ad data from 2 potentially sold ads
-2022-01-18 14:46:36,469 Found 1 sold ads, 1 removed ads
-2022-01-18 14:46:39,191 *************Finished Category ['Handle Bars ( 35 mm )']
-2022-01-18 14:46:39,192 **************Starting Category ['Brakes'] - Number: 15. 33 Categories Scraped So Far
-2022-01-18 14:46:39,819 Scraping 64 pages of ads......
-2022-01-18 14:47:02,596 Extracting ad data from 1258 ads
-2022-01-18 14:47:08,688 2 changes across 2 ads
-2022-01-18 14:47:12,914 Adding 3 new ads to base data
-2022-01-18 14:47:12,919 Extracting ad data from 5 potentially sold ads
-2022-01-18 14:47:14,747 Found 0 sold ads, 5 removed ads
-2022-01-18 14:47:16,390 *************Finished Category ['Brakes']
-2022-01-18 14:47:16,392 **************Starting Category ['XC Frames'] - Number: 76. 34 Categories Scraped So Far
-2022-01-18 14:47:17,095 Scraping 12 pages of ads......
-2022-01-18 14:47:21,507 Extracting ad data from 222 ads
-2022-01-18 14:47:32,891 1 changes across 1 ads
-2022-01-18 14:47:36,672 Adding 1 new ads to base data
-2022-01-18 14:47:36,675 Extracting ad data from 0 potentially sold ads
-2022-01-18 14:47:36,676 Found 0 sold ads, 0 removed ads
-2022-01-18 14:47:36,691 *************Finished Category ['XC Frames']
-2022-01-18 14:47:36,692 **************Starting Category ['Pedals ( Clipless)'] - Number: 22. 35 Categories Scraped So Far
-2022-01-18 14:47:37,584 Scraping 16 pages of ads......
-2022-01-18 14:47:43,587 Extracting ad data from 313 ads
-2022-01-18 14:47:45,882 Adding 0 new ads to base data
-2022-01-18 14:47:45,884 Extracting ad data from 3 potentially sold ads
-2022-01-18 14:47:46,952 Found 0 sold ads, 3 removed ads
-2022-01-18 14:47:48,325 *************Finished Category ['Pedals ( Clipless)']
-2022-01-18 14:47:48,326 **************Starting Category ['MX Bikes/Quads'] - Number: 35. 36 Categories Scraped So Far
-2022-01-18 14:47:48,971 Scraping 2 pages of ads......
-2022-01-18 14:47:49,647 Extracting ad data from 28 ads
-2022-01-18 14:47:52,885 Adding 0 new ads to base data
-2022-01-18 14:47:52,888 Extracting ad data from 0 potentially sold ads
-2022-01-18 14:47:52,889 Found 0 sold ads, 0 removed ads
-2022-01-18 14:47:52,908 *************Finished Category ['MX Bikes/Quads']
-2022-01-18 14:47:52,909 **************Starting Category ['Vintage Frames'] - Number: 100. 37 Categories Scraped So Far
-2022-01-18 14:47:53,695 Scraping 6 pages of ads......
-2022-01-18 14:47:55,863 Extracting ad data from 105 ads
-2022-01-18 14:48:01,609 Adding 0 new ads to base data
-2022-01-18 14:48:01,612 Extracting ad data from 1 potentially sold ads
-2022-01-18 14:48:02,022 Found 0 sold ads, 1 removed ads
-2022-01-18 14:48:03,290 *************Finished Category ['Vintage Frames']
-2022-01-18 14:48:03,292 **************Starting Category ['Armour/Pads'] - Number: 41. 38 Categories Scraped So Far
-2022-01-18 14:48:04,031 Scraping 25 pages of ads......
-2022-01-18 14:48:12,650 Extracting ad data from 484 ads
-2022-01-18 14:48:28,975 Adding 0 new ads to base data
-2022-01-18 14:48:28,979 Extracting ad data from 0 potentially sold ads
-2022-01-18 14:48:28,979 Found 0 sold ads, 0 removed ads
-2022-01-18 14:48:29,001 *************Finished Category ['Armour/Pads']
-2022-01-18 14:48:29,002 **************Starting Category ['Trials Frames'] - Number: 30. 39 Categories Scraped So Far
-2022-01-18 14:48:29,789 Scraping 1 pages of ads......
-2022-01-18 14:48:30,381 Extracting ad data from 2 ads
-2022-01-18 14:48:30,742 **************Starting Category ['Single Crown Forks'] - Number: 9. 39 Categories Scraped So Far
-2022-01-18 14:48:31,430 Scraping 83 pages of ads......
-2022-01-18 14:49:02,468 Extracting ad data from 1654 ads
-2022-01-18 14:49:13,712 3 changes across 3 ads
-2022-01-18 14:49:18,019 Adding 1 new ads to base data
-2022-01-18 14:49:18,023 Extracting ad data from 15 potentially sold ads
-2022-01-18 14:49:23,516 Found 0 sold ads, 15 removed ads
-2022-01-18 14:49:25,926 *************Finished Category ['Single Crown Forks']
-2022-01-18 14:49:25,928 **************Starting Category ['Gravel/CX Bikes'] - Number: 77. 40 Categories Scraped So Far
-2022-01-18 14:49:26,665 Scraping 53 pages of ads......
-2022-01-18 14:49:46,044 Extracting ad data from 1044 ads
-2022-01-18 14:49:48,277 2 changes across 2 ads
-2022-01-18 14:49:51,022 Adding 0 new ads to base data
-2022-01-18 14:49:51,028 Extracting ad data from 15 potentially sold ads
-2022-01-18 14:49:56,477 Found 13 sold ads, 2 removed ads
-2022-01-18 14:49:59,204 *************Finished Category ['Gravel/CX Bikes']
-2022-01-18 14:49:59,205 **************Starting Category ['Wanted Ads'] - Number: 53. 41 Categories Scraped So Far
-2022-01-18 14:50:00,114 Scraping 37 pages of ads......
-2022-01-18 14:50:14,191 Extracting ad data from 736 ads
-2022-01-18 14:50:25,315 Adding 0 new ads to base data
-2022-01-18 14:50:25,317 Extracting ad data from 0 potentially sold ads
-2022-01-18 14:50:25,317 Found 0 sold ads, 0 removed ads
-2022-01-18 14:50:25,334 *************Finished Category ['Wanted Ads']
-2022-01-18 14:50:25,335 **************Starting Category ['BMX Frames'] - Number: 24. 42 Categories Scraped So Far
-2022-01-18 14:50:26,076 Scraping 3 pages of ads......
-2022-01-18 14:50:27,439 Extracting ad data from 60 ads
-2022-01-18 14:50:31,275 Adding 0 new ads to base data
-2022-01-18 14:50:31,278 Extracting ad data from 0 potentially sold ads
-2022-01-18 14:50:31,278 Found 0 sold ads, 0 removed ads
-2022-01-18 14:50:31,298 *************Finished Category ['BMX Frames']
-2022-01-18 14:50:31,299 **************Starting Category ['Trucks/Cars'] - Number: 37. 43 Categories Scraped So Far
-2022-01-18 14:50:32,006 Scraping 1 pages of ads......
-2022-01-18 14:50:32,646 Extracting ad data from 18 ads
-2022-01-18 14:50:34,852 Adding 0 new ads to base data
-2022-01-18 14:50:34,854 Extracting ad data from 0 potentially sold ads
-2022-01-18 14:50:34,855 Found 0 sold ads, 0 removed ads
-2022-01-18 14:50:34,869 *************Finished Category ['Trucks/Cars']
-2022-01-18 14:50:34,870 **************Starting Category ['Gravel/CX Frames'] - Number: 78. 44 Categories Scraped So Far
-2022-01-18 14:50:35,550 Scraping 7 pages of ads......
-2022-01-18 14:50:38,459 Extracting ad data from 126 ads
-2022-01-18 14:50:44,251 Adding 0 new ads to base data
-2022-01-18 14:50:44,253 Extracting ad data from 2 potentially sold ads
-2022-01-18 14:50:44,954 Found 0 sold ads, 2 removed ads
-2022-01-18 14:50:46,640 *************Finished Category ['Gravel/CX Frames']
-2022-01-18 14:50:46,641 **************Starting Category ['Cranks'] - Number: 16. 45 Categories Scraped So Far
-2022-01-18 14:50:47,301 Scraping 35 pages of ads......
-2022-01-18 14:51:00,148 Extracting ad data from 688 ads
-2022-01-18 14:51:05,419 Adding 2 new ads to base data
-2022-01-18 14:51:05,428 Extracting ad data from 7 potentially sold ads
-2022-01-18 14:51:07,958 Found 0 sold ads, 7 removed ads
-2022-01-18 14:51:09,738 *************Finished Category ['Cranks']
-2022-01-18 14:51:09,739 **************Starting Category ['Shifters/Derailleurs'] - Number: 17. 46 Categories Scraped So Far
-2022-01-18 14:51:10,592 Scraping 50 pages of ads......
-2022-01-18 14:51:28,510 Extracting ad data from 988 ads
-2022-01-18 14:51:35,987 Adding 3 new ads to base data
-2022-01-18 14:51:35,991 Extracting ad data from 6 potentially sold ads
-2022-01-18 14:51:38,155 Found 0 sold ads, 6 removed ads
-2022-01-18 14:51:40,025 *************Finished Category ['Shifters/Derailleurs']
-2022-01-18 14:51:40,026 **************Starting Category ['BMX Bars/Grips/Stems'] - Number: 58. 47 Categories Scraped So Far
-2022-01-18 14:51:40,685 Scraping 2 pages of ads......
-2022-01-18 14:51:41,488 Extracting ad data from 29 ads
-2022-01-18 14:51:43,683 Adding 0 new ads to base data
-2022-01-18 14:51:43,686 Extracting ad data from 0 potentially sold ads
-2022-01-18 14:51:43,686 Found 0 sold ads, 0 removed ads
-2022-01-18 14:51:43,705 *************Finished Category ['BMX Bars/Grips/Stems']
-2022-01-18 14:51:43,706 **************Starting Category ['Drivetrain Groupset'] - Number: 92. 48 Categories Scraped So Far
-2022-01-18 14:51:44,570 Scraping 14 pages of ads......
-2022-01-18 14:51:49,646 Extracting ad data from 261 ads
-2022-01-18 14:51:51,435 Adding 0 new ads to base data
-2022-01-18 14:51:51,437 Extracting ad data from 2 potentially sold ads
-2022-01-18 14:51:52,122 Found 0 sold ads, 2 removed ads
-2022-01-18 14:51:53,785 *************Finished Category ['Drivetrain Groupset']
-2022-01-18 14:51:53,787 **************Starting Category ['Snowboard'] - Number: 33. 49 Categories Scraped So Far
-2022-01-18 14:51:54,598 Scraping 4 pages of ads......
-2022-01-18 14:51:55,922 Extracting ad data from 74 ads
-2022-01-18 14:52:00,541 Adding 0 new ads to base data
-2022-01-18 14:52:00,544 Extracting ad data from 0 potentially sold ads
-2022-01-18 14:52:00,544 Found 0 sold ads, 0 removed ads
-2022-01-18 14:52:00,563 *************Finished Category ['Snowboard']
-2022-01-18 14:52:00,564 **************Starting Category ['E-Bike Parts'] - Number: 65. 50 Categories Scraped So Far
-2022-01-18 14:52:01,251 Scraping 6 pages of ads......
-2022-01-18 14:52:03,446 Extracting ad data from 101 ads
-2022-01-18 14:52:09,438 Adding 0 new ads to base data
-2022-01-18 14:52:09,441 Extracting ad data from 1 potentially sold ads
-2022-01-18 14:52:09,817 Found 0 sold ads, 1 removed ads
-2022-01-18 14:52:11,097 *************Finished Category ['E-Bike Parts']
-2022-01-18 14:52:11,098 **************Starting Category ['Fat Bike Frames'] - Number: 72. 51 Categories Scraped So Far
-2022-01-18 14:52:11,760 Scraping 1 pages of ads......
-2022-01-18 14:52:12,433 Extracting ad data from 11 ads
-2022-01-18 14:52:14,632 Adding 0 new ads to base data
-2022-01-18 14:52:14,634 Extracting ad data from 1 potentially sold ads
-2022-01-18 14:52:14,992 Found 0 sold ads, 1 removed ads
-2022-01-18 14:52:16,225 *************Finished Category ['Fat Bike Frames']
-2022-01-18 14:52:16,227 **************Starting Category ['Rear Shocks ( Air )'] - Number: 11. 52 Categories Scraped So Far
-2022-01-18 14:52:16,984 Scraping 65 pages of ads......
-2022-01-18 14:52:40,033 Extracting ad data from 1290 ads
-2022-01-18 14:52:44,151 1 changes across 1 ads
-2022-01-18 14:52:47,909 Adding 1 new ads to base data
-2022-01-18 14:52:47,912 Extracting ad data from 21 potentially sold ads
-2022-01-18 14:52:55,426 Found 21 sold ads, 0 removed ads
-2022-01-18 14:52:55,453 *************Finished Category ['Rear Shocks ( Air )']
-2022-01-18 14:52:55,454 **************Starting Category ['XC Bikes'] - Number: 75. 53 Categories Scraped So Far
-2022-01-18 14:52:56,183 Scraping 121 pages of ads......
-2022-01-18 14:53:40,735 Extracting ad data from 2409 ads
-2022-01-18 14:53:45,121 3 changes across 2 ads
-2022-01-18 14:53:49,075 Adding 1 new ads to base data
-2022-01-18 14:53:49,080 Extracting ad data from 19 potentially sold ads
-2022-01-18 14:53:56,276 Found 5 sold ads, 14 removed ads
-2022-01-18 14:53:58,622 *************Finished Category ['XC Bikes']
-2022-01-18 14:53:58,623 **************Starting Category ['BMX Pedals'] - Number: 61. 54 Categories Scraped So Far
-2022-01-18 14:53:59,264 Scraping 1 pages of ads......
-2022-01-18 14:53:59,888 Extracting ad data from 1 ads
-2022-01-18 14:54:00,230 **************Starting Category ['Work Wanted'] - Number: 70. 54 Categories Scraped So Far
-2022-01-18 14:54:00,855 Scraping 2 pages of ads......
-2022-01-18 14:54:01,532 Extracting ad data from 21 ads
-2022-01-18 14:54:05,951 Adding 0 new ads to base data
-2022-01-18 14:54:05,954 Extracting ad data from 0 potentially sold ads
-2022-01-18 14:54:05,954 Found 0 sold ads, 0 removed ads
-2022-01-18 14:54:05,972 *************Finished Category ['Work Wanted']
-2022-01-18 14:54:05,973 **************Starting Category ['Seatposts ( Dropper )'] - Number: 81. 55 Categories Scraped So Far
-2022-01-18 14:54:06,661 Scraping 59 pages of ads......
-2022-01-18 14:54:27,247 Extracting ad data from 1165 ads
-2022-01-18 14:55:26,771 4 changes across 3 ads
-2022-01-18 14:55:31,010 Adding 4 new ads to base data
-2022-01-18 14:55:31,014 Extracting ad data from 12 potentially sold ads
-2022-01-18 14:55:35,360 Found 0 sold ads, 12 removed ads
-2022-01-18 14:55:37,460 *************Finished Category ['Seatposts ( Dropper )']
-2022-01-18 14:55:37,462 **************Starting Category ['Other'] - Number: 52. 56 Categories Scraped So Far
-2022-01-18 14:55:38,158 Scraping 16 pages of ads......
-2022-01-18 14:55:43,927 Extracting ad data from 301 ads
-2022-01-18 14:55:44,729 Adding 0 new ads to base data
-2022-01-18 14:55:44,731 Extracting ad data from 0 potentially sold ads
-2022-01-18 14:55:44,732 Found 0 sold ads, 0 removed ads
-2022-01-18 14:55:44,751 *************Finished Category ['Other']
-2022-01-18 14:55:44,751 **************Starting Category ['E-Bikes Urban/Commuter'] - Number: 63. 57 Categories Scraped So Far
-2022-01-18 14:55:45,869 Scraping 17 pages of ads......
-2022-01-18 14:55:52,588 Extracting ad data from 333 ads
-2022-01-18 14:56:01,554 Adding 0 new ads to base data
-2022-01-18 14:56:01,556 Extracting ad data from 1 potentially sold ads
-2022-01-18 14:56:02,045 Found 0 sold ads, 1 removed ads
-2022-01-18 14:56:03,329 *************Finished Category ['E-Bikes Urban/Commuter']
-2022-01-18 14:56:03,331 **************Starting Category ['Video/Photo gear'] - Number: 48. 58 Categories Scraped So Far
-2022-01-18 14:56:04,121 Scraping 4 pages of ads......
-2022-01-18 14:56:05,676 Extracting ad data from 64 ads
-2022-01-18 14:56:06,026 **************Starting Category ['Computers/Tech gear'] - Number: 47. 58 Categories Scraped So Far
-2022-01-18 14:56:06,858 Scraping 4 pages of ads......
-2022-01-18 14:56:08,412 Extracting ad data from 79 ads
-2022-01-18 14:56:08,769 **************Starting Category ['Music/Guitar/Amps'] - Number: 50. 58 Categories Scraped So Far
-2022-01-18 14:56:09,451 Scraping 1 pages of ads......
-2022-01-18 14:56:10,054 Extracting ad data from 8 ads
-2022-01-18 14:56:10,813 Adding 0 new ads to base data
-2022-01-18 14:56:10,816 Extracting ad data from 0 potentially sold ads
-2022-01-18 14:56:10,816 Found 0 sold ads, 0 removed ads
-2022-01-18 14:56:10,835 *************Finished Category ['Music/Guitar/Amps']
-2022-01-18 14:56:10,836 **************Starting Category ['Hubs'] - Number: 13. 59 Categories Scraped So Far
-2022-01-18 14:56:11,501 Scraping 36 pages of ads......
-2022-01-18 14:56:24,813 Extracting ad data from 710 ads
-2022-01-18 14:56:28,018 Adding 0 new ads to base data
-2022-01-18 14:56:28,021 Extracting ad data from 214 potentially sold ads
-2022-01-18 14:57:45,612 Found 212 sold ads, 2 removed ads
-2022-01-18 14:57:47,193 *************Finished Category ['Hubs']
-2022-01-18 14:57:47,195 **************Starting Category ['Rear Shock Parts'] - Number: 88. 60 Categories Scraped So Far
-2022-01-18 14:57:47,977 Scraping 7 pages of ads......
-2022-01-18 14:57:50,890 Extracting ad data from 138 ads
-2022-01-18 14:57:51,681 Adding 0 new ads to base data
-2022-01-18 14:57:51,684 Extracting ad data from 4 potentially sold ads
-2022-01-18 14:57:53,135 Found 3 sold ads, 1 removed ads
-2022-01-18 14:57:55,752 *************Finished Category ['Rear Shock Parts']
-2022-01-18 14:57:55,753 **************Starting Category ['Fork Parts / Springs'] - Number: 87. 61 Categories Scraped So Far
-2022-01-18 14:57:56,438 Scraping 39 pages of ads......
-2022-01-18 14:58:10,952 Extracting ad data from 762 ads
-2022-01-18 14:58:14,239 1 changes across 1 ads
-2022-01-18 14:58:17,984 Adding 2 new ads to base data
-2022-01-18 14:58:17,986 Extracting ad data from 1 potentially sold ads
-2022-01-18 14:58:18,342 Found 0 sold ads, 1 removed ads
-2022-01-18 14:58:19,595 *************Finished Category ['Fork Parts / Springs']
-2022-01-18 14:58:19,597 **************Starting Category ['Seatposts ( Fixed )'] - Number: 21. 62 Categories Scraped So Far
-2022-01-18 14:58:20,478 Scraping 16 pages of ads......
-2022-01-18 14:58:26,023 Extracting ad data from 301 ads
-2022-01-18 14:58:26,845 Adding 0 new ads to base data
-2022-01-18 14:58:26,847 Extracting ad data from 0 potentially sold ads
-2022-01-18 14:58:26,847 Found 0 sold ads, 0 removed ads
-2022-01-18 14:58:28,149 *************Finished Category ['Seatposts ( Fixed )']
-2022-01-18 14:58:28,151 **************Starting Category ['Jobs Shop/Industry'] - Number: 69. 63 Categories Scraped So Far
-2022-01-18 14:58:28,846 Scraping 5 pages of ads......
-2022-01-18 14:58:30,964 Extracting ad data from 93 ads
-2022-01-18 14:58:34,563 Adding 0 new ads to base data
-2022-01-18 14:58:34,565 Extracting ad data from 0 potentially sold ads
-2022-01-18 14:58:34,565 Found 0 sold ads, 0 removed ads
-2022-01-18 14:58:34,579 *************Finished Category ['Jobs Shop/Industry']
-2022-01-18 14:58:34,580 **************Starting Category ['Clothes'] - Number: 42. 64 Categories Scraped So Far
-2022-01-18 14:58:35,277 Scraping 48 pages of ads......
-2022-01-18 14:58:52,351 Extracting ad data from 945 ads
-2022-01-18 14:59:01,211 16 changes across 6 ads
-2022-01-18 14:59:04,415 Adding 0 new ads to base data
-2022-01-18 14:59:04,418 Extracting ad data from 5 potentially sold ads
-2022-01-18 14:59:06,233 Found 0 sold ads, 5 removed ads
-2022-01-18 14:59:07,827 *************Finished Category ['Clothes']
-2022-01-18 14:59:07,828 **************Starting Category ['Wheels ( Rims only )'] - Number: 96. 65 Categories Scraped So Far
-2022-01-18 14:59:08,510 Scraping 12 pages of ads......
-2022-01-18 14:59:12,869 Extracting ad data from 231 ads
-2022-01-18 14:59:15,380 Adding 1 new ads to base data
-2022-01-18 14:59:15,383 Extracting ad data from 0 potentially sold ads
-2022-01-18 14:59:15,383 Found 0 sold ads, 0 removed ads
-2022-01-18 14:59:15,398 *************Finished Category ['Wheels ( Rims only )']
-2022-01-18 14:59:15,399 **************Starting Category ['Sleds'] - Number: 36. 66 Categories Scraped So Far
-2022-01-18 14:59:16,017 Scraping 1 pages of ads......
-2022-01-18 14:59:16,600 Extracting ad data from 0 ads
-2022-01-18 14:59:16,600 **************Starting Category ['Chains'] - Number: 18. 66 Categories Scraped So Far
-2022-01-18 14:59:17,499 Scraping 7 pages of ads......
-2022-01-18 14:59:20,061 Extracting ad data from 124 ads
-2022-01-18 14:59:29,552 Adding 4 new ads to base data
-2022-01-18 14:59:29,554 Extracting ad data from 0 potentially sold ads
-2022-01-18 14:59:29,555 Found 0 sold ads, 0 removed ads
-2022-01-18 14:59:29,570 *************Finished Category ['Chains']
-2022-01-18 14:59:29,571 **************Starting Category ['DH Bikes'] - Number: 1. 67 Categories Scraped So Far
-2022-01-18 14:59:30,315 Scraping 94 pages of ads......
-2022-01-18 15:00:06,116 Extracting ad data from 1862 ads
-2022-01-18 15:00:10,411 Adding 0 new ads to base data
-2022-01-18 15:00:10,415 Extracting ad data from 7 potentially sold ads
-2022-01-18 15:00:12,922 Found 1 sold ads, 6 removed ads
-2022-01-18 15:00:19,529 *************Finished Category ['DH Bikes']
-2022-01-18 15:00:19,530 **************Starting Category ['BMX Wheels/Rims/Tires'] - Number: 56. 68 Categories Scraped So Far
-2022-01-18 15:00:20,301 Scraping 2 pages of ads......
-2022-01-18 15:00:20,995 Extracting ad data from 27 ads
-2022-01-18 15:00:22,092 Adding 0 new ads to base data
-2022-01-18 15:00:22,095 Extracting ad data from 0 potentially sold ads
-2022-01-18 15:00:22,096 Found 0 sold ads, 0 removed ads
-2022-01-18 15:00:22,114 *************Finished Category ['BMX Wheels/Rims/Tires']
-2022-01-18 15:00:22,115 **************Starting Category ['Trials Parts'] - Number: 31. 69 Categories Scraped So Far
-2022-01-18 15:00:22,842 Scraping 1 pages of ads......
-2022-01-18 15:00:23,527 Extracting ad data from 20 ads
-2022-01-18 15:00:24,263 Adding 0 new ads to base data
-2022-01-18 15:00:24,266 Extracting ad data from 0 potentially sold ads
-2022-01-18 15:00:24,266 Found 0 sold ads, 0 removed ads
-2022-01-18 15:00:24,285 *************Finished Category ['Trials Parts']
-2022-01-18 15:00:24,286 **************Starting Category ['Stolen Bikes/Parts'] - Number: 68. 70 Categories Scraped So Far
-2022-01-18 15:00:25,098 Scraping 12 pages of ads......
-2022-01-18 15:00:29,385 Extracting ad data from 224 ads
-2022-01-18 15:00:31,967 Adding 0 new ads to base data
-2022-01-18 15:00:31,970 Extracting ad data from 0 potentially sold ads
-2022-01-18 15:00:31,970 Found 0 sold ads, 0 removed ads
-2022-01-18 15:00:31,990 *************Finished Category ['Stolen Bikes/Parts']
-2022-01-18 15:00:31,991 **************Starting Category ['Rear Shock Springs'] - Number: 84. 71 Categories Scraped So Far
-2022-01-18 15:00:32,665 Scraping 16 pages of ads......
-2022-01-18 15:00:38,769 Extracting ad data from 313 ads
-2022-01-18 15:00:54,909 Adding 1 new ads to base data
-2022-01-18 15:00:54,912 Extracting ad data from 1 potentially sold ads
-2022-01-18 15:00:55,256 Found 0 sold ads, 1 removed ads
-2022-01-18 15:00:56,467 *************Finished Category ['Rear Shock Springs']
-2022-01-18 15:00:56,469 **************Starting Category ['Chain Rings'] - Number: 90. 72 Categories Scraped So Far
-2022-01-18 15:00:57,244 Scraping 44 pages of ads......
-2022-01-18 15:01:13,718 Extracting ad data from 866 ads
-2022-01-18 15:01:16,324 Adding 1 new ads to base data
-2022-01-18 15:01:16,329 Extracting ad data from 5 potentially sold ads
-2022-01-18 15:01:18,150 Found 0 sold ads, 5 removed ads
-2022-01-18 15:01:19,802 *************Finished Category ['Chain Rings']
-2022-01-18 15:01:19,804 **************Starting Category ['Kids Bikes'] - Number: 4. 73 Categories Scraped So Far
-2022-01-18 15:01:20,809 Scraping 37 pages of ads......
-2022-01-18 15:01:34,695 Extracting ad data from 738 ads
-2022-01-18 15:01:36,334 Adding 0 new ads to base data
-2022-01-18 15:01:36,337 Extracting ad data from 3 potentially sold ads
-2022-01-18 15:01:37,467 Found 3 sold ads, 0 removed ads
-2022-01-18 15:01:40,016 *************Finished Category ['Kids Bikes']
-2022-01-18 15:01:40,017 **************Starting Category ['GPS/Speedometers'] - Number: 45. 74 Categories Scraped So Far
-2022-01-18 15:01:40,695 Scraping 7 pages of ads......
-2022-01-18 15:01:43,423 Extracting ad data from 136 ads
-2022-01-18 15:01:43,774 **************Starting Category ['Goggles/Shades'] - Number: 38. 74 Categories Scraped So Far
-2022-01-18 15:01:44,476 Scraping 10 pages of ads......
-2022-01-18 15:01:47,945 Extracting ad data from 184 ads
-2022-01-18 15:01:58,590 3 changes across 1 ads
-2022-01-18 15:02:01,023 Adding 0 new ads to base data
-2022-01-18 15:02:01,025 Extracting ad data from 1 potentially sold ads
-2022-01-18 15:02:01,438 Found 0 sold ads, 1 removed ads
-2022-01-18 15:02:02,612 *************Finished Category ['Goggles/Shades']
-2022-01-18 15:02:02,614 **************Starting Category ['Backpacks'] - Number: 66. 75 Categories Scraped So Far
-2022-01-18 15:02:03,314 Scraping 7 pages of ads......
-2022-01-18 15:02:06,106 Extracting ad data from 132 ads
-2022-01-18 15:02:06,869 Adding 0 new ads to base data
-2022-01-18 15:02:06,872 Extracting ad data from 0 potentially sold ads
-2022-01-18 15:02:06,872 Found 0 sold ads, 0 removed ads
-2022-01-18 15:02:06,891 *************Finished Category ['Backpacks']
-2022-01-18 15:02:06,892 **************Starting Category ['Bottom Brackets'] - Number: 94. 76 Categories Scraped So Far
-2022-01-18 15:02:07,578 Scraping 11 pages of ads......
-2022-01-18 15:02:11,690 Extracting ad data from 209 ads
-2022-01-18 15:02:13,124 Adding 0 new ads to base data
-2022-01-18 15:02:13,126 Extracting ad data from 2 potentially sold ads
-2022-01-18 15:02:13,837 Found 0 sold ads, 2 removed ads
-2022-01-18 15:02:15,298 *************Finished Category ['Bottom Brackets']
-2022-01-18 15:02:15,299 **************Starting Category ['BMX Cranks/BBs/Chains'] - Number: 59. 77 Categories Scraped So Far
-2022-01-18 15:02:16,215 Scraping 2 pages of ads......
-2022-01-18 15:02:16,877 Extracting ad data from 26 ads
-2022-01-18 15:02:20,039 Adding 0 new ads to base data
-2022-01-18 15:02:20,041 Extracting ad data from 0 potentially sold ads
-2022-01-18 15:02:20,041 Found 0 sold ads, 0 removed ads
-2022-01-18 15:02:20,055 *************Finished Category ['BMX Cranks/BBs/Chains']
-2022-01-18 15:02:20,056 **************Starting Category ['BMX Seat/Post/Clamps'] - Number: 57. 78 Categories Scraped So Far
-2022-01-18 15:02:20,780 Scraping 1 pages of ads......
-2022-01-18 15:02:21,413 Extracting ad data from 12 ads
-2022-01-18 15:02:22,502 Adding 0 new ads to base data
-2022-01-18 15:02:22,504 Extracting ad data from 0 potentially sold ads
-2022-01-18 15:02:22,504 Found 0 sold ads, 0 removed ads
-2022-01-18 15:02:22,518 *************Finished Category ['BMX Seat/Post/Clamps']
-2022-01-18 15:02:22,519 **************Starting Category ['Trials Bikes'] - Number: 29. 79 Categories Scraped So Far
-2022-01-18 15:02:23,228 Scraping 2 pages of ads......
-2022-01-18 15:02:23,980 Extracting ad data from 30 ads
-2022-01-18 15:02:26,880 Adding 0 new ads to base data
-2022-01-18 15:02:26,882 Extracting ad data from 0 potentially sold ads
-2022-01-18 15:02:26,883 Found 0 sold ads, 0 removed ads
-2022-01-18 15:02:26,897 *************Finished Category ['Trials Bikes']
-2022-01-18 15:02:26,898 **************Starting Category ['Ski'] - Number: 32. 80 Categories Scraped So Far
-2022-01-18 15:02:27,776 Scraping 4 pages of ads......
-2022-01-18 15:02:29,263 Extracting ad data from 74 ads
-2022-01-18 15:02:29,608 **************Starting Category ['Skateboard'] - Number: 34. 80 Categories Scraped So Far
-2022-01-18 15:02:30,277 Scraping 2 pages of ads......
-2022-01-18 15:02:31,037 Extracting ad data from 21 ads
-2022-01-18 15:02:32,288 Adding 0 new ads to base data
-2022-01-18 15:02:32,291 Extracting ad data from 0 potentially sold ads
-2022-01-18 15:02:32,291 Found 0 sold ads, 0 removed ads
-2022-01-18 15:02:32,310 *************Finished Category ['Skateboard']
-2022-01-18 15:02:32,311 **************Starting Category ['Wheels ( with Hubs )'] - Number: 12. 81 Categories Scraped So Far
-2022-01-18 15:02:33,007 Scraping 105 pages of ads......
-2022-01-18 15:03:11,915 Extracting ad data from 2099 ads
-2022-01-18 15:03:22,883 4 changes across 4 ads
-2022-01-18 15:03:27,174 Adding 4 new ads to base data
-2022-01-18 15:03:27,177 Extracting ad data from 145 potentially sold ads
-2022-01-18 15:04:20,034 Found 127 sold ads, 18 removed ads
-2022-01-18 15:04:22,632 *************Finished Category ['Wheels ( with Hubs )']
-2022-01-18 15:04:22,633 **************Starting Category ['Dirt Jump Bikes'] - Number: 3. 82 Categories Scraped So Far
-2022-01-18 15:04:23,499 Scraping 31 pages of ads......
-2022-01-18 15:04:35,054 Extracting ad data from 613 ads
-2022-01-18 15:04:37,843 Adding 1 new ads to base data
-2022-01-18 15:04:37,845 Extracting ad data from 34 potentially sold ads
-2022-01-18 15:04:49,957 Found 29 sold ads, 5 removed ads
-2022-01-18 15:04:51,526 *************Finished Category ['Dirt Jump Bikes']
-2022-01-18 15:04:51,527 **************Starting Category ['Bike Racks'] - Number: 43. 83 Categories Scraped So Far
-2022-01-18 15:04:52,207 Scraping 27 pages of ads......
-2022-01-18 15:05:01,736 Extracting ad data from 532 ads
-2022-01-18 15:05:02,838 Adding 0 new ads to base data
-2022-01-18 15:05:02,841 Extracting ad data from 1 potentially sold ads
-2022-01-18 15:05:03,234 Found 1 sold ads, 0 removed ads
-2022-01-18 15:05:04,548 *************Finished Category ['Bike Racks']
-2022-01-18 15:05:04,550 **************Starting Category ['Grips'] - Number: 98. 84 Categories Scraped So Far
-2022-01-18 15:05:05,254 Scraping 8 pages of ads......
-2022-01-18 15:05:07,968 Extracting ad data from 152 ads
-2022-01-18 15:05:14,074 Adding 0 new ads to base data
-2022-01-18 15:05:14,076 Extracting ad data from 0 potentially sold ads
-2022-01-18 15:05:14,076 Found 0 sold ads, 0 removed ads
-2022-01-18 15:05:14,090 *************Finished Category ['Grips']
-2022-01-18 15:05:14,090 **************Starting Category ['BMX Brakes'] - Number: 62. 85 Categories Scraped So Far
-2022-01-18 15:05:14,685 Scraping 1 pages of ads......
-2022-01-18 15:05:15,322 Extracting ad data from 2 ads
-2022-01-18 15:05:16,160 Adding 0 new ads to base data
-2022-01-18 15:05:16,162 Extracting ad data from 0 potentially sold ads
-2022-01-18 15:05:16,162 Found 0 sold ads, 0 removed ads
-2022-01-18 15:05:16,177 *************Finished Category ['BMX Brakes']
-2022-01-18 15:05:16,178 **************Starting Category ['Spokes'] - Number: 97. 86 Categories Scraped So Far
-2022-01-18 15:05:17,074 Scraping 2 pages of ads......
-2022-01-18 15:05:17,819 Extracting ad data from 34 ads
-2022-01-18 15:05:18,939 Adding 0 new ads to base data
-2022-01-18 15:05:18,941 Extracting ad data from 0 potentially sold ads
-2022-01-18 15:05:18,942 Found 0 sold ads, 0 removed ads
-2022-01-18 15:05:18,957 *************Finished Category ['Spokes']
-2022-01-18 15:05:18,958 **************Starting Category ['Cassettes'] - Number: 91. 87 Categories Scraped So Far
-2022-01-18 15:05:19,686 Scraping 20 pages of ads......
-2022-01-18 15:05:26,724 Extracting ad data from 381 ads
-2022-01-18 15:05:29,662 2 changes across 2 ads
-2022-01-18 15:05:33,585 Adding 1 new ads to base data
-2022-01-18 15:05:33,588 Extracting ad data from 4 potentially sold ads
-2022-01-18 15:05:34,964 Found 0 sold ads, 4 removed ads
-2022-01-18 15:05:36,539 *************Finished Category ['Cassettes']
-2022-01-18 15:05:36,540 **************Starting Category ['All Mountain/Enduro Frames'] - Number: 6. 88 Categories Scraped So Far
-2022-01-18 15:05:37,249 Scraping 56 pages of ads......
-2022-01-18 15:05:57,436 Extracting ad data from 1110 ads
-2022-01-18 15:06:03,151 1 changes across 1 ads
-2022-01-18 15:06:07,328 Adding 3 new ads to base data
-2022-01-18 15:06:07,331 Extracting ad data from 12 potentially sold ads
-2022-01-18 15:06:11,463 Found 0 sold ads, 12 removed ads
-2022-01-18 15:06:13,506 *************Finished Category ['All Mountain/Enduro Frames']
-2022-01-18 15:06:13,507 **************Starting Category ['Gravel/CX Parts'] - Number: 79. 89 Categories Scraped So Far
-2022-01-18 15:06:14,252 Scraping 11 pages of ads......
-2022-01-18 15:06:18,295 Extracting ad data from 220 ads
-2022-01-18 15:06:29,296 Adding 1 new ads to base data
-2022-01-18 15:06:29,300 Extracting ad data from 3 potentially sold ads
-2022-01-18 15:06:30,574 Found 0 sold ads, 3 removed ads
-2022-01-18 15:06:31,951 *************Finished Category ['Gravel/CX Parts']
-2022-01-18 15:06:31,953 ######## Finished scrape session #########
+2022-01-18 16:57:50,957 ######## Starting new scrape session #########
+2022-01-18 16:58:28,126 All previous data loaded from MongoDB
+2022-01-18 16:58:28,128 **************Starting Category ['Headsets'] - Number: 95. 0 Categories Scraped So Far
+2022-01-18 16:58:29,145 Scraping 10 pages of ads......
+2022-01-18 16:58:34,212 Extracting ad data from 200 ads
+2022-01-18 16:58:50,989 Adding 0 new ads to base data
+2022-01-18 16:58:50,991 Extracting ad data from 1 potentially sold ads
+2022-01-18 16:58:51,356 Found 0 sold ads, 1 removed ads
+2022-01-18 16:58:52,813 *************Finished Category ['Headsets']
+2022-01-18 16:58:52,815 **************Starting Category ['E-Bike Parts'] - Number: 65. 1 Categories Scraped So Far
+2022-01-18 16:58:53,488 Scraping 6 pages of ads......
+2022-01-18 16:58:55,561 Extracting ad data from 101 ads
+2022-01-18 16:59:01,529 Adding 0 new ads to base data
+2022-01-18 16:59:01,532 Extracting ad data from 0 potentially sold ads
+2022-01-18 16:59:01,533 Found 0 sold ads, 0 removed ads
+2022-01-18 16:59:01,553 *************Finished Category ['E-Bike Parts']
+2022-01-18 16:59:01,555 **************Starting Category ['Cassettes'] - Number: 91. 2 Categories Scraped So Far
+2022-01-18 16:59:02,508 Scraping 20 pages of ads......
+2022-01-18 16:59:10,096 Extracting ad data from 382 ads
+2022-01-18 16:59:21,819 Adding 5 new ads to base data
+2022-01-18 16:59:21,823 Extracting ad data from 0 potentially sold ads
+2022-01-18 16:59:21,824 Found 0 sold ads, 0 removed ads
+2022-01-18 16:59:21,844 *************Finished Category ['Cassettes']
+2022-01-18 16:59:21,845 **************Starting Category ['BMX Pedals'] - Number: 61. 3 Categories Scraped So Far
+2022-01-18 16:59:22,477 Scraping 1 pages of ads......
+2022-01-18 16:59:23,106 Extracting ad data from 1 ads
+2022-01-18 16:59:23,499 **************Starting Category ['Fat Bikes'] - Number: 71. 3 Categories Scraped So Far
+2022-01-18 16:59:24,512 Scraping 9 pages of ads......
+2022-01-18 16:59:28,158 Extracting ad data from 164 ads
+2022-01-18 16:59:30,771 3 changes across 1 ads
+2022-01-18 16:59:34,565 Adding 1 new ads to base data
+2022-01-18 16:59:34,571 Extracting ad data from 7 potentially sold ads
+2022-01-18 16:59:37,149 Found 0 sold ads, 7 removed ads
+2022-01-18 16:59:39,192 *************Finished Category ['Fat Bikes']
+2022-01-18 16:59:39,193 **************Starting Category ['XC Frames'] - Number: 76. 4 Categories Scraped So Far
+2022-01-18 16:59:40,026 Scraping 12 pages of ads......
+2022-01-18 16:59:44,758 Extracting ad data from 222 ads
+2022-01-18 16:59:48,341 Adding 1 new ads to base data
+2022-01-18 16:59:48,344 Extracting ad data from 0 potentially sold ads
+2022-01-18 16:59:48,344 Found 0 sold ads, 0 removed ads
+2022-01-18 16:59:49,615 *************Finished Category ['XC Frames']
+2022-01-18 16:59:49,616 **************Starting Category ['Grips'] - Number: 98. 5 Categories Scraped So Far
+2022-01-18 16:59:50,477 Scraping 8 pages of ads......
+2022-01-18 16:59:53,919 Extracting ad data from 152 ads
+2022-01-18 17:00:02,213 Adding 0 new ads to base data
+2022-01-18 17:00:02,216 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:00:02,216 Found 0 sold ads, 0 removed ads
+2022-01-18 17:00:02,235 *************Finished Category ['Grips']
+2022-01-18 17:00:02,236 **************Starting Category ['Music/Guitar/Amps'] - Number: 50. 6 Categories Scraped So Far
+2022-01-18 17:00:03,028 Scraping 1 pages of ads......
+2022-01-18 17:00:03,760 Extracting ad data from 8 ads
+2022-01-18 17:00:04,658 Adding 0 new ads to base data
+2022-01-18 17:00:04,661 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:00:04,661 Found 0 sold ads, 0 removed ads
+2022-01-18 17:00:04,680 *************Finished Category ['Music/Guitar/Amps']
+2022-01-18 17:00:04,682 **************Starting Category ['Trials Frames'] - Number: 30. 7 Categories Scraped So Far
+2022-01-18 17:00:05,544 Scraping 1 pages of ads......
+2022-01-18 17:00:06,179 Extracting ad data from 2 ads
+2022-01-18 17:00:06,583 **************Starting Category ['BMX Bars/Grips/Stems'] - Number: 58. 7 Categories Scraped So Far
+2022-01-18 17:00:07,347 Scraping 2 pages of ads......
+2022-01-18 17:00:08,101 Extracting ad data from 29 ads
+2022-01-18 17:00:10,558 Adding 0 new ads to base data
+2022-01-18 17:00:10,561 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:00:10,561 Found 0 sold ads, 0 removed ads
+2022-01-18 17:00:10,580 *************Finished Category ['BMX Bars/Grips/Stems']
+2022-01-18 17:00:10,581 **************Starting Category ['Paintball'] - Number: 51. 8 Categories Scraped So Far
+2022-01-18 17:00:11,342 Scraping 1 pages of ads......
+2022-01-18 17:00:12,008 Extracting ad data from 8 ads
+2022-01-18 17:00:12,821 Adding 0 new ads to base data
+2022-01-18 17:00:12,824 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:00:12,824 Found 0 sold ads, 0 removed ads
+2022-01-18 17:00:12,843 *************Finished Category ['Paintball']
+2022-01-18 17:00:12,844 **************Starting Category ['BMX Forks/Headsets/Pegs'] - Number: 55. 9 Categories Scraped So Far
+2022-01-18 17:00:13,597 Scraping 1 pages of ads......
+2022-01-18 17:00:14,340 Extracting ad data from 14 ads
+2022-01-18 17:00:16,954 Adding 0 new ads to base data
+2022-01-18 17:00:16,958 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:00:16,958 Found 0 sold ads, 0 removed ads
+2022-01-18 17:00:16,977 *************Finished Category ['BMX Forks/Headsets/Pegs']
+2022-01-18 17:00:16,978 **************Starting Category ['Vintage Frames'] - Number: 100. 10 Categories Scraped So Far
+2022-01-18 17:00:17,702 Scraping 6 pages of ads......
+2022-01-18 17:00:19,967 Extracting ad data from 104 ads
+2022-01-18 17:00:25,906 Adding 0 new ads to base data
+2022-01-18 17:00:25,909 Extracting ad data from 1 potentially sold ads
+2022-01-18 17:00:26,204 Found 0 sold ads, 1 removed ads
+2022-01-18 17:00:27,698 *************Finished Category ['Vintage Frames']
+2022-01-18 17:00:27,699 **************Starting Category ['Gravel/CX Parts'] - Number: 79. 11 Categories Scraped So Far
+2022-01-18 17:00:28,418 Scraping 11 pages of ads......
+2022-01-18 17:00:32,861 Extracting ad data from 220 ads
+2022-01-18 17:00:38,089 Adding 1 new ads to base data
+2022-01-18 17:00:38,094 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:00:38,094 Found 0 sold ads, 0 removed ads
+2022-01-18 17:00:39,276 *************Finished Category ['Gravel/CX Parts']
+2022-01-18 17:00:39,283 **************Starting Category ['Hubs'] - Number: 13. 12 Categories Scraped So Far
+2022-01-18 17:00:40,031 Scraping 36 pages of ads......
+2022-01-18 17:00:53,785 Extracting ad data from 711 ads
+2022-01-18 17:01:13,788 Adding 2 new ads to base data
+2022-01-18 17:01:13,792 Extracting ad data from 212 potentially sold ads
+2022-01-18 17:02:33,144 Found 212 sold ads, 0 removed ads
+2022-01-18 17:02:33,179 *************Finished Category ['Hubs']
+2022-01-18 17:02:33,180 **************Starting Category ['Spokes'] - Number: 97. 13 Categories Scraped So Far
+2022-01-18 17:02:33,848 Scraping 2 pages of ads......
+2022-01-18 17:02:34,569 Extracting ad data from 34 ads
+2022-01-18 17:02:35,767 Adding 0 new ads to base data
+2022-01-18 17:02:35,769 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:02:35,770 Found 0 sold ads, 0 removed ads
+2022-01-18 17:02:35,791 *************Finished Category ['Spokes']
+2022-01-18 17:02:35,792 **************Starting Category ['Cranks'] - Number: 16. 14 Categories Scraped So Far
+2022-01-18 17:02:36,574 Scraping 35 pages of ads......
+2022-01-18 17:02:50,186 Extracting ad data from 688 ads
+2022-01-18 17:03:04,809 Adding 1 new ads to base data
+2022-01-18 17:03:04,813 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:03:04,814 Found 0 sold ads, 0 removed ads
+2022-01-18 17:03:04,838 *************Finished Category ['Cranks']
+2022-01-18 17:03:04,839 **************Starting Category ['DH Frames'] - Number: 5. 15 Categories Scraped So Far
+2022-01-18 17:03:05,527 Scraping 9 pages of ads......
+2022-01-18 17:03:09,259 Extracting ad data from 163 ads
+2022-01-18 17:03:13,266 Adding 1 new ads to base data
+2022-01-18 17:03:13,268 Extracting ad data from 2 potentially sold ads
+2022-01-18 17:03:13,990 Found 2 sold ads, 0 removed ads
+2022-01-18 17:03:14,027 *************Finished Category ['DH Frames']
+2022-01-18 17:03:14,028 **************Starting Category ['E-Bikes MTB'] - Number: 74. 16 Categories Scraped So Far
+2022-01-18 17:03:14,980 Scraping 39 pages of ads......
+2022-01-18 17:03:30,286 Extracting ad data from 775 ads
+2022-01-18 17:04:13,844 Adding 2 new ads to base data
+2022-01-18 17:04:13,848 Extracting ad data from 4 potentially sold ads
+2022-01-18 17:04:15,363 Found 0 sold ads, 4 removed ads
+2022-01-18 17:04:17,012 *************Finished Category ['E-Bikes MTB']
+2022-01-18 17:04:17,014 **************Starting Category ['Clothes'] - Number: 42. 17 Categories Scraped So Far
+2022-01-18 17:04:17,791 Scraping 48 pages of ads......
+2022-01-18 17:04:35,953 Extracting ad data from 945 ads
+2022-01-18 17:04:55,899 8 changes across 6 ads
+2022-01-18 17:04:58,951 Adding 0 new ads to base data
+2022-01-18 17:04:58,956 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:04:58,957 Found 0 sold ads, 0 removed ads
+2022-01-18 17:04:58,980 *************Finished Category ['Clothes']
+2022-01-18 17:04:58,981 **************Starting Category ['Fat Bike Frames'] - Number: 72. 18 Categories Scraped So Far
+2022-01-18 17:04:59,648 Scraping 1 pages of ads......
+2022-01-18 17:05:00,321 Extracting ad data from 11 ads
+2022-01-18 17:05:03,553 Adding 0 new ads to base data
+2022-01-18 17:05:03,555 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:05:03,556 Found 0 sold ads, 0 removed ads
+2022-01-18 17:05:03,579 *************Finished Category ['Fat Bike Frames']
+2022-01-18 17:05:03,580 **************Starting Category ['Gravel/CX Frames'] - Number: 78. 19 Categories Scraped So Far
+2022-01-18 17:05:04,553 Scraping 7 pages of ads......
+2022-01-18 17:05:07,522 Extracting ad data from 128 ads
+2022-01-18 17:05:21,386 Adding 2 new ads to base data
+2022-01-18 17:05:21,391 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:05:21,391 Found 0 sold ads, 0 removed ads
+2022-01-18 17:05:21,417 *************Finished Category ['Gravel/CX Frames']
+2022-01-18 17:05:21,419 **************Starting Category ['BMX Bikes'] - Number: 23. 20 Categories Scraped So Far
+2022-01-18 17:05:22,307 Scraping 23 pages of ads......
+2022-01-18 17:05:30,895 Extracting ad data from 453 ads
+2022-01-18 17:05:38,204 1 changes across 1 ads
+2022-01-18 17:05:42,121 Adding 1 new ads to base data
+2022-01-18 17:05:42,125 Extracting ad data from 3 potentially sold ads
+2022-01-18 17:05:43,283 Found 3 sold ads, 0 removed ads
+2022-01-18 17:05:43,324 *************Finished Category ['BMX Bikes']
+2022-01-18 17:05:43,325 **************Starting Category ['Tires'] - Number: 14. 21 Categories Scraped So Far
+2022-01-18 17:05:44,069 Scraping 64 pages of ads......
+2022-01-18 17:06:09,710 Extracting ad data from 1270 ads
+2022-01-18 17:06:25,208 2 changes across 2 ads
+2022-01-18 17:06:29,272 Adding 1 new ads to base data
+2022-01-18 17:06:29,278 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:06:29,278 Found 1 sold ads, 0 removed ads
+2022-01-18 17:06:31,956 *************Finished Category ['Tires']
+2022-01-18 17:06:31,957 **************Starting Category ['Sleds'] - Number: 36. 22 Categories Scraped So Far
+2022-01-18 17:06:32,718 Scraping 1 pages of ads......
+2022-01-18 17:06:33,341 Extracting ad data from 0 ads
+2022-01-18 17:06:33,342 **************Starting Category ['Trades'] - Number: 54. 22 Categories Scraped So Far
+2022-01-18 17:06:34,011 Scraping 4 pages of ads......
+2022-01-18 17:06:35,522 Extracting ad data from 74 ads
+2022-01-18 17:06:37,850 Adding 0 new ads to base data
+2022-01-18 17:06:37,853 Extracting ad data from 1 potentially sold ads
+2022-01-18 17:06:38,161 Found 0 sold ads, 1 removed ads
+2022-01-18 17:06:39,475 *************Finished Category ['Trades']
+2022-01-18 17:06:39,476 **************Starting Category ['Trials Parts'] - Number: 31. 23 Categories Scraped So Far
+2022-01-18 17:06:40,195 Scraping 1 pages of ads......
+2022-01-18 17:06:40,908 Extracting ad data from 20 ads
+2022-01-18 17:06:41,723 Adding 0 new ads to base data
+2022-01-18 17:06:41,725 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:06:41,725 Found 0 sold ads, 0 removed ads
+2022-01-18 17:06:41,745 *************Finished Category ['Trials Parts']
+2022-01-18 17:06:41,746 **************Starting Category ['Bike Bags'] - Number: 67. 24 Categories Scraped So Far
+2022-01-18 17:06:42,530 Scraping 9 pages of ads......
+2022-01-18 17:06:46,173 Extracting ad data from 169 ads
+2022-01-18 17:06:59,189 1 changes across 1 ads
+2022-01-18 17:07:01,828 Adding 0 new ads to base data
+2022-01-18 17:07:01,835 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:07:01,836 Found 0 sold ads, 0 removed ads
+2022-01-18 17:07:01,867 *************Finished Category ['Bike Bags']
+2022-01-18 17:07:01,868 **************Starting Category ['Saddles'] - Number: 80. 25 Categories Scraped So Far
+2022-01-18 17:07:02,679 Scraping 34 pages of ads......
+2022-01-18 17:07:15,723 Extracting ad data from 675 ads
+2022-01-18 17:07:22,454 3 changes across 1 ads
+2022-01-18 17:07:26,173 Adding 1 new ads to base data
+2022-01-18 17:07:26,176 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:07:26,176 Found 0 sold ads, 0 removed ads
+2022-01-18 17:07:26,196 *************Finished Category ['Saddles']
+2022-01-18 17:07:26,198 **************Starting Category ['Wanted Ads'] - Number: 53. 26 Categories Scraped So Far
+2022-01-18 17:07:27,129 Scraping 37 pages of ads......
+2022-01-18 17:07:42,320 Extracting ad data from 736 ads
+2022-01-18 17:07:57,967 Adding 0 new ads to base data
+2022-01-18 17:07:57,971 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:07:57,971 Found 0 sold ads, 0 removed ads
+2022-01-18 17:07:57,992 *************Finished Category ['Wanted Ads']
+2022-01-18 17:07:57,993 **************Starting Category ['Vintage Bikes'] - Number: 99. 27 Categories Scraped So Far
+2022-01-18 17:07:58,987 Scraping 44 pages of ads......
+2022-01-18 17:08:16,119 Extracting ad data from 869 ads
+2022-01-18 17:08:29,265 1 changes across 1 ads
+2022-01-18 17:08:32,244 Adding 0 new ads to base data
+2022-01-18 17:08:32,247 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:08:32,248 Found 0 sold ads, 0 removed ads
+2022-01-18 17:08:32,267 *************Finished Category ['Vintage Bikes']
+2022-01-18 17:08:32,268 **************Starting Category ['E-Bikes Urban/Commuter'] - Number: 63. 28 Categories Scraped So Far
+2022-01-18 17:08:33,008 Scraping 17 pages of ads......
+2022-01-18 17:08:39,610 Extracting ad data from 333 ads
+2022-01-18 17:08:50,307 Adding 0 new ads to base data
+2022-01-18 17:08:50,311 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:08:50,311 Found 0 sold ads, 0 removed ads
+2022-01-18 17:08:50,331 *************Finished Category ['E-Bikes Urban/Commuter']
+2022-01-18 17:08:50,333 **************Starting Category ['Dirt Jump Bikes'] - Number: 3. 29 Categories Scraped So Far
+2022-01-18 17:08:51,126 Scraping 31 pages of ads......
+2022-01-18 17:09:03,509 Extracting ad data from 613 ads
+2022-01-18 17:09:07,653 Adding 0 new ads to base data
+2022-01-18 17:09:07,656 Extracting ad data from 29 potentially sold ads
+2022-01-18 17:09:18,691 Found 29 sold ads, 0 removed ads
+2022-01-18 17:09:18,728 *************Finished Category ['Dirt Jump Bikes']
+2022-01-18 17:09:18,729 **************Starting Category ['BMX Seat/Post/Clamps'] - Number: 57. 30 Categories Scraped So Far
+2022-01-18 17:09:19,449 Scraping 1 pages of ads......
+2022-01-18 17:09:20,110 Extracting ad data from 12 ads
+2022-01-18 17:09:21,623 Adding 0 new ads to base data
+2022-01-18 17:09:21,626 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:09:21,626 Found 0 sold ads, 0 removed ads
+2022-01-18 17:09:21,647 *************Finished Category ['BMX Seat/Post/Clamps']
+2022-01-18 17:09:21,648 **************Starting Category ['BMX Frames'] - Number: 24. 31 Categories Scraped So Far
+2022-01-18 17:09:22,416 Scraping 3 pages of ads......
+2022-01-18 17:09:23,788 Extracting ad data from 60 ads
+2022-01-18 17:09:27,671 Adding 0 new ads to base data
+2022-01-18 17:09:27,674 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:09:27,674 Found 0 sold ads, 0 removed ads
+2022-01-18 17:09:27,692 *************Finished Category ['BMX Frames']
+2022-01-18 17:09:27,693 **************Starting Category ['Backpacks'] - Number: 66. 32 Categories Scraped So Far
+2022-01-18 17:09:28,578 Scraping 7 pages of ads......
+2022-01-18 17:09:31,580 Extracting ad data from 132 ads
+2022-01-18 17:09:35,035 Adding 0 new ads to base data
+2022-01-18 17:09:35,038 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:09:35,038 Found 0 sold ads, 0 removed ads
+2022-01-18 17:09:35,059 *************Finished Category ['Backpacks']
+2022-01-18 17:09:35,060 **************Starting Category ['Seatpost Parts'] - Number: 82. 33 Categories Scraped So Far
+2022-01-18 17:09:35,845 Scraping 8 pages of ads......
+2022-01-18 17:09:38,995 Extracting ad data from 153 ads
+2022-01-18 17:09:53,656 Adding 1 new ads to base data
+2022-01-18 17:09:53,659 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:09:53,659 Found 1 sold ads, 0 removed ads
+2022-01-18 17:09:55,053 *************Finished Category ['Seatpost Parts']
+2022-01-18 17:09:55,054 **************Starting Category ['Fat Bike Parts'] - Number: 73. 34 Categories Scraped So Far
+2022-01-18 17:09:56,033 Scraping 6 pages of ads......
+2022-01-18 17:09:58,372 Extracting ad data from 111 ads
+2022-01-18 17:10:02,614 2 changes across 1 ads
+2022-01-18 17:10:05,180 Adding 0 new ads to base data
+2022-01-18 17:10:05,185 Extracting ad data from 1 potentially sold ads
+2022-01-18 17:10:05,483 Found 0 sold ads, 1 removed ads
+2022-01-18 17:10:06,889 *************Finished Category ['Fat Bike Parts']
+2022-01-18 17:10:06,894 **************Starting Category ['Rear Shock Parts'] - Number: 88. 35 Categories Scraped So Far
+2022-01-18 17:10:07,765 Scraping 7 pages of ads......
+2022-01-18 17:10:10,828 Extracting ad data from 138 ads
+2022-01-18 17:10:19,458 Adding 1 new ads to base data
+2022-01-18 17:10:19,461 Extracting ad data from 3 potentially sold ads
+2022-01-18 17:10:20,586 Found 1 sold ads, 3 removed ads
+2022-01-18 17:10:23,278 *************Finished Category ['Rear Shock Parts']
+2022-01-18 17:10:23,279 **************Starting Category ['Bike Racks'] - Number: 43. 36 Categories Scraped So Far
+2022-01-18 17:10:23,621 Some characters could not be decoded, and were replaced with REPLACEMENT CHARACTER.
+2022-01-18 17:10:24,221 Scraping 27 pages of ads......
+2022-01-18 17:10:34,573 Extracting ad data from 533 ads
+2022-01-18 17:10:46,349 2 changes across 1 ads
+2022-01-18 17:10:50,539 Adding 1 new ads to base data
+2022-01-18 17:10:50,542 Extracting ad data from 1 potentially sold ads
+2022-01-18 17:10:50,918 Found 0 sold ads, 1 removed ads
+2022-01-18 17:10:52,095 *************Finished Category ['Bike Racks']
+2022-01-18 17:10:52,096 **************Starting Category ['Work Wanted'] - Number: 70. 37 Categories Scraped So Far
+2022-01-18 17:10:52,843 Scraping 2 pages of ads......
+2022-01-18 17:10:53,519 Extracting ad data from 21 ads
+2022-01-18 17:10:58,164 Adding 0 new ads to base data
+2022-01-18 17:10:58,167 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:10:58,167 Found 0 sold ads, 0 removed ads
+2022-01-18 17:10:58,187 *************Finished Category ['Work Wanted']
+2022-01-18 17:10:58,188 **************Starting Category ['BMX Cranks/BBs/Chains'] - Number: 59. 38 Categories Scraped So Far
+2022-01-18 17:10:58,998 Scraping 2 pages of ads......
+2022-01-18 17:10:59,782 Extracting ad data from 26 ads
+2022-01-18 17:11:04,360 Adding 0 new ads to base data
+2022-01-18 17:11:04,363 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:11:04,363 Found 0 sold ads, 0 removed ads
+2022-01-18 17:11:04,385 *************Finished Category ['BMX Cranks/BBs/Chains']
+2022-01-18 17:11:04,386 **************Starting Category ['Drivetrain Groupset'] - Number: 92. 39 Categories Scraped So Far
+2022-01-18 17:11:05,122 Scraping 13 pages of ads......
+2022-01-18 17:11:10,430 Extracting ad data from 260 ads
+2022-01-18 17:11:17,767 1 changes across 1 ads
+2022-01-18 17:11:21,861 Adding 3 new ads to base data
+2022-01-18 17:11:21,865 Extracting ad data from 1 potentially sold ads
+2022-01-18 17:11:22,190 Found 0 sold ads, 1 removed ads
+2022-01-18 17:11:23,429 *************Finished Category ['Drivetrain Groupset']
+2022-01-18 17:11:23,431 **************Starting Category ['Tools/Bike Stands'] - Number: 46. 40 Categories Scraped So Far
+2022-01-18 17:11:24,125 Scraping 20 pages of ads......
+2022-01-18 17:11:31,388 Extracting ad data from 388 ads
+2022-01-18 17:11:44,321 Adding 4 new ads to base data
+2022-01-18 17:11:44,324 Extracting ad data from 1 potentially sold ads
+2022-01-18 17:11:44,691 Found 0 sold ads, 1 removed ads
+2022-01-18 17:11:45,978 *************Finished Category ['Tools/Bike Stands']
+2022-01-18 17:11:45,979 **************Starting Category ['Seatposts ( Fixed )'] - Number: 21. 41 Categories Scraped So Far
+2022-01-18 17:11:47,089 Scraping 16 pages of ads......
+2022-01-18 17:11:53,489 Extracting ad data from 301 ads
+2022-01-18 17:12:10,895 Adding 3 new ads to base data
+2022-01-18 17:12:10,903 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:12:10,903 Found 0 sold ads, 0 removed ads
+2022-01-18 17:12:10,935 *************Finished Category ['Seatposts ( Fixed )']
+2022-01-18 17:12:10,936 **************Starting Category ['Chain Rings'] - Number: 90. 42 Categories Scraped So Far
+2022-01-18 17:12:11,672 Scraping 44 pages of ads......
+2022-01-18 17:12:28,571 Extracting ad data from 867 ads
+2022-01-18 17:12:37,002 Adding 1 new ads to base data
+2022-01-18 17:12:37,006 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:12:37,006 Found 0 sold ads, 0 removed ads
+2022-01-18 17:12:37,033 *************Finished Category ['Chain Rings']
+2022-01-18 17:12:37,035 **************Starting Category ['Snowboard'] - Number: 33. 43 Categories Scraped So Far
+2022-01-18 17:12:37,727 Scraping 4 pages of ads......
+2022-01-18 17:12:39,120 Extracting ad data from 74 ads
+2022-01-18 17:12:47,333 1 changes across 1 ads
+2022-01-18 17:12:49,855 Adding 0 new ads to base data
+2022-01-18 17:12:49,858 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:12:49,859 Found 0 sold ads, 0 removed ads
+2022-01-18 17:12:49,885 *************Finished Category ['Snowboard']
+2022-01-18 17:12:49,886 **************Starting Category ['All Mountain/Enduro Frames'] - Number: 6. 44 Categories Scraped So Far
+2022-01-18 17:12:50,874 Scraping 56 pages of ads......
+2022-01-18 17:13:12,602 Extracting ad data from 1113 ads
+2022-01-18 17:13:32,572 10 changes across 7 ads
+2022-01-18 17:13:38,677 Adding 3 new ads to base data
+2022-01-18 17:13:38,680 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:13:38,681 Found 0 sold ads, 0 removed ads
+2022-01-18 17:13:38,698 *************Finished Category ['All Mountain/Enduro Frames']
+2022-01-18 17:13:38,699 **************Starting Category ['Rear Shock Springs'] - Number: 84. 45 Categories Scraped So Far
+2022-01-18 17:13:39,585 Scraping 16 pages of ads......
+2022-01-18 17:13:45,760 Extracting ad data from 313 ads
+2022-01-18 17:13:50,046 Adding 1 new ads to base data
+2022-01-18 17:13:50,049 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:13:50,049 Found 0 sold ads, 0 removed ads
+2022-01-18 17:13:51,267 *************Finished Category ['Rear Shock Springs']
+2022-01-18 17:13:51,268 **************Starting Category ['IPODs/Music Players'] - Number: 49. 46 Categories Scraped So Far
+2022-01-18 17:13:51,907 Scraping 1 pages of ads......
+2022-01-18 17:13:52,572 Extracting ad data from 5 ads
+2022-01-18 17:13:52,950 **************Starting Category ['Road Bikes'] - Number: 26. 46 Categories Scraped So Far
+2022-01-18 17:13:53,754 Scraping 186 pages of ads......
+2022-01-18 17:15:04,944 Extracting ad data from 3708 ads
+2022-01-18 17:15:25,537 5 changes across 4 ads
+2022-01-18 17:15:30,016 Adding 8 new ads to base data
+2022-01-18 17:15:30,021 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:15:30,021 Found 0 sold ads, 0 removed ads
+2022-01-18 17:15:30,040 *************Finished Category ['Road Bikes']
+2022-01-18 17:15:30,041 **************Starting Category ['Trainers / Rollers'] - Number: 101. 47 Categories Scraped So Far
+2022-01-18 17:15:30,858 Scraping 17 pages of ads......
+2022-01-18 17:15:37,658 Extracting ad data from 321 ads
+2022-01-18 17:15:49,135 Adding 1 new ads to base data
+2022-01-18 17:15:49,138 Extracting ad data from 1 potentially sold ads
+2022-01-18 17:15:49,494 Found 0 sold ads, 1 removed ads
+2022-01-18 17:15:50,760 *************Finished Category ['Trainers / Rollers']
+2022-01-18 17:15:50,761 **************Starting Category ['Video/Photo gear'] - Number: 48. 48 Categories Scraped So Far
+2022-01-18 17:15:51,497 Scraping 4 pages of ads......
+2022-01-18 17:15:53,007 Extracting ad data from 64 ads
+2022-01-18 17:15:53,824 1 changes across 1 ads
+2022-01-18 17:15:56,352 Adding 0 new ads to base data
+2022-01-18 17:15:56,356 Extracting ad data from 2 potentially sold ads
+2022-01-18 17:15:57,106 Found 1 sold ads, 1 removed ads
+2022-01-18 17:15:59,725 *************Finished Category ['Video/Photo gear']
+2022-01-18 17:15:59,727 **************Starting Category ['All Mountain/Enduro Bikes'] - Number: 2. 49 Categories Scraped So Far
+2022-01-18 17:16:00,880 Scraping 533 pages of ads......
+2022-01-18 17:19:29,715 Extracting ad data from 10648 ads
+2022-01-18 17:21:20,173 28 changes across 24 ads
+2022-01-18 17:21:26,757 Adding 36 new ads to base data
+2022-01-18 17:21:26,776 Extracting ad data from 40 potentially sold ads
+2022-01-18 17:21:41,644 Found 35 sold ads, 5 removed ads
+2022-01-18 17:21:43,615 *************Finished Category ['All Mountain/Enduro Bikes']
+2022-01-18 17:21:43,616 **************Starting Category ['BMX Brakes'] - Number: 62. 50 Categories Scraped So Far
+2022-01-18 17:21:44,275 Scraping 1 pages of ads......
+2022-01-18 17:21:44,904 Extracting ad data from 2 ads
+2022-01-18 17:21:45,711 Adding 0 new ads to base data
+2022-01-18 17:21:45,715 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:21:45,716 Found 0 sold ads, 0 removed ads
+2022-01-18 17:21:45,743 *************Finished Category ['BMX Brakes']
+2022-01-18 17:21:45,745 **************Starting Category ['Shoes'] - Number: 40. 51 Categories Scraped So Far
+2022-01-18 17:21:46,616 Scraping 67 pages of ads......
+2022-01-18 17:22:12,446 Extracting ad data from 1337 ads
+2022-01-18 17:22:28,184 Adding 2 new ads to base data
+2022-01-18 17:22:28,187 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:22:28,188 Found 0 sold ads, 0 removed ads
+2022-01-18 17:22:28,205 *************Finished Category ['Shoes']
+2022-01-18 17:22:28,206 **************Starting Category ['Handle Bars ( 31.8 mm )'] - Number: 20. 52 Categories Scraped So Far
+2022-01-18 17:22:28,961 Scraping 25 pages of ads......
+2022-01-18 17:22:39,150 Extracting ad data from 492 ads
+2022-01-18 17:22:44,774 Adding 0 new ads to base data
+2022-01-18 17:22:44,778 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:22:44,778 Found 0 sold ads, 0 removed ads
+2022-01-18 17:22:44,800 *************Finished Category ['Handle Bars ( 31.8 mm )']
+2022-01-18 17:22:44,802 **************Starting Category ['Road Frames'] - Number: 27. 53 Categories Scraped So Far
+2022-01-18 17:22:45,701 Scraping 17 pages of ads......
+2022-01-18 17:22:52,704 Extracting ad data from 330 ads
+2022-01-18 17:23:09,609 Adding 1 new ads to base data
+2022-01-18 17:23:09,612 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:23:09,612 Found 0 sold ads, 0 removed ads
+2022-01-18 17:23:09,635 *************Finished Category ['Road Frames']
+2022-01-18 17:23:09,636 **************Starting Category ['Shifters/Derailleurs'] - Number: 17. 54 Categories Scraped So Far
+2022-01-18 17:23:10,317 Scraping 50 pages of ads......
+2022-01-18 17:23:28,971 Extracting ad data from 989 ads
+2022-01-18 17:23:54,911 Adding 7 new ads to base data
+2022-01-18 17:23:54,914 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:23:54,915 Found 2 sold ads, 0 removed ads
+2022-01-18 17:23:57,568 *************Finished Category ['Shifters/Derailleurs']
+2022-01-18 17:23:57,569 **************Starting Category ['Armour/Pads'] - Number: 41. 55 Categories Scraped So Far
+2022-01-18 17:23:58,430 Scraping 25 pages of ads......
+2022-01-18 17:24:07,930 Extracting ad data from 484 ads
+2022-01-18 17:24:27,547 Adding 0 new ads to base data
+2022-01-18 17:24:27,549 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:24:27,550 Found 0 sold ads, 0 removed ads
+2022-01-18 17:24:27,564 *************Finished Category ['Armour/Pads']
+2022-01-18 17:24:27,565 **************Starting Category ['Dual Crown Forks'] - Number: 8. 56 Categories Scraped So Far
+2022-01-18 17:24:28,399 Scraping 6 pages of ads......
+2022-01-18 17:24:30,566 Extracting ad data from 114 ads
+2022-01-18 17:24:36,406 2 changes across 2 ads
+2022-01-18 17:24:40,176 Adding 1 new ads to base data
+2022-01-18 17:24:40,179 Extracting ad data from 2 potentially sold ads
+2022-01-18 17:24:40,919 Found 0 sold ads, 2 removed ads
+2022-01-18 17:24:42,222 *************Finished Category ['Dual Crown Forks']
+2022-01-18 17:24:42,223 **************Starting Category ['Pedals ( Clipless)'] - Number: 22. 57 Categories Scraped So Far
+2022-01-18 17:24:42,973 Scraping 16 pages of ads......
+2022-01-18 17:24:49,650 Extracting ad data from 312 ads
+2022-01-18 17:24:55,331 Adding 1 new ads to base data
+2022-01-18 17:24:55,334 Extracting ad data from 2 potentially sold ads
+2022-01-18 17:24:55,922 Found 0 sold ads, 2 removed ads
+2022-01-18 17:24:57,305 *************Finished Category ['Pedals ( Clipless)']
+2022-01-18 17:24:57,306 **************Starting Category ['Kids Bikes'] - Number: 4. 58 Categories Scraped So Far
+2022-01-18 17:24:58,029 Scraping 37 pages of ads......
+2022-01-18 17:25:12,857 Extracting ad data from 738 ads
+2022-01-18 17:25:34,068 2 changes across 2 ads
+2022-01-18 17:25:37,988 Adding 1 new ads to base data
+2022-01-18 17:25:38,009 Extracting ad data from 3 potentially sold ads
+2022-01-18 17:25:39,192 Found 0 sold ads, 3 removed ads
+2022-01-18 17:25:40,566 *************Finished Category ['Kids Bikes']
+2022-01-18 17:25:40,568 **************Starting Category ['Pedals ( Flat )'] - Number: 85. 59 Categories Scraped So Far
+2022-01-18 17:25:41,406 Scraping 11 pages of ads......
+2022-01-18 17:25:46,013 Extracting ad data from 219 ads
+2022-01-18 17:25:54,017 Adding 1 new ads to base data
+2022-01-18 17:25:54,022 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:25:54,023 Found 0 sold ads, 0 removed ads
+2022-01-18 17:25:55,529 *************Finished Category ['Pedals ( Flat )']
+2022-01-18 17:25:55,531 **************Starting Category ['Chains'] - Number: 18. 60 Categories Scraped So Far
+2022-01-18 17:25:56,220 Scraping 7 pages of ads......
+2022-01-18 17:25:59,283 Extracting ad data from 124 ads
+2022-01-18 17:26:05,666 Adding 1 new ads to base data
+2022-01-18 17:26:05,669 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:26:05,669 Found 0 sold ads, 0 removed ads
+2022-01-18 17:26:07,196 *************Finished Category ['Chains']
+2022-01-18 17:26:07,197 **************Starting Category ['Computers/Tech gear'] - Number: 47. 61 Categories Scraped So Far
+2022-01-18 17:26:08,150 Scraping 4 pages of ads......
+2022-01-18 17:26:09,637 Extracting ad data from 80 ads
+2022-01-18 17:26:16,310 Adding 1 new ads to base data
+2022-01-18 17:26:16,313 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:26:16,313 Found 0 sold ads, 0 removed ads
+2022-01-18 17:26:16,335 *************Finished Category ['Computers/Tech gear']
+2022-01-18 17:26:16,336 **************Starting Category ['XC Bikes'] - Number: 75. 62 Categories Scraped So Far
+2022-01-18 17:26:17,102 Scraping 121 pages of ads......
+2022-01-18 17:27:05,329 Extracting ad data from 2410 ads
+2022-01-18 17:27:27,819 8 changes across 4 ads
+2022-01-18 17:27:32,281 Adding 4 new ads to base data
+2022-01-18 17:27:32,287 Extracting ad data from 6 potentially sold ads
+2022-01-18 17:27:34,421 Found 5 sold ads, 1 removed ads
+2022-01-18 17:27:35,732 *************Finished Category ['XC Bikes']
+2022-01-18 17:27:35,733 **************Starting Category ['Skateboard'] - Number: 34. 63 Categories Scraped So Far
+2022-01-18 17:27:36,478 Scraping 2 pages of ads......
+2022-01-18 17:27:37,219 Extracting ad data from 21 ads
+2022-01-18 17:27:38,490 Adding 0 new ads to base data
+2022-01-18 17:27:38,492 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:27:38,493 Found 0 sold ads, 0 removed ads
+2022-01-18 17:27:38,511 *************Finished Category ['Skateboard']
+2022-01-18 17:27:38,513 **************Starting Category ['Road Parts'] - Number: 28. 64 Categories Scraped So Far
+2022-01-18 17:27:39,523 Scraping 68 pages of ads......
+2022-01-18 17:28:05,690 Extracting ad data from 1348 ads
+2022-01-18 17:28:21,637 3 changes across 2 ads
+2022-01-18 17:28:25,461 Adding 6 new ads to base data
+2022-01-18 17:28:25,465 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:28:25,465 Found 1 sold ads, 0 removed ads
+2022-01-18 17:28:26,710 *************Finished Category ['Road Parts']
+2022-01-18 17:28:26,711 **************Starting Category ['Single Crown Forks'] - Number: 9. 65 Categories Scraped So Far
+2022-01-18 17:28:27,455 Scraping 83 pages of ads......
+2022-01-18 17:28:59,991 Extracting ad data from 1659 ads
+2022-01-18 17:29:51,099 4 changes across 2 ads
+2022-01-18 17:29:55,362 Adding 17 new ads to base data
+2022-01-18 17:29:55,365 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:29:55,366 Found 0 sold ads, 0 removed ads
+2022-01-18 17:29:55,387 *************Finished Category ['Single Crown Forks']
+2022-01-18 17:29:55,388 **************Starting Category ['MX Bikes/Quads'] - Number: 35. 66 Categories Scraped So Far
+2022-01-18 17:29:56,078 Scraping 2 pages of ads......
+2022-01-18 17:29:56,768 Extracting ad data from 28 ads
+2022-01-18 17:30:00,352 Adding 0 new ads to base data
+2022-01-18 17:30:00,354 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:30:00,354 Found 0 sold ads, 0 removed ads
+2022-01-18 17:30:00,373 *************Finished Category ['MX Bikes/Quads']
+2022-01-18 17:30:00,374 **************Starting Category ['Goggles/Shades'] - Number: 38. 67 Categories Scraped So Far
+2022-01-18 17:30:01,228 Scraping 10 pages of ads......
+2022-01-18 17:30:05,498 Extracting ad data from 184 ads
+2022-01-18 17:30:07,823 Adding 0 new ads to base data
+2022-01-18 17:30:07,826 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:30:07,826 Found 0 sold ads, 0 removed ads
+2022-01-18 17:30:07,846 *************Finished Category ['Goggles/Shades']
+2022-01-18 17:30:07,848 **************Starting Category ['Other'] - Number: 52. 68 Categories Scraped So Far
+2022-01-18 17:30:08,780 Scraping 16 pages of ads......
+2022-01-18 17:30:15,415 Extracting ad data from 301 ads
+2022-01-18 17:30:40,247 Adding 0 new ads to base data
+2022-01-18 17:30:40,249 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:30:40,250 Found 0 sold ads, 0 removed ads
+2022-01-18 17:30:40,269 *************Finished Category ['Other']
+2022-01-18 17:30:40,270 **************Starting Category ['Trials Bikes'] - Number: 29. 69 Categories Scraped So Far
+2022-01-18 17:30:41,116 Scraping 2 pages of ads......
+2022-01-18 17:30:41,825 Extracting ad data from 29 ads
+2022-01-18 17:30:45,063 Adding 0 new ads to base data
+2022-01-18 17:30:45,068 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:30:45,068 Found 0 sold ads, 0 removed ads
+2022-01-18 17:30:45,092 *************Finished Category ['Trials Bikes']
+2022-01-18 17:30:45,094 **************Starting Category ['DJ/Street/Park Frames'] - Number: 7. 70 Categories Scraped So Far
+2022-01-18 17:30:46,033 Scraping 7 pages of ads......
+2022-01-18 17:30:49,150 Extracting ad data from 134 ads
+2022-01-18 17:30:53,095 Adding 2 new ads to base data
+2022-01-18 17:30:53,099 Extracting ad data from 1 potentially sold ads
+2022-01-18 17:30:53,406 Found 0 sold ads, 1 removed ads
+2022-01-18 17:30:54,815 *************Finished Category ['DJ/Street/Park Frames']
+2022-01-18 17:30:54,817 **************Starting Category ['Bottom Brackets'] - Number: 94. 71 Categories Scraped So Far
+2022-01-18 17:30:55,623 Scraping 11 pages of ads......
+2022-01-18 17:31:00,148 Extracting ad data from 209 ads
+2022-01-18 17:31:16,866 Adding 1 new ads to base data
+2022-01-18 17:31:16,870 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:31:16,871 Found 0 sold ads, 0 removed ads
+2022-01-18 17:31:16,893 *************Finished Category ['Bottom Brackets']
+2022-01-18 17:31:16,894 **************Starting Category ['GPS/Speedometers'] - Number: 45. 72 Categories Scraped So Far
+2022-01-18 17:31:17,747 Scraping 7 pages of ads......
+2022-01-18 17:31:20,717 Extracting ad data from 136 ads
+2022-01-18 17:31:23,209 Adding 1 new ads to base data
+2022-01-18 17:31:23,213 Extracting ad data from 3 potentially sold ads
+2022-01-18 17:31:24,466 Found 3 sold ads, 0 removed ads
+2022-01-18 17:31:25,772 *************Finished Category ['GPS/Speedometers']
+2022-01-18 17:31:25,773 **************Starting Category ['BMX Parts'] - Number: 25. 73 Categories Scraped So Far
+2022-01-18 17:31:26,618 Scraping 1 pages of ads......
+2022-01-18 17:31:27,290 Extracting ad data from 14 ads
+2022-01-18 17:31:28,801 Adding 0 new ads to base data
+2022-01-18 17:31:28,805 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:31:28,805 Found 0 sold ads, 0 removed ads
+2022-01-18 17:31:28,824 *************Finished Category ['BMX Parts']
+2022-01-18 17:31:28,825 **************Starting Category ['E-Bikes Road/Gravel'] - Number: 64. 74 Categories Scraped So Far
+2022-01-18 17:31:29,627 Scraping 8 pages of ads......
+2022-01-18 17:31:32,828 Extracting ad data from 157 ads
+2022-01-18 17:31:39,559 Adding 0 new ads to base data
+2022-01-18 17:31:39,562 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:31:39,562 Found 0 sold ads, 0 removed ads
+2022-01-18 17:31:39,580 *************Finished Category ['E-Bikes Road/Gravel']
+2022-01-18 17:31:39,581 **************Starting Category ['Brakes'] - Number: 15. 75 Categories Scraped So Far
+2022-01-18 17:31:40,519 Scraping 64 pages of ads......
+2022-01-18 17:32:05,486 Extracting ad data from 1259 ads
+2022-01-18 17:32:36,534 Adding 7 new ads to base data
+2022-01-18 17:32:36,537 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:32:36,537 Found 0 sold ads, 0 removed ads
+2022-01-18 17:32:36,558 *************Finished Category ['Brakes']
+2022-01-18 17:32:36,559 **************Starting Category ['Wheels ( with Hubs )'] - Number: 12. 76 Categories Scraped So Far
+2022-01-18 17:32:37,569 Scraping 106 pages of ads......
+2022-01-18 17:33:19,174 Extracting ad data from 2104 ads
+2022-01-18 17:34:01,540 7 changes across 6 ads
+2022-01-18 17:34:06,155 Adding 10 new ads to base data
+2022-01-18 17:34:06,160 Extracting ad data from 128 potentially sold ads
+2022-01-18 17:34:53,757 Found 127 sold ads, 1 removed ads
+2022-01-18 17:34:55,018 *************Finished Category ['Wheels ( with Hubs )']
+2022-01-18 17:34:55,019 **************Starting Category ['DH Bikes'] - Number: 1. 77 Categories Scraped So Far
+2022-01-18 17:34:56,026 Scraping 94 pages of ads......
+2022-01-18 17:35:33,511 Extracting ad data from 1862 ads
+2022-01-18 17:35:43,216 3 changes across 2 ads
+2022-01-18 17:35:47,492 Adding 2 new ads to base data
+2022-01-18 17:35:47,498 Extracting ad data from 2 potentially sold ads
+2022-01-18 17:35:48,217 Found 0 sold ads, 2 removed ads
+2022-01-18 17:35:49,529 *************Finished Category ['DH Bikes']
+2022-01-18 17:35:49,530 **************Starting Category ['BMX Hubs'] - Number: 60. 78 Categories Scraped So Far
+2022-01-18 17:35:50,272 Scraping 1 pages of ads......
+2022-01-18 17:35:50,937 Extracting ad data from 10 ads
+2022-01-18 17:35:51,306 **************Starting Category ['Lights'] - Number: 44. 78 Categories Scraped So Far
+2022-01-18 17:35:52,217 Scraping 4 pages of ads......
+2022-01-18 17:35:53,785 Extracting ad data from 78 ads
+2022-01-18 17:36:04,115 Adding 1 new ads to base data
+2022-01-18 17:36:04,123 Extracting ad data from 1 potentially sold ads
+2022-01-18 17:36:04,511 Found 0 sold ads, 1 removed ads
+2022-01-18 17:36:05,788 *************Finished Category ['Lights']
+2022-01-18 17:36:05,789 **************Starting Category ['Ski'] - Number: 32. 79 Categories Scraped So Far
+2022-01-18 17:36:06,546 Scraping 4 pages of ads......
+2022-01-18 17:36:08,110 Extracting ad data from 74 ads
+2022-01-18 17:36:08,968 Adding 0 new ads to base data
+2022-01-18 17:36:08,972 Extracting ad data from 1 potentially sold ads
+2022-01-18 17:36:09,363 Found 0 sold ads, 1 removed ads
+2022-01-18 17:36:10,591 *************Finished Category ['Ski']
+2022-01-18 17:36:10,593 **************Starting Category ['Chain Guides'] - Number: 93. 80 Categories Scraped So Far
+2022-01-18 17:36:11,586 Scraping 9 pages of ads......
+2022-01-18 17:36:15,484 Extracting ad data from 172 ads
+2022-01-18 17:36:25,000 Adding 0 new ads to base data
+2022-01-18 17:36:25,002 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:36:25,003 Found 0 sold ads, 0 removed ads
+2022-01-18 17:36:25,021 *************Finished Category ['Chain Guides']
+2022-01-18 17:36:25,023 **************Starting Category ['Gravel/CX Bikes'] - Number: 77. 81 Categories Scraped So Far
+2022-01-18 17:36:25,801 Scraping 53 pages of ads......
+2022-01-18 17:36:46,318 Extracting ad data from 1046 ads
+2022-01-18 17:37:10,555 Adding 5 new ads to base data
+2022-01-18 17:37:10,558 Extracting ad data from 14 potentially sold ads
+2022-01-18 17:37:15,605 Found 0 sold ads, 14 removed ads
+2022-01-18 17:37:17,977 *************Finished Category ['Gravel/CX Bikes']
+2022-01-18 17:37:17,978 **************Starting Category ['Trucks/Cars'] - Number: 37. 82 Categories Scraped So Far
+2022-01-18 17:37:18,879 Scraping 1 pages of ads......
+2022-01-18 17:37:19,550 Extracting ad data from 18 ads
+2022-01-18 17:37:21,891 Adding 0 new ads to base data
+2022-01-18 17:37:21,892 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:37:21,893 Found 0 sold ads, 0 removed ads
+2022-01-18 17:37:21,912 *************Finished Category ['Trucks/Cars']
+2022-01-18 17:37:21,913 **************Starting Category ['BMX Wheels/Rims/Tires'] - Number: 56. 83 Categories Scraped So Far
+2022-01-18 17:37:22,634 Scraping 2 pages of ads......
+2022-01-18 17:37:23,400 Extracting ad data from 27 ads
+2022-01-18 17:37:24,658 Adding 0 new ads to base data
+2022-01-18 17:37:24,661 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:37:24,661 Found 0 sold ads, 0 removed ads
+2022-01-18 17:37:24,681 *************Finished Category ['BMX Wheels/Rims/Tires']
+2022-01-18 17:37:24,682 **************Starting Category ['Stolen Bikes/Parts'] - Number: 68. 84 Categories Scraped So Far
+2022-01-18 17:37:25,438 Scraping 12 pages of ads......
+2022-01-18 17:37:29,985 Extracting ad data from 224 ads
+2022-01-18 17:37:33,006 Adding 0 new ads to base data
+2022-01-18 17:37:33,009 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:37:33,009 Found 0 sold ads, 0 removed ads
+2022-01-18 17:37:33,031 *************Finished Category ['Stolen Bikes/Parts']
+2022-01-18 17:37:33,033 **************Starting Category ['Fork Parts / Springs'] - Number: 87. 85 Categories Scraped So Far
+2022-01-18 17:37:33,967 Scraping 39 pages of ads......
+2022-01-18 17:37:48,874 Extracting ad data from 763 ads
+2022-01-18 17:38:00,443 1 changes across 1 ads
+2022-01-18 17:38:04,104 Adding 1 new ads to base data
+2022-01-18 17:38:04,107 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:38:04,107 Found 0 sold ads, 0 removed ads
+2022-01-18 17:38:05,363 *************Finished Category ['Fork Parts / Springs']
+2022-01-18 17:38:05,364 **************Starting Category ['Wheels ( Rims only )'] - Number: 96. 86 Categories Scraped So Far
+2022-01-18 17:38:06,322 Scraping 12 pages of ads......
+2022-01-18 17:38:10,892 Extracting ad data from 232 ads
+2022-01-18 17:38:15,828 Adding 1 new ads to base data
+2022-01-18 17:38:15,833 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:38:15,833 Found 0 sold ads, 0 removed ads
+2022-01-18 17:38:15,853 *************Finished Category ['Wheels ( Rims only )']
+2022-01-18 17:38:15,855 **************Starting Category ['Handle Bars ( 35 mm )'] - Number: 86. 87 Categories Scraped So Far
+2022-01-18 17:38:16,620 Scraping 16 pages of ads......
+2022-01-18 17:38:22,645 Extracting ad data from 315 ads
+2022-01-18 17:38:26,924 Adding 1 new ads to base data
+2022-01-18 17:38:26,928 Extracting ad data from 2 potentially sold ads
+2022-01-18 17:38:27,611 Found 0 sold ads, 2 removed ads
+2022-01-18 17:38:28,988 *************Finished Category ['Handle Bars ( 35 mm )']
+2022-01-18 17:38:28,990 **************Starting Category ['Jobs Shop/Industry'] - Number: 69. 88 Categories Scraped So Far
+2022-01-18 17:38:29,667 Scraping 5 pages of ads......
+2022-01-18 17:38:31,693 Extracting ad data from 93 ads
+2022-01-18 17:38:35,707 Adding 0 new ads to base data
+2022-01-18 17:38:35,713 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:38:35,714 Found 0 sold ads, 0 removed ads
+2022-01-18 17:38:35,747 *************Finished Category ['Jobs Shop/Industry']
+2022-01-18 17:38:35,749 **************Starting Category ['Rear Shocks ( Air )'] - Number: 11. 89 Categories Scraped So Far
+2022-01-18 17:38:36,607 Scraping 65 pages of ads......
+2022-01-18 17:39:00,688 Extracting ad data from 1290 ads
+2022-01-18 17:39:16,445 9 changes across 5 ads
+2022-01-18 17:39:20,816 Adding 2 new ads to base data
+2022-01-18 17:39:20,821 Extracting ad data from 23 potentially sold ads
+2022-01-18 17:39:29,161 Found 22 sold ads, 2 removed ads
+2022-01-18 17:39:31,743 *************Finished Category ['Rear Shocks ( Air )']
+2022-01-18 17:39:31,744 **************Starting Category ['Stems'] - Number: 19. 90 Categories Scraped So Far
+2022-01-18 17:39:32,592 Scraping 41 pages of ads......
+2022-01-18 17:39:47,813 Extracting ad data from 809 ads
+2022-01-18 17:40:05,526 2 changes across 2 ads
+2022-01-18 17:40:09,396 Adding 2 new ads to base data
+2022-01-18 17:40:09,401 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:40:09,401 Found 0 sold ads, 0 removed ads
+2022-01-18 17:40:09,424 *************Finished Category ['Stems']
+2022-01-18 17:40:09,426 **************Starting Category ['Rear Shocks ( Coil )'] - Number: 83. 91 Categories Scraped So Far
+2022-01-18 17:40:10,433 Scraping 16 pages of ads......
+2022-01-18 17:40:16,745 Extracting ad data from 309 ads
+2022-01-18 17:40:20,565 5 changes across 3 ads
+2022-01-18 17:40:23,436 Adding 0 new ads to base data
+2022-01-18 17:40:23,439 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:40:23,440 Found 0 sold ads, 0 removed ads
+2022-01-18 17:40:23,460 *************Finished Category ['Rear Shocks ( Coil )']
+2022-01-18 17:40:23,461 **************Starting Category ['Seatposts ( Dropper )'] - Number: 81. 92 Categories Scraped So Far
+2022-01-18 17:40:24,265 Scraping 59 pages of ads......
+2022-01-18 17:40:46,506 Extracting ad data from 1166 ads
+2022-01-18 17:41:07,449 1 changes across 1 ads
+2022-01-18 17:41:11,093 Adding 4 new ads to base data
+2022-01-18 17:41:11,097 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:41:11,098 Found 0 sold ads, 0 removed ads
+2022-01-18 17:41:12,618 *************Finished Category ['Seatposts ( Dropper )']
+2022-01-18 17:41:12,620 **************Starting Category ['Helmets'] - Number: 39. 93 Categories Scraped So Far
+2022-01-18 17:41:13,419 Scraping 39 pages of ads......
+2022-01-18 17:41:28,703 Extracting ad data from 774 ads
+2022-01-18 17:41:43,075 Adding 0 new ads to base data
+2022-01-18 17:41:43,079 Extracting ad data from 0 potentially sold ads
+2022-01-18 17:41:43,080 Found 0 sold ads, 0 removed ads
+2022-01-18 17:41:44,686 *************Finished Category ['Helmets']
+2022-01-18 17:41:44,687 ######## Finished scrape session #########
