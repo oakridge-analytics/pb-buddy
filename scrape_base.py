@@ -123,7 +123,7 @@ for category_to_scrape in np.random.choice(
 
         # Get ads that might have an update. check price, description,title and category
         # for change. If category has changed, capture change here and update old entry.
-        cols_to_check = ["price", "description", "ad_title", "category"]
+        cols_to_check = ["price", "description", "ad_title", "category", "currency"]
         updated_ads = (
             recently_added_ads.loc[recently_added_ads.url.isin(all_base_data.url), :]
             .sort_values("url")
@@ -160,7 +160,7 @@ for category_to_scrape in np.random.choice(
         dt.update_base_data(
             updated_ads,
             index_col="url",
-            cols_to_update=cols_to_check + ["datetime_scraped"],
+            cols_to_update=cols_to_check + ["datetime_scraped", "last_repost_date"],
         )
 
         # Write new ones !
