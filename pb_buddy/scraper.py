@@ -91,18 +91,22 @@ def parse_buysell_ad(buysell_url: str, delay_s: int) -> dict:
 
     try:
         page_request = requests.get(buysell_url, headers=headers, timeout=20)
-    except TimeoutError:
+    except TimeoutError as e:
+        print(e)
         return {}
-    except requests.exceptions.Timeout:
-        print("Timeout occured")
+    except requests.exceptions.Timeout as e:
+        print(e)
         return {}
     except requests.exceptions.ConnectionError as e:
-        print(f"Connection Error: {e}")
+        print(e)
         return {}
 
     if page_request.status_code > 200:
-        # raise requests.exceptions.RequestException("Error requesting Ad")
+        print("Error requesting Ad")
+        if page_request.status_code == 404:
+            print("404 - Ad missing")
         return {}
+
     soup = BeautifulSoup(page_request.content, features="html.parser")
 
     data_dict = {}

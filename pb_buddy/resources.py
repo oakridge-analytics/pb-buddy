@@ -1,7 +1,3 @@
-alerts = {"alerts": [{"category_num": 2, "alert_name": "Carbon Instincts", "search_string": "price > 3000 and price < 5000 and material.str.contains('Carbon') and ad_title.str.contains('Instinct')", "email_stem": "dustin.brown.andrews", "email_domain": "@gmail.com", "last_checked": "2021-09-25 18:15:06.490215-06:00"}, {"category_num": 2, "alert_name": "Cheap Instincts", "search_string": "price < 3000 and ad_title.str.contains('Instinct')", "email_stem": "dustin.brown.andrews", "email_domain": "@gmail.com", "last_checked": "2021-09-25 18:15:06.577534-06:00"}, {"category_num": 2, "alert_name": "Sights Alert", "search_string": "ad_title.str.contains('Sight') and ad_title.str.contains('7.4') ", "email_stem": "bvmcknight", "email_domain": "@icloud.com", "last_checked": "2021-09-25 18:15:06.656201-06:00"}, {
-    "category_num": 2, "alert_name": "Sights Alert Tracker", "search_string": "ad_title.str.contains('Sight') and ad_title.str.contains('7.4') ", "email_stem": "dustin.brown.andrews", "email_domain": "@gmail.com", "last_checked": "2021-09-25 18:15:06.752468-06:00"}, {"category_num": 12, "alert_name": "Ty's Road Disc Wheelsets", "search_string": "price > 200 and price < 1200 and wheel_size.str.contains('700') and ad_title.str.contains('disc') ", "email_stem": "ty.elgin.andrews", "email_domain": "@gmail.com", "last_checked": "2021-09-25 18:15:06.775972-06:00"}]}
-
-
 category_dict = {
     "All Mountain/Enduro Bikes": 2,
     "DH Bikes": 1,
@@ -101,5 +97,5 @@ category_dict = {
     "Stolen Bikes/Parts": 68,
     "Jobs Shop/Industry": 69,
     "Sleds": 36,
-    "Work Wanted": 70
+    "Work Wanted": 70,
 }
