@@ -7,6 +7,7 @@ from joblib import Parallel, delayed
 import os
 import logging
 import warnings
+import sys
 
 # Custom code
 import pb_buddy.scraper as scraper
@@ -18,6 +19,7 @@ from pb_buddy.resources import category_dict
 # Settings -----------------------------------------------------------------
 start_category = 1
 end_category = 101
+full_refresh = False
 num_jobs = os.cpu_count()  # Curently only for initial link grab
 delay_s = 0.0
 log_level = "INFO"
@@ -32,6 +34,7 @@ logging.basicConfig(
     level=getattr(logging, log_level.upper(), None),
     format="%(asctime)s %(message)s",
 )
+logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
 # Setup ------------------------------------------------------------
 logging.info("######## Starting new scrape session #########")
@@ -58,10 +61,16 @@ for category_to_scrape in np.random.choice(
 
     # Get existing open ads and stats of last scrape
     base_data = all_base_data.query("category_num == @category_to_scrape")
+
+    # Setup date the compare ads to for refresh. If we want to check all current ads
+    # for existence in our system, don't restrict based on date.
     if len(base_data) == 0:
         last_scrape_dt = pd.to_datetime("01-JAN-1900")
     else:
-        last_scrape_dt = pd.to_datetime(base_data.datetime_scraped).max()
+        if full_refresh:
+            last_scrape_dt = pd.to_datetime("01-JAN-1900")
+        else:
+            last_scrape_dt = pd.to_datetime(base_data.datetime_scraped).max()
 
     # Setup for sold ad data
     sold_ad_data = all_sold_data.query("category_num == @category_to_scrape")
@@ -109,6 +118,9 @@ for category_to_scrape in np.random.choice(
                 else:
                     intermediate_ad_data.append(single_ad_data)
             else:
+                logging.info(
+                    f"Checked up until ~ page: { (len(intermediate_ad_data)//20)+1} of ads"
+                )
                 break
 
     # Split out brand new ads, versus updates ------------------
