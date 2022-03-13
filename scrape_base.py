@@ -17,8 +17,8 @@ from pb_buddy.resources import category_dict
 
 # %%
 # Settings -----------------------------------------------------------------
-start_category = 1
-end_category = 101
+start_category = 2
+end_category = 2
 full_refresh = False
 num_jobs = os.cpu_count()  # Curently only for initial link grab
 delay_s = 0.0
@@ -74,7 +74,6 @@ for category_to_scrape in np.random.choice(
 
     # Setup for sold ad data
     sold_ad_data = all_sold_data.query("category_num == @category_to_scrape")
-    intermediate_sold_ad_data = []
 
     # Get total number of pages of ads-----------------------------------------------
     total_page_count = scraper.get_total_pages(category_to_scrape)
@@ -97,6 +96,7 @@ for category_to_scrape in np.random.choice(
     ad_urls = list(dict.fromkeys(ad_urls))
     # Get new ad data ---------------------------------------------------------
     intermediate_ad_data = []
+    intermediate_sold_ad_data = []
     logging.info(f"Extracting ad data from {len(ad_urls)} ads")
 
     # Do sequentially and check datetime of last scrape
@@ -123,6 +123,31 @@ for category_to_scrape in np.random.choice(
                 )
                 break
 
+    # Do the EXACT SAME LOGIC (TODO: FIX THIS), to check older URLS that have been missed for some reason
+    # Don't do the comparison to last scrape date, these have all been missed already.
+    missing_urls = [
+        x for x in ad_urls if x not in base_data.url.to_list()
+        and x not in intermediate_sold_ad_data and x not in intermediate_ad_data
+    ]
+    for url in tqdm(missing_urls, disable=(not show_progress)):
+        single_ad_data = scraper.parse_buysell_ad(url, delay_s=0)
+        if single_ad_data != {}:
+            # Sometimes sold ads kept in main results, ad for later
+            if (
+                "sold" in single_ad_data["still_for_sale"].lower()
+                and url not in sold_ad_data.url.values
+            ):
+                intermediate_sold_ad_data.append(single_ad_data)
+            else:
+                intermediate_ad_data.append(single_ad_data)
+    logging.info(
+        f"Checked: { len(missing_urls)} new ads missed in previous scrapes"
+    )
+
+
+    logging.info(
+        f"Found: {len(intermediate_sold_ad_data)} sold ads in buysell normal pages"
+    )
     # Split out brand new ads, versus updates ------------------
     if len(intermediate_ad_data) == 0:
         continue
