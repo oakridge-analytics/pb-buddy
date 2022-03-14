@@ -17,8 +17,8 @@ from pb_buddy.resources import category_dict
 
 # %%
 # Settings -----------------------------------------------------------------
-start_category = 2
-end_category = 2
+start_category = 1
+end_category = 101
 full_refresh = False
 num_jobs = os.cpu_count()  # Curently only for initial link grab
 delay_s = 0.0
