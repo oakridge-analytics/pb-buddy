@@ -56,6 +56,7 @@ for alert in alerts["alerts"]:
                     "currency",
                     "location",
                     "last_repost_date",
+                    "datetime_scraped",
                 ]
             ]
             .sort_values(["price_change", "price"], ascending=[False, True])
