@@ -123,28 +123,28 @@ for category_to_scrape in np.random.choice(
                 )
                 break
 
-    # Do the EXACT SAME LOGIC (TODO: FIX THIS), to check older URLS that have been missed for some reason
-    # Don't do the comparison to last scrape date, these have all been missed already.
-    already_collected_urls = [x["url"] for x in intermediate_ad_data] + \
-        [x["url"] for x in intermediate_sold_ad_data]
-    missing_urls = [
-        x for x in ad_urls if x not in base_data.url.to_list()
-        and x not in already_collected_urls
-    ]
-    for url in tqdm(missing_urls, disable=(not show_progress)):
-        single_ad_data = scraper.parse_buysell_ad(url, delay_s=0)
-        if single_ad_data != {}:
-            # Sometimes sold ads kept in main results, ad for later
-            if (
-                "sold" in single_ad_data["still_for_sale"].lower()
-                and url not in sold_ad_data.url.values
-            ):
-                intermediate_sold_ad_data.append(single_ad_data)
-            else:
-                intermediate_ad_data.append(single_ad_data)
-    logging.info(
-        f"Checked: { len(missing_urls)} new ads missed in previous scrapes"
-    )
+    # # Do the EXACT SAME LOGIC (TODO: FIX THIS), to check older URLS that have been missed for some reason
+    # # Don't do the comparison to last scrape date, these have all been missed already.
+    # already_collected_urls = [x["url"] for x in intermediate_ad_data] + \
+    #     [x["url"] for x in intermediate_sold_ad_data]
+    # missing_urls = [
+    #     x for x in ad_urls if x not in base_data.url.to_list()
+    #     and x not in already_collected_urls
+    # ]
+    # for url in tqdm(missing_urls, disable=(not show_progress)):
+    #     single_ad_data = scraper.parse_buysell_ad(url, delay_s=0)
+    #     if single_ad_data != {}:
+    #         # Sometimes sold ads kept in main results, ad for later
+    #         if (
+    #             "sold" in single_ad_data["still_for_sale"].lower()
+    #             and url not in sold_ad_data.url.values
+    #         ):
+    #             intermediate_sold_ad_data.append(single_ad_data)
+    #         else:
+    #             intermediate_ad_data.append(single_ad_data)
+    # logging.info(
+    #     f"Checked: { len(missing_urls)} new ads missed in previous scrapes"
+    # )
 
     logging.info(
         f"Found: {len(intermediate_sold_ad_data)} sold ads in buysell normal pages"
