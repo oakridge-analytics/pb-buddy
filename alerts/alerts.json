@@ -6,7 +6,7 @@
             "search_string": "price > 3000 and price < 5000 and material.str.contains('Carbon') and location.str.contains('Canada') and (restrictions.str.contains('within') or restrictions.str.contains('globally')) and frame_size.str.contains('M') and (front_travel.str.contains('140') or front_travel.str.contains('130')) and (ad_title.str.contains('2018') or ad_title.str.contains('2017') or ad_title.str.contains('2019'))",
             "email_stem": "dustin.brown.andrews",
             "email_domain": "@gmail.com",
-            "last_checked": "2022-03-31 13:23:45.654401-06:00"
+            "last_checked": "2022-03-31 15:18:47.652156-06:00"
         },
         {
             "category_num": 12,
@@ -14,7 +14,7 @@
             "search_string": "price > 200 and price < 1200 and wheel_size.str.contains('700') and ad_title.str.contains('disc') ",
             "email_stem": "ty.elgin.andrews",
             "email_domain": "@gmail.com",
-            "last_checked": "2022-03-31 13:23:48.652147-06:00"
+            "last_checked": "2022-03-31 15:18:50.146315-06:00"
         },
         {
             "category_num": 2,
@@ -22,7 +22,7 @@
             "search_string": "price > 0 and price < 5000 and location.str.contains('Canada')",
             "email_stem": "dustin.brown.andrews",
             "email_domain": "@gmail.com",
-            "last_checked": "2022-03-31 13:23:54.039713-06:00"
+            "last_checked": "2022-03-31 15:18:54.671872-06:00"
         },
         {
             "category_num": 40,
@@ -30,7 +30,7 @@
             "search_string": "price > 100 and price <250 and location.str.contains('Canada') and description.str.lower().str.contains('carbon') and description.str.lower().str.contains('brand new') and description.str.contains('43') and description.str.lower().str.contains('mountain')",
             "email_stem": "dustin.brown.andrews",
             "email_domain": "@gmail.com",
-            "last_checked": "2022-03-31 13:23:56.692429-06:00"
+            "last_checked": "2022-03-31 15:18:57.226402-06:00"
         },
         {
             "category_num": 2,
@@ -38,7 +38,7 @@
             "search_string": "price < 4000 and frame_size == 'L' and location.str.contains('Canada') and (front_travel.str.contains('150') or front_travel.str.contains('160') or front_travel.str.contains('170'))",
             "email_stem": "john",
             "email_domain": "@northinteractive.co",
-            "last_checked": "2022-03-31 13:24:00.935828-06:00"
+            "last_checked": "2022-03-31 15:19:01.478792-06:00"
         }
     ]
 }
