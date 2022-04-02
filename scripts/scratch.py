@@ -17,6 +17,19 @@ load_dotenv("/workspaces/pb-buddy/.env")
 all_data = dt.get_dataset(-1, data_type="base")
 print(all_data.shape)
 
+
+#%% 
+# Plot count over time
+(
+    all_data
+    .assign(scrape_day = lambda x: pd.to_datetime(x.original_post_date).dt.date)
+    .groupby("scrape_day")
+    .count()
+    .query("scrape_day > @pd.to_datetime('01-SEP-2021')")
+    [["url"]]
+    .plot()
+)
+
 # %%
 all_data["scrape_rank"] = all_data.groupby("url", as_index=False)[
     "datetime_scraped"
@@ -49,7 +62,6 @@ changes_collection = db.change_data
 for val in fake_changes["_id"]:
     changes_collection.delete_one({"_id": val})
 
-# %%
 # %%
 # Clean sold data -----------------------------------------------------
 all_sold_data = dt.get_dataset(-1, data_type="sold")
