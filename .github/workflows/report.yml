@@ -31,6 +31,9 @@ jobs:
           echo "DATE=$(python -c 'import datetime as dt; print((dt.datetime.now()))')" >> $GITHUB_ENV
       - name: Log env
         run: env
+      - name: Install Make
+        run: |
+          sudo apt-get install -y make
       - name: Run Scrape Report
         run: |
           make scrape_report
