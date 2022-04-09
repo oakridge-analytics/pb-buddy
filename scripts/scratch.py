@@ -17,15 +17,17 @@ load_dotenv("/workspaces/pb-buddy/.env")
 all_data = dt.get_dataset(-1, data_type="base")
 print(all_data.shape)
 
+#%%
+df_testing = all_data.drop(columns=["_id"])
 
 #%% 
 # Plot count over time
 (
     all_data
     .assign(scrape_day = lambda x: pd.to_datetime(x.original_post_date).dt.date)
+    .query("scrape_day > @pd.to_datetime('01-OCT-2021')")
     .groupby("scrape_day")
     .count()
-    .query("scrape_day > @pd.to_datetime('01-SEP-2021')")
     [["url"]]
     .plot()
 )
