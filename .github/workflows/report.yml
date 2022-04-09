@@ -23,6 +23,14 @@ jobs:
           python3 -m pip install --upgrade pip
           python3 -m pip install poetry
           python3 -m poetry install
+      - name: Set env vars
+        run: |
+          echo "DATE=$(python -c 'import datetime as dt; print((dt.datetime.now()))')" >> $GITHUB_ENV
+      - name: Log env
+        run: env
+      - name: Install Make
+        run: |
+          sudo apt-get install -y make
       - name: Run Scrape Report
         run: |
           make scrape_report
