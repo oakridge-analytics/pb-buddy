@@ -1,23 +1,26 @@
-name: Scrape Report
+name: Status Report
 
 on:
   schedule:
-    - cron: "23 06 * * *"
+    - cron: "23 23 * * *"
   workflow_dispatch:
 
 env:
   ACTIONS_ALLOW_UNSECURE_COMMANDS: true
 
 jobs:
-  make-report:
+  scrape-latest:
+    concurrency:
+      group: scrape
+      cancel-in-progress: true
     runs-on: self-hosted
     steps:
       - name: Setup repo
         uses: actions/checkout@v2
-      - name: Set up Python
+      - name: Set up Python 3.8
         uses: actions/setup-python@v2
         with:
-          python-version: 3.9
+          python-version: 3.8
       - name: Install package
         run : |
           python3 -m pip install --upgrade pip
@@ -30,13 +33,13 @@ jobs:
         run: env
       - name: Run Scrape Report
         run: |
-          make scrape_report
+          poetry run python -m jupytext --to notebook --execute reports/scrape_report.md
+          poetry run python -m nbconvert --no-input --to html reports/scrape_report.ipynb
         env:
           COSMOS_CONN_STR : ${{secrets.COSMOS_CONN_STR}}
-          AZURE_STORAGE_CONN_STR: ${{secrets.AZURE_STORAGE_CONN_STR}}
       - name: Email Scrape Report
         run: |
-          poetry run python scripts/email_scrape_report.py
+          poetry run python scripts/email_status_report.py
         env: 
           TWILIO_USER: ${{secrets.TWILIO_USER}}
           TWILIO_PASS: ${{secrets.TWILIO_PASS}}
