@@ -1,5 +1,11 @@
 # Quick script to email status report to myself.
 # Ensure report is rendered from Markdown to html before calling
+from dotenv import load_dotenv
 from pb_buddy.emailer import email_html_status_report
+import pandas as pd
 
-email_html_status_report(report_path="reports/scrape_report.html", email_subject="Pb-Buddy Status Report")
+# For local development, load .env file
+load_dotenv("../.env")
+subject_str = pd.Timestamp.now(tz="US/Mountain").strftime("%Y-%m-%d %H:%m") + \
+    " Pb-Buddy Status Report"
+email_html_status_report(report_path="reports/scrape_report.html", email_subject=subject_str)

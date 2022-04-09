@@ -33,8 +33,7 @@ jobs:
         run: env
       - name: Run Scrape Report
         run: |
-          poetry run python -m jupytext --to notebook --execute reports/scrape_report.md
-          poetry run python -m nbconvert --no-input --to html reports/scrape_report.ipynb
+          make scrape_report
         env:
           COSMOS_CONN_STR : ${{secrets.COSMOS_CONN_STR}}
       - name: Email Scrape Report

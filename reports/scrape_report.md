@@ -16,11 +16,13 @@ jupyter:
 # Pb-Buddy Scrape Report
 
 ```python
+%%capture
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
 from dotenv import load_dotenv
 import matplotlib.pyplot as plt
+import warnings
 
 # Custom code
 import pb_buddy.scraper as scraper
@@ -29,10 +31,12 @@ import pb_buddy.data_processors as dt
 from pb_buddy.resources import category_dict
 
 load_dotenv("../.env")
+warnings.filterwarnings("ignore")
 ```
 
 ```python
 plt.rcParams['figure.figsize'] = (12,8)
+plt.style.use('seaborn')
 ```
 
 ```python
@@ -68,10 +72,8 @@ df_combined = (
     [["url"]]
     .reset_index()
     .rename(columns={"url":"count_ads"})
-    .plot(x="scrape_day")
+    .plot(x="scrape_day", xlabel="Original Post Date", ylabel="Cout of Ads Per Day")
 )
-plt.ylabel("Count of Ads Per Day");
-plt.xlabel("Original Post Date");
 plt.suptitle("Count of Active+Sold Ads Over Time");
 ```
 
@@ -86,11 +88,8 @@ plt.suptitle("Count of Active+Sold Ads Over Time");
     [["url"]]
     .reset_index()
     .rename(columns={"url":"count_ads"})
-    .plot(x="scrape_day",by="type")
-    # .plot(x="scrape_day")
+    .plot(x="scrape_day",by="type", xlabel="Original Post Date", ylabel="Cout of Ads Per Day")
 )
-plt.ylabel("Count of Ads Per Day");
-plt.xlabel("Original Post Date");
 plt.suptitle("Sold Ads and Active Ads Over Time");
 ```
 
@@ -105,13 +104,8 @@ plt.suptitle("Sold Ads and Active Ads Over Time");
     [["url"]]
     .reset_index()
     .rename(columns={"url":"count_ads"})
-    .plot(x="scrape_day",by="category")
+    .plot(x="scrape_day",by="category", xlabel="Original Post Date", ylabel="Cout of Ads Per Day")
 )
-plt.ylabel("Count of Ads Per Day");
-plt.xlabel("Original Post Date");
 plt.suptitle("Count of Active+Sold Ads Over Time");
 ```
 
-```python
-
-```

@@ -3,6 +3,7 @@ import smtplib
 from dotenv import load_dotenv
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
 import pandas as pd
 import os
 
@@ -62,6 +63,7 @@ def email_df(df: pd.DataFrame, email_to: str, email_subject: str):
 
     s.quit()
 
+
 def email_html_status_report(report_path: str, email_subject: str):
     """
     Email an HTML report as an attachment to  myself
@@ -94,11 +96,14 @@ def email_html_status_report(report_path: str, email_subject: str):
                 "Ensure TWILIO_USER,TWILIO_PASS,HOTMAIL_ADDRESS environ variables are set prior to running!"
             )
 
-    html = open(report_path)
-    msg = MIMEText(html.read(), 'html')
+    msg = MIMEMultipart()
     msg["From"] = os.environ["HOTMAIL_ADDRESS"]
     msg["To"] = os.environ["ADMIN_EMAIL"]
     msg["Subject"] = email_subject
+
+    report = MIMEApplication(open(report_path, "r").read())
+    report.add_header('Content-Disposition', 'attachment', filename="scrape_report.html")
+    msg.attach(report)
 
     s = smtplib.SMTP("smtp.sendgrid.net", 587)
     # Hostname to send for this command defaults to the fully qualified domain name of the local host.
