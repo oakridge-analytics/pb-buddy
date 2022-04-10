@@ -1,4 +1,4 @@
-name: Status Report
+name: Scrape Report
 
 on:
   schedule:
@@ -9,10 +9,7 @@ env:
   ACTIONS_ALLOW_UNSECURE_COMMANDS: true
 
 jobs:
-  scrape-latest:
-    concurrency:
-      group: scrape
-      cancel-in-progress: true
+  make-report:
     runs-on: self-hosted
     steps:
       - name: Setup repo
@@ -26,11 +23,6 @@ jobs:
           python3 -m pip install --upgrade pip
           python3 -m pip install poetry
           python3 -m poetry install
-      - name: Set env vars
-        run: |
-          echo "DATE=$(python -c 'import datetime as dt; print((dt.datetime.now()))')" >> $GITHUB_ENV
-      - name: Log env
-        run: env
       - name: Run Scrape Report
         run: |
           make scrape_report

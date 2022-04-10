@@ -64,7 +64,7 @@ def email_df(df: pd.DataFrame, email_to: str, email_subject: str):
     s.quit()
 
 
-def email_html_status_report(report_path: str, email_subject: str):
+def email_html_report(report_path: str, email_subject: str):
     """
     Email an HTML report as an attachment to  myself
     using Hotmail(Outlook) SMTP server through Twilio SendGrid relay.
