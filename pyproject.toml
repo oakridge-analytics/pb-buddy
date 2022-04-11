@@ -21,6 +21,7 @@ Jinja2 = "^3.0.2"
 jupytext = "^1.13.8"
 nbconvert = "^6.4.5"
 azure-storage-blob = "^12.11.0"
+pyarrow = "^7.0.0"
 
 [tool.poetry.dev-dependencies]
 ipykernel = "^6.4.1"

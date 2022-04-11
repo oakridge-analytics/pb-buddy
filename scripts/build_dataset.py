@@ -2,6 +2,7 @@
 import pandas as pd
 import os
 import json
+from io import BytesIO
 from tqdm import tqdm
 from azure.storage.blob import BlobServiceClient, BlobClient
 from dotenv import load_dotenv
@@ -66,16 +67,49 @@ df_historical_data = (
 
 #%%
 # Save to upload to blob
-df_historical_data.to_csv("../data/historical_data.csv", index=False)
+# df_historical_data.to_csv("../data/historical_data.csv", index=False)
+# df_historical_data = pd.read_csv("../data/historical_data.csv")
 
 #%%
 # Upload!
-connect_str = os.environ["AZURE_STORAGE_CONN_STR"]
-blob_service_client = BlobServiceClient.from_connection_string(connect_str)
-container_name = 'pb-buddy-historical'
-blob_client = blob_service_client.get_blob_client(container=container_name, blob="historical_sold_data.csv")
+def stream_parquet_to_blob(df : pd.DataFrame, blob_name : str, blob_container : str):
+    """Stream pandas DataFrame to parquet.gzip blob in Azure Blob storage.
+    Uses `pyarrow` and requires env variable to be set:
+    AZURE_STORAGE_CONN_STR=Connection string to authenticate with.
 
-with open(os.path.join("../data/", "historical_data.csv"), "rb") as data:
-    blob_client.upload_blob(data)   
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Pandas DataFrame to be uploaded to Azure Blob
+    blob_name : str
+        File name to upload as in container
+    blob_container : str
+        Container to upload to
+    """    
+    # Create a blob client using the local account credentials
+    blob_service_client = BlobServiceClient.from_connection_string(
+        os.environ["AZURE_STORAGE_CONN_STR"]
+    )
+
+    # Create a unique name for the container
+    container_name = blob_container
+
+    # Create a blob client using the container client
+    blob_client = blob_service_client.get_blob_client(
+        container=container_name,
+        blob=blob_name
+    )
+
+    parquet_file = BytesIO()
+    df.to_parquet(parquet_file, engine='pyarrow', compression="gzip")
+    parquet_file.seek(0)  # change the stream position back to the beginning after writing
+
+    blob_client.upload_blob(
+        data=parquet_file
+    )
+
+
+stream_parquet_to_blob(df_historical_data, "historical_data.parquet.gzip", "pb-buddy-historical")
+
 
 # %%
