@@ -1,3 +1,9 @@
+# -----------------------------------------------------------------------------
+# Helper Script to process backfilled data into cleaner form and load to Azure Blob Storage
+# Requires: AZURE_STORAGE_CONN_STR variable set in .env file. Also requires backfill_library.json,
+# and restrictions_backfill_library.json in /data directory. Confirm paths before running
+# -----------------------------------------------------------------------------
+
 #%%
 import pandas as pd
 import os
@@ -56,18 +62,12 @@ df_historical_data[datetime_cols] = (
         axis=0
     )
 )
-# %%
-df_historical_data.dtypes
 
 #%%
 # restrict to just sold ads
 df_historical_data = (
     df_historical_data.query("still_for_sale.str.contains('Sold')")
 )
-
-#%%
-# Save to upload to blob
-# df_historical_data = pd.read_csv("../data/historical_data.csv")
 
 #%%
 # Upload!
