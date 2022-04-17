@@ -111,6 +111,7 @@ df_sold_bikes_model = (
     .query("description.str.lower().str.contains('stolen') == False")
     .query("description.str.lower().str.contains('looking for') == False")
     .query("price != 1234 and price != 12345 and price !=123")
+    .assign(last_repost_month = lambda x: x["last_repost_date"].dt.to_period('M'))
 )
 ```
 
@@ -119,7 +120,6 @@ top_n = 5
 top_bike_categories = (df_sold_bikes_model.category_num.value_counts().index[0:top_n].tolist())
 (
     df_sold_bikes_model
-    .assign(last_repost_month = lambda x: x["last_repost_date"].dt.to_period('M'))
     .query("category_num.isin(@top_bike_categories)")
     .groupby(["last_repost_month","category"])
     .mean()
@@ -130,7 +130,6 @@ top_bike_categories = (df_sold_bikes_model.category_num.value_counts().index[0:t
 # Count of Ads 
 (
     df_sold_bikes_model
-    .assign(last_repost_month = lambda x: x["last_repost_date"].dt.to_period('M'))
     .query("category_num.isin(@top_bike_categories)")
     .groupby(["last_repost_month","category"])
     .count()
@@ -189,6 +188,8 @@ To enable consistent pricing for modelling - we need to adjust for the USD -> CA
 
 ### Adjusting for Inflation
 
+As a first attempt - we'll look at "All Items" level inflation to adjust our prices. There is most likely a more relevant index that is available - but this will be good enough for now. We need to find Canadian data and US Data separately.
+
 ```python
 # Canada data
 df_can_cpi_data = pd.read_csv("https://www150.statcan.gc.ca/t1/tbl1/en/dtl!downloadDbLoadingData-nonTraduit.action?pid=1810000501&latestN=0&startDate=20100101&endDate=20220101&csvLocale=en&selectedMembers=%5B%5B2%5D%2C%5B2%2C3%2C79%2C96%2C139%2C176%2C184%2C201%2C219%2C256%2C274%2C282%2C285%2C287%2C288%5D%5D&checkedLevels=")
@@ -198,6 +199,10 @@ df_can_cpi_data = (
     .query("`Products and product groups`=='All-items'")
     .filter(["REF_DATE","VALUE"])
     .rename(columns={"REF_DATE":"year","VALUE":"cpi"})
+    .assign(
+        most_recent_cpi = lambda x: x.loc[x.year.idxmax(), "cpi"],
+        currency="CAD"
+    )
 )
 ```
 
@@ -215,33 +220,111 @@ df_us_cpi_data = (
     .filter(["year","cpi"])
     .groupby("year", as_index=False)
     .mean()
+    .assign(
+        most_recent_cpi = lambda x: x.loc[x.year.idxmax(), "cpi"],
+        currency="USD"
+        )
 )
 ```
 
 ```python
-def cpi_adjust(df):
-    """Index into CPI data and scale price to current year dollars"""
-    if "United States" in df.location:
-        df_cpi = df_us_cpi_data
-    elif "Canada" in df.location:
-        df_cpi = df_can_cpi_data
-    else:
-        raise ValueError("Country not found")
+# Join on all CPI data per currency and adjust historical dollars to most recent year
+df_cpi_data_combined = pd.concat([df_us_cpi_data, df_can_cpi_data])
 
-    prior_cpi = df_cpi.loc[df_cpi.year == df.year,"cpi"].values
-    most_recent_cpi = df_cpi.sort_values("year").year.iloc[-1]
+df_sold_bikes_model_adjusted = (
+    df_sold_bikes_model
+    .merge(df_cpi_data_combined,how="left",left_on=["last_repost_year","currency"], right_on=["year", "currency"])
+    .assign(
+        price_cpi_adjusted = lambda x: (x.price * (x.most_recent_cpi/x.cpi))
+    )
+)
+```
 
-    price_out = (df.price * (most_recent_cpi/prior_cpi))
-    return price_out
-
-df_sold_bikes_model["price_cpi_adjusted"] = df_sold_bikes_model.apply(cpi_adjust, axis=1)
+```python
+(
+    df_sold_bikes_model_adjusted
+    .groupby(["last_repost_month"])
+    .mean()
+    [["price", "price_cpi_adjusted"]]
+    .plot(figsize=(12,8), title="Inflation Adjusted Average Prices")
+);
 ```
 
 
 ### Exchange
 
 ```python
-df_us_cpi_data
+# Use Yahoo Finance API through pandas_datareader
+from pandas_datareader.yahoo.fx import YahooFXReader
+import numpy as np
+
+fx_reader = YahooFXReader(
+    symbols=["USD","CAD"],
+    start='01-JAN-2010',
+    end=df_sold_bikes_model.last_repost_date.max(),
+    interval="mo"
+)
+
+# Get data and fix symbols - we want to adjust USD prices -> CAD, leaving
+# CAD prices untouched. We'll get the data at a monthly level for now.
+df_fx = (
+    fx_reader.read()
+    .reset_index()
+    .assign(
+        fx_month = lambda x: pd.to_datetime(x.Date).dt.to_period('M'),
+        currency = lambda x: np.where(x.PairCode == 'CAD', "USD",'CAD')
+    )
+    .rename(columns={"Close":"fx_rate_USD_CAD"})
+    .filter(["fx_month","currency","fx_rate_USD_CAD"])
+)
+```
+
+```python
+df_sold_bikes_model_adjusted_CAD = (
+    df_sold_bikes_model_adjusted
+    .merge(df_fx, how="left", left_on=["last_repost_month","currency"], right_on=["fx_month", "currency"])
+    .assign(
+        fx_month = lambda x: x.fx_month.where(~x.fx_month.isna(), other=x.last_repost_month),
+        fx_rate_USD_CAD = lambda x: x.fx_rate_USD_CAD.where(x.currency == 'USD', other=1.00),
+        price_cpi_adjusted_CAD = lambda x: x.price_cpi_adjusted * x.fx_rate_USD_CAD
+    )
+)
+```
+
+```python
+df_sold_bikes_model_adjusted_CAD#.query("location.str.contains('Canada') == True").shape
+```
+
+```python
+(
+    df_sold_bikes_model_adjusted_CAD
+    # .query("category_num.isin(@top_bike_categories)")
+    .groupby(["last_repost_month"])
+    .mean()
+    [["price", "price_cpi_adjusted", "price_cpi_adjusted_CAD"]]
+    # .unstack(1)
+    .plot(figsize=(12,8), title="Inflation Adjusted Average Prices")
+)
+```
+
+```python
+# from forex_python.converter import CurrencyRates
+# currency_converter = CurrencyRates()
+
+# def currency_convert(row):
+#     if row.currency == 'CAD':
+#         return 1
+#     elif row.currency == "USD":
+#         return currency_converter.get_rate(row.currency, "CAD", row.last_repost_date)
+#     else:
+#         raise ValueError("Currency isn't CAD or USD")
+
+# df_sold_bikes_model = (
+#     df_sold_bikes_model
+#     .assign(
+#         conversion_rate = lambda x: x.apply(currency_convert, axis=1)
+#     )
+# )
 ```
 
 ```python
