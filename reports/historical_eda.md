@@ -143,7 +143,7 @@ top_bike_categories = (df_sold_bikes_model.category_num.value_counts().index[0:t
 g = (
     df_sold_bikes_model
     .assign(
-        last_repost_month = lambda x: x["last_repost_date"].dt.month,
+        last_repost_month = lambda x: x.last_repost_date.dt.month,
         last_repost_year = lambda x: x.last_repost_date.dt.year
     )
     # .query("category_num.isin(@top_bike_categories)")
@@ -228,8 +228,22 @@ df_us_cpi_data = (
 ```
 
 ```python
+# Add records for current year carrying forward prior year CPI values
+canadian_current_cpi = df_can_cpi_data.most_recent_cpi.iloc[-1]
+us_current_cpi = df_us_cpi_data.most_recent_cpi.iloc[-1]
+current_year_cpi = pd.DataFrame(
+    data={
+        "year" : [df_sold_bikes_model.last_repost_year.max()] * 2,
+        "cpi" : [canadian_current_cpi, us_current_cpi],
+        "most_recent_cpi" : [canadian_current_cpi, us_current_cpi],
+        "currency":["CAD","USD"]
+    }
+)
+```
+
+```python
 # Join on all CPI data per currency and adjust historical dollars to most recent year
-df_cpi_data_combined = pd.concat([df_us_cpi_data, df_can_cpi_data])
+df_cpi_data_combined = pd.concat([df_us_cpi_data, df_can_cpi_data, current_year_cpi])
 
 df_sold_bikes_model_adjusted = (
     df_sold_bikes_model
@@ -251,7 +265,7 @@ df_sold_bikes_model_adjusted = (
 ```
 
 
-### Exchange
+### Exchange Rates - USD -> CAD
 
 ```python
 # Use Yahoo Finance API through pandas_datareader
@@ -259,7 +273,7 @@ from pandas_datareader.yahoo.fx import YahooFXReader
 import numpy as np
 
 fx_reader = YahooFXReader(
-    symbols=["USD","CAD"],
+    symbols=["CAD"],
     start='01-JAN-2010',
     end=df_sold_bikes_model.last_repost_date.max(),
     interval="mo"
@@ -267,6 +281,8 @@ fx_reader = YahooFXReader(
 
 # Get data and fix symbols - we want to adjust USD prices -> CAD, leaving
 # CAD prices untouched. We'll get the data at a monthly level for now.
+# There are data issues with multiple returns for some months, and none for other.
+# Average across multiple returns for same month, forward fill for missing.
 df_fx = (
     fx_reader.read()
     .reset_index()
@@ -276,7 +292,26 @@ df_fx = (
     )
     .rename(columns={"Close":"fx_rate_USD_CAD"})
     .filter(["fx_month","currency","fx_rate_USD_CAD"])
+    .groupby("fx_month", as_index=False)
+    .mean()
+    .set_index("fx_month")
+    .resample('M')
+    .mean()
+    .ffill()
+    .reset_index()
+    .assign(
+        currency = "USD"
+    ) # Need to extend series to carry forward last fx rate.
+    .merge(df_sold_bikes_model['last_repost_month'].drop_duplicates(), how="right", left_on="fx_month", right_on="last_repost_month")
+    .sort_values("last_repost_month")
+    .assign(
+        fx_rate_USD_CAD = lambda x: x.fx_rate_USD_CAD.ffill(),
+        currency = lambda x: x.currency.ffill(),
+        fx_month = lambda x: x.last_repost_month
+    )
+    .drop(columns=["last_repost_month"])
 )
+
 ```
 
 ```python
@@ -292,13 +327,9 @@ df_sold_bikes_model_adjusted_CAD = (
 ```
 
 ```python
-df_sold_bikes_model_adjusted_CAD#.query("location.str.contains('Canada') == True").shape
-```
-
-```python
+for 
 (
     df_sold_bikes_model_adjusted_CAD
-    # .query("category_num.isin(@top_bike_categories)")
     .groupby(["last_repost_month"])
     .mean()
     [["price", "price_cpi_adjusted", "price_cpi_adjusted_CAD"]]
@@ -308,23 +339,37 @@ df_sold_bikes_model_adjusted_CAD#.query("location.str.contains('Canada') == True
 ```
 
 ```python
-# from forex_python.converter import CurrencyRates
-# currency_converter = CurrencyRates()
+# Count of Ads 
+g = (
+    df_sold_bikes_model_adjusted_CAD
+    .assign(
+        last_repost_month = lambda x: x.last_repost_date.dt.month,
+        last_repost_year = lambda x: x.last_repost_date.dt.year
+    )
+    .groupby(["last_repost_month","last_repost_year","category","currency"])
+    .mean()
+    [["price_cpi_adjusted_CAD"]]
+    # .rename(columns={"url":"count_ads"})
+    .reset_index()
+    .pipe(
+        (sns.relplot, "data"), 
+        x="last_repost_month",
+        y="price_cpi_adjusted_CAD",
+        col="currency",
+        row="category",
+        hue="last_repost_year",
+        # col_wrap=3,
+        facet_kws={'sharey': False, 'sharex': False},
+        height=3,
+        aspect=1.5,
+        # title="Test",
+        kind="line")
 
-# def currency_convert(row):
-#     if row.currency == 'CAD':
-#         return 1
-#     elif row.currency == "USD":
-#         return currency_converter.get_rate(row.currency, "CAD", row.last_repost_date)
-#     else:
-#         raise ValueError("Currency isn't CAD or USD")
-
-# df_sold_bikes_model = (
-#     df_sold_bikes_model
-#     .assign(
-#         conversion_rate = lambda x: x.apply(currency_convert, axis=1)
-#     )
-# )
+)
+g
+# plt.style.use("seaborn")
+# g.fig.subplots_adjust(top=0.9)
+# g.fig.suptitle("Average Adjusted Price by Category and Original Currency")
 ```
 
 ```python
