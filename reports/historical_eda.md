@@ -111,7 +111,7 @@ df_sold_bikes_model = (
     .query("description.str.lower().str.contains('stolen') == False")
     .query("description.str.lower().str.contains('looking for') == False")
     .query("price != 1234 and price != 12345 and price !=123")
-    .assign(last_repost_month = lambda x: x["last_repost_date"].dt.to_period('M'))
+    .assign(last_repost_month = lambda x: (x["last_repost_date"] + pd.offsets.Day(1) + pd.offsets.MonthBegin(-1)).dt.date)
 )
 ```
 
@@ -191,8 +191,14 @@ To enable consistent pricing for modelling - we need to adjust for the USD -> CA
 As a first attempt - we'll look at "All Items" level inflation to adjust our prices. There is most likely a more relevant index that is available - but this will be good enough for now. We need to find Canadian data and US Data separately.
 
 ```python
+df_sold_bikes_model.last_repost_year.value_counts()
+```
+
+```python
 # Canada data
-df_can_cpi_data = pd.read_csv("https://www150.statcan.gc.ca/t1/tbl1/en/dtl!downloadDbLoadingData-nonTraduit.action?pid=1810000501&latestN=0&startDate=20100101&endDate=20220101&csvLocale=en&selectedMembers=%5B%5B2%5D%2C%5B2%2C3%2C79%2C96%2C139%2C176%2C184%2C201%2C219%2C256%2C274%2C282%2C285%2C287%2C288%5D%5D&checkedLevels=")
+start_year = str(df_sold_bikes_model.last_repost_year.min())
+end_year = str(df_sold_bikes_model.last_repost_year.max())
+df_can_cpi_data = pd.read_csv(f"https://www150.statcan.gc.ca/t1/tbl1/en/dtl!downloadDbLoadingData-nonTraduit.action?pid=1810000501&latestN=0&startDate={start_year}0101&endDate={end_year}0101&csvLocale=en&selectedMembers=%5B%5B2%5D%2C%5B2%2C3%2C79%2C96%2C139%2C176%2C184%2C201%2C219%2C256%2C274%2C282%2C285%2C287%2C288%5D%5D&checkedLevels=")
 
 df_can_cpi_data = (
     df_can_cpi_data
@@ -287,7 +293,7 @@ df_fx = (
     fx_reader.read()
     .reset_index()
     .assign(
-        fx_month = lambda x: pd.to_datetime(x.Date).dt.to_period('M'),
+        fx_month = lambda x: (pd.to_datetime(x.Date) + pd.offsets.Day(1) + pd.offsets.MonthBegin(-1)),
         currency = lambda x: np.where(x.PairCode == 'CAD', "USD",'CAD')
     )
     .rename(columns={"Close":"fx_rate_USD_CAD"})
@@ -295,14 +301,16 @@ df_fx = (
     .groupby("fx_month", as_index=False)
     .mean()
     .set_index("fx_month")
-    .resample('M')
+    .resample('MS')
     .mean()
     .ffill()
     .reset_index()
     .assign(
-        currency = "USD"
+        currency = "USD",
+        fx_month = lambda x: x.fx_month.dt.date
     ) # Need to extend series to carry forward last fx rate.
     .merge(df_sold_bikes_model['last_repost_month'].drop_duplicates(), how="right", left_on="fx_month", right_on="last_repost_month")
+
     .sort_values("last_repost_month")
     .assign(
         fx_rate_USD_CAD = lambda x: x.fx_rate_USD_CAD.ffill(),
@@ -315,19 +323,19 @@ df_fx = (
 ```
 
 ```python
+## Add on currency converted column and a few helper columns
 df_sold_bikes_model_adjusted_CAD = (
     df_sold_bikes_model_adjusted
     .merge(df_fx, how="left", left_on=["last_repost_month","currency"], right_on=["fx_month", "currency"])
     .assign(
         fx_month = lambda x: x.fx_month.where(~x.fx_month.isna(), other=x.last_repost_month),
         fx_rate_USD_CAD = lambda x: x.fx_rate_USD_CAD.where(x.currency == 'USD', other=1.00),
-        price_cpi_adjusted_CAD = lambda x: x.price_cpi_adjusted * x.fx_rate_USD_CAD
+        price_cpi_adjusted_CAD = lambda x: x.price_cpi_adjusted * x.fx_rate_USD_CAD,
     )
 )
 ```
 
 ```python
-for 
 (
     df_sold_bikes_model_adjusted_CAD
     .groupby(["last_repost_month"])
@@ -344,32 +352,67 @@ g = (
     df_sold_bikes_model_adjusted_CAD
     .assign(
         last_repost_month = lambda x: x.last_repost_date.dt.month,
-        last_repost_year = lambda x: x.last_repost_date.dt.year
+        last_repost_year = lambda x: x.last_repost_date.dt.year,
+        count_in_month = lambda x: x.groupby(["last_repost_month","last_repost_year"])["url"].transform(len)
     )
-    .groupby(["last_repost_month","last_repost_year","category","currency"])
-    .mean()
-    [["price_cpi_adjusted_CAD"]]
-    # .rename(columns={"url":"count_ads"})
+    .query("count_in_month > 10")
     .reset_index()
     .pipe(
         (sns.relplot, "data"), 
         x="last_repost_month",
         y="price_cpi_adjusted_CAD",
-        col="currency",
-        row="category",
         hue="last_repost_year",
-        # col_wrap=3,
-        facet_kws={'sharey': False, 'sharex': False},
-        height=3,
-        aspect=1.5,
-        # title="Test",
+        height=5,
+        aspect=2,
         kind="line")
 
 )
-g
-# plt.style.use("seaborn")
-# g.fig.subplots_adjust(top=0.9)
-# g.fig.suptitle("Average Adjusted Price by Category and Original Currency")
+g.fig.subplots_adjust(top=0.95)
+g.fig.suptitle("Average Adjusted Price by Year - 95% CI Denoted");
+```
+
+```python
+## Portion of ads US vs. Canada
+# Count of Ads 
+g = (
+    df_sold_bikes_model_adjusted_CAD
+    .assign(
+        last_repost_month = lambda x: pd.to_datetime(x.last_repost_month)
+    )
+    .pipe(
+        (sns.displot, "data"), 
+        x="last_repost_month",
+        hue="currency",
+        kind="kde",
+        bw_adjust=0.1,
+        multiple="fill",
+        height=5,
+        aspect=2
+)
+
+)
+g.fig.subplots_adjust(top=0.95)
+g.fig.suptitle("Fraction of Ads US vs. Canadian");
+```
+
+```python
+(
+    df_sold_bikes_model_adjusted_CAD
+    .assign(
+        last_repost_month = lambda x: pd.to_datetime(x.last_repost_month)
+    )
+    .groupby(["last_repost_month","currency"])
+    .count()
+    [['category']]
+    .reset_index()
+    .assign(
+        count_in_month = lambda x : x.groupby("last_repost_month")['category'].transform(sum),
+        fraction_by_currency = lambda x : (x.category/x.count_in_month)
+    )
+    .pivot(index="last_repost_month", columns="currency", values="fraction_by_currency")
+    .reset_index()
+    .plot(kind="area", x="last_repost_month", title="Porportion of Ads in United States vs. Canada", ylabel="Porportion")
+)
 ```
 
 ```python
