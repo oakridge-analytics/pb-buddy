@@ -1,4 +1,4 @@
-.PHONY: scrape_report
+.PHONY: scrape_report sync_reports
 
 scrape_report :
 	@poetry run python -m jupytext --to notebook --execute reports/scrape_report.md;
