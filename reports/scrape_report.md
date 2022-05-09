@@ -36,7 +36,7 @@ warnings.filterwarnings("ignore")
 ```
 
 ```python
-plt.rcParams['figure.figsize'] = (12,8)
+plt.rcParams['figure.figsize'] = (15,10)
 plt.style.use('seaborn')
 ```
 
@@ -85,7 +85,7 @@ df_combined = (
     .groupby(["original_post_year","currency","original_post_day"])
     .count()
     [["url"]]
-    .rolling(window=14)
+    .rolling(window=14, min_periods=0)
     .mean()
     .reset_index()
     .rename(columns={"url":"count_ads"})
@@ -99,7 +99,23 @@ df_combined = (
         aspect=1.5,
         kind="line")
 )
-plt.suptitle("Count of Active+Sold Ads Over Time - 14 Day Rolling Average");
+plt.suptitle("Count of Historical Ads Year Over Year - 14 Day Rolling Average");
+```
+
+## Recent Ads Trend
+
+```python
+(
+    df_combined
+    .query("original_post_date > @pd.to_datetime('01-OCT-2021').date()")
+    .groupby(["original_post_date"])
+    .count()
+    [["url"]]
+    .reset_index()
+    .rename(columns={"url":"count_ads"})
+    .plot(x="original_post_date", xlabel="Original Post Date", ylabel="Cout of Ads Per Day")
+)
+plt.suptitle("Cound of Ads Over Time - Recent Ads");
 ```
 
 ## Ad Counts by Type
