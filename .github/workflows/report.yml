@@ -36,6 +36,7 @@ jobs:
           make scrape_report
         env:
           COSMOS_CONN_STR : ${{secrets.COSMOS_CONN_STR}}
+          AZURE_STORAGE_CONN_STR: ${{secrets.AZURE_STORAGE_CONN_STR}}
       - name: Email Scrape Report
         run: |
           poetry run python scripts/email_scrape_report.py
