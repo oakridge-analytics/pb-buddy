@@ -13,18 +13,26 @@ jupyter:
     name: python3
 ---
 
-# EDA of Historical PinkBike Ads
+# Preprocssing of Historical PinkBike Ads - Bike Ads
 
 
 ```python
 import pandas as pd
 import matplotlib.pyplot as plt
+from IPython.display import Markdown
 import seaborn as sns
 import pb_buddy.data_processors as dt
+import pb_buddy.utils as ut
 from pb_buddy.resources import category_dict
 
 %load_ext autoreload
 %autoreload 2
+```
+
+```python
+# Where processed data will get written to
+container_to_write_to = 'pb-buddy-historical'
+file_stub = '_adjusted_bike_ads'
 ```
 
 ```python
@@ -191,10 +199,6 @@ To enable consistent pricing for modelling - we need to adjust for the USD -> CA
 As a first attempt - we'll look at "All Items" level inflation to adjust our prices. There is most likely a more relevant index that is available - but this will be good enough for now. We need to find Canadian data and US Data separately.
 
 ```python
-df_sold_bikes_model.last_repost_year.value_counts()
-```
-
-```python
 # Canada data
 start_year = str(df_sold_bikes_model.last_repost_year.min())
 end_year = str(df_sold_bikes_model.last_repost_year.max())
@@ -249,7 +253,7 @@ current_year_cpi = pd.DataFrame(
 
 ```python
 # Join on all CPI data per currency and adjust historical dollars to most recent year
-df_cpi_data_combined = pd.concat([df_us_cpi_data, df_can_cpi_data, current_year_cpi])
+df_cpi_data_combined = pd.concat([df_us_cpi_data, df_can_cpi_data, current_year_cpi]).drop_duplicates(subset=["year","currency"])
 
 df_sold_bikes_model_adjusted = (
     df_sold_bikes_model
@@ -343,7 +347,7 @@ df_sold_bikes_model_adjusted_CAD = (
     [["price", "price_cpi_adjusted", "price_cpi_adjusted_CAD"]]
     # .unstack(1)
     .plot(figsize=(12,8), title="Inflation Adjusted Average Prices")
-)
+);
 ```
 
 ```python
@@ -372,30 +376,6 @@ g.fig.suptitle("Average Adjusted Price by Year - 95% CI Denoted");
 ```
 
 ```python
-## Portion of ads US vs. Canada
-# Count of Ads 
-g = (
-    df_sold_bikes_model_adjusted_CAD
-    .assign(
-        last_repost_month = lambda x: pd.to_datetime(x.last_repost_month)
-    )
-    .pipe(
-        (sns.displot, "data"), 
-        x="last_repost_month",
-        hue="currency",
-        kind="kde",
-        bw_adjust=0.1,
-        multiple="fill",
-        height=5,
-        aspect=2
-)
-
-)
-g.fig.subplots_adjust(top=0.95)
-g.fig.suptitle("Fraction of Ads US vs. Canadian");
-```
-
-```python
 (
     df_sold_bikes_model_adjusted_CAD
     .assign(
@@ -412,9 +392,44 @@ g.fig.suptitle("Fraction of Ads US vs. Canadian");
     .pivot(index="last_repost_month", columns="currency", values="fraction_by_currency")
     .reset_index()
     .plot(kind="area", x="last_repost_month", title="Porportion of Ads in United States vs. Canada", ylabel="Porportion")
+);
+```
+
+Due to people appearing to mark an ad as "Sold" and then reopening it later at a lower price and reselling - we have duplicates on URL to ads in our dataset. To deal with this - we'll take the latest by last repost date.
+
+```python
+df_sold_bikes_model_adjusted_CAD = (
+    df_sold_bikes_model_adjusted_CAD
+    .assign(
+        last_repost_date = lambda x: pd.to_datetime(x.last_repost_date),
+        datetime_scraped = lambda x: pd.to_datetime(x.datetime_scraped, utc=True),
+        url_rank = lambda x: x.groupby("url")["last_repost_date"].rank("dense", ascending=False),
+        scrape_rank = lambda x: x.groupby("url")["datetime_scraped"].rank("dense", ascending=False) # Sometimes I have multiple scrapes of same sold ad!
+    )
+    .query("url_rank == 1 and scrape_rank == 1")
 )
 ```
 
 ```python
+df_sold_bikes_model_adjusted_CAD = (
+    df_sold_bikes_model_adjusted_CAD
+    .pipe(ut.convert_to_float, colnames=["view_count","watch_count"])
+    .pipe(ut.cast_obj_to_string)
+)
+```
 
+```python
+# Checks!
+assert len(df_sold_bikes_model_adjusted_CAD) == len(df_sold_bikes_model_adjusted_CAD.drop_duplicates(subset=["url"])), "Duplicates found on URL!"
+```
+
+```python
+# Save out versioned file for modelling
+timestamp = pd.Timestamp.now().strftime('%Y-%m-%d_%H_%M_%S')
+filename = f"{timestamp}_{file_stub}.parquet.gzip"
+dt.stream_parquet_to_blob(df_sold_bikes_model_adjusted_CAD, blob_name = filename, blob_container=container_to_write_to )
+```
+
+```python
+Markdown(f"The processed and adjusted data has been written to container: { container_to_write_to } with filename: {filename}")
 ```
