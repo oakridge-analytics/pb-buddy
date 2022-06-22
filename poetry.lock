@@ -122,6 +122,23 @@ css = ["tinycss2 (>=1.1.0)"]
 dev = ["pip-tools (==6.5.1)", "pytest (==7.1.1)", "flake8 (==4.0.1)", "tox (==3.24.5)", "sphinx (==4.3.2)", "twine (==4.0.0)", "wheel (==0.37.1)", "hashin (==0.17.0)", "black (==22.3.0)", "mypy (==0.942)"]
 
 [[package]]
+name = "catboost"
+version = "1.0.6"
+description = "Catboost Python Package"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+graphviz = "*"
+matplotlib = "*"
+numpy = ">=1.16.0"
+pandas = ">=0.24.0"
+plotly = "*"
+scipy = "*"
+six = "*"
+
+[[package]]
 name = "certifi"
 version = "2021.10.8"
 description = "Python package for providing Mozilla's CA Bundle."
@@ -280,6 +297,19 @@ type1 = ["xattr"]
 ufo = ["fs (>=2.2.0,<3)"]
 unicode = ["unicodedata2 (>=14.0.0)"]
 woff = ["zopfli (>=0.1.4)", "brotlicffi (>=0.8.0)", "brotli (>=1.0.1)"]
+
+[[package]]
+name = "graphviz"
+version = "0.20"
+description = "Simple Python interface for Graphviz"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.extras]
+dev = ["tox (>=3)", "flake8", "pep8-naming", "wheel", "twine"]
+docs = ["sphinx (>=4)", "sphinx-autodoc-typehints", "sphinx-rtd-theme"]
+test = ["pytest (>=7)", "pytest-mock (>=3)", "mock (>=4)", "pytest-cov", "coverage"]
 
 [[package]]
 name = "html5lib"
@@ -865,6 +895,17 @@ docs = ["Sphinx (>=4)", "furo (>=2021.7.5b38)", "proselint (>=0.10.2)", "sphinx-
 test = ["appdirs (==1.4.4)", "pytest (>=6)", "pytest-cov (>=2.7)", "pytest-mock (>=3.6)"]
 
 [[package]]
+name = "plotly"
+version = "5.8.2"
+description = "An open-source, interactive data visualization library for Python"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+tenacity = ">=6.2.0"
+
+[[package]]
 name = "prompt-toolkit"
 version = "3.0.28"
 description = "Library for building powerful interactive command lines in Python"
@@ -1154,6 +1195,17 @@ pure-eval = "*"
 tests = ["pytest", "typeguard", "pygments", "littleutils"]
 
 [[package]]
+name = "tenacity"
+version = "8.0.1"
+description = "Retry code until it succeeds"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.extras]
+doc = ["reno", "sphinx", "tornado (>=4.5)"]
+
+[[package]]
 name = "testpath"
 version = "0.6.0"
 description = "Test utilities for code working with files and commands"
@@ -1275,7 +1327,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "~3.8"
-content-hash = "a75a6cddef38edb410366b18e58e4e320b78cccd51e1198de07aa8ca2860270e"
+content-hash = "82af54d4719b8f8c4891fe3d4f45a01972ce9785378d3e26e7a24385e8ee96de"
 
 [metadata.files]
 appnope = [
@@ -1334,6 +1386,23 @@ black = [
 bleach = [
     {file = "bleach-5.0.0-py3-none-any.whl", hash = "sha256:08a1fe86d253b5c88c92cc3d810fd8048a16d15762e1e5b74d502256e5926aa1"},
     {file = "bleach-5.0.0.tar.gz", hash = "sha256:c6d6cc054bdc9c83b48b8083e236e5f00f238428666d2ce2e083eaa5fd568565"},
+]
+catboost = [
+    {file = "catboost-1.0.6-cp310-none-macosx_10_6_universal2.whl", hash = "sha256:a3278657b40c95554fa117508b4668948244ef574fb8b44a73cef4b513666105"},
+    {file = "catboost-1.0.6-cp310-none-manylinux1_x86_64.whl", hash = "sha256:cf38bb8428421d83c24c8458926b04f54649bfcd7a0a2b43ef48cce7f9671774"},
+    {file = "catboost-1.0.6-cp310-none-win_amd64.whl", hash = "sha256:6eb0541591dd81fa7541666ed011f02613cc6715c38c8467a81914eae5c48420"},
+    {file = "catboost-1.0.6-cp36-none-macosx_10_6_universal2.whl", hash = "sha256:68df630850b175778ff585d1d5211f9f13208dac3614f0b9cf1630277178eb44"},
+    {file = "catboost-1.0.6-cp36-none-manylinux1_x86_64.whl", hash = "sha256:c90231ffa3149e09166d48097fa08bc8764445eea1612b86f462a88ac2debf57"},
+    {file = "catboost-1.0.6-cp36-none-win_amd64.whl", hash = "sha256:ecdcd1c9c1b9cf9467ae9c23e7b28d402a747cfee79f9824d16d447196a4e25d"},
+    {file = "catboost-1.0.6-cp37-none-macosx_10_6_universal2.whl", hash = "sha256:e6e79f1160bf9991d3716f55d8f92809f4f8e8bf1c9f34404e5eee0f9a09de61"},
+    {file = "catboost-1.0.6-cp37-none-manylinux1_x86_64.whl", hash = "sha256:ca3beb0de9b74b69486a1fca0bf5c6e9564c696fd191ac0b3bce03d3bce54e50"},
+    {file = "catboost-1.0.6-cp37-none-win_amd64.whl", hash = "sha256:dc049e4e8cab354efbd4df317ef533f3f4beaf2ad5ae3861fe0f8dd8db8302eb"},
+    {file = "catboost-1.0.6-cp38-none-macosx_10_6_universal2.whl", hash = "sha256:bf982f60465201bf7a3d52912612747b3ac8ef717c2a036755c1574aeebd2096"},
+    {file = "catboost-1.0.6-cp38-none-manylinux1_x86_64.whl", hash = "sha256:b5250a40cabbcd9b80ccb329243e651fb29612f843b12b01216b366c3d3cc085"},
+    {file = "catboost-1.0.6-cp38-none-win_amd64.whl", hash = "sha256:f2fdccbd3a85697fe91c91d00dc21b24cf7049c7819acaaa4e461ef6939fe21d"},
+    {file = "catboost-1.0.6-cp39-none-macosx_10_6_universal2.whl", hash = "sha256:f54251456452010d5222ac06521ced117f53a9cd2dc58fa7812f5015c4c34b04"},
+    {file = "catboost-1.0.6-cp39-none-manylinux1_x86_64.whl", hash = "sha256:41e4ed43fb3291ba1b46d82065e4be098363d96d7124e6a8d18f705bcf7e3b87"},
+    {file = "catboost-1.0.6-cp39-none-win_amd64.whl", hash = "sha256:583517573f705358e81b068026a8888f418a45dadb5765c77f242f90f75803e4"},
 ]
 certifi = [
     {file = "certifi-2021.10.8-py2.py3-none-any.whl", hash = "sha256:d62a0163eb4c2344ac042ab2bdf75399a71a2d8c7d47eac2e2ee91b9d6339569"},
@@ -1479,6 +1548,10 @@ fastjsonschema = [
 fonttools = [
     {file = "fonttools-4.29.1-py3-none-any.whl", hash = "sha256:1933415e0fbdf068815cb1baaa1f159e17830215f7e8624e5731122761627557"},
     {file = "fonttools-4.29.1.zip", hash = "sha256:2b18a172120e32128a80efee04cff487d5d140fe7d817deb648b2eee023a40e4"},
+]
+graphviz = [
+    {file = "graphviz-0.20-py3-none-any.whl", hash = "sha256:62c5f48bcc534a45b4588c548ff75e419c1f1f3a33d31a91796ae80a7f581e4a"},
+    {file = "graphviz-0.20.zip", hash = "sha256:76bdfb73f42e72564ffe9c7299482f9d72f8e6cb8d54bce7b48ab323755e9ba5"},
 ]
 html5lib = [
     {file = "html5lib-1.1-py2.py3-none-any.whl", hash = "sha256:0d78f8fde1c230e99fe37986a60526d7049ed4bf8a9fadbad5f00e22e58e041d"},
@@ -1921,6 +1994,10 @@ platformdirs = [
     {file = "platformdirs-2.5.0-py3-none-any.whl", hash = "sha256:30671902352e97b1eafd74ade8e4a694782bd3471685e78c32d0fdfd3aa7e7bb"},
     {file = "platformdirs-2.5.0.tar.gz", hash = "sha256:8ec11dfba28ecc0715eb5fb0147a87b1bf325f349f3da9aab2cd6b50b96b692b"},
 ]
+plotly = [
+    {file = "plotly-5.8.2-py2.py3-none-any.whl", hash = "sha256:bd5376ac8cc06e195e3d397da089f3189243b61b27b6c837c1930edbf75fb8f3"},
+    {file = "plotly-5.8.2.tar.gz", hash = "sha256:6cfbb2cce3866671dbf304e5168c58950328be4573547dc9a337f9e000c8e32b"},
+]
 prompt-toolkit = [
     {file = "prompt_toolkit-3.0.28-py3-none-any.whl", hash = "sha256:30129d870dcb0b3b6a53efdc9d0a83ea96162ffd28ffe077e94215b233dc670c"},
     {file = "prompt_toolkit-3.0.28.tar.gz", hash = "sha256:9f1cd16b1e86c2968f2519d7fb31dd9d669916f515612c269d14e9ed52b51650"},
@@ -2295,6 +2372,10 @@ soupsieve = [
 stack-data = [
     {file = "stack_data-0.1.4-py3-none-any.whl", hash = "sha256:02cc0683cbc445ae4ca8c4e3a0e58cb1df59f252efb0aa016b34804a707cf9bc"},
     {file = "stack_data-0.1.4.tar.gz", hash = "sha256:7769ed2482ce0030e00175dd1bf4ef1e873603b6ab61cd3da443b410e64e9477"},
+]
+tenacity = [
+    {file = "tenacity-8.0.1-py3-none-any.whl", hash = "sha256:f78f4ea81b0fabc06728c11dc2a8c01277bfc5181b321a4770471902e3eb844a"},
+    {file = "tenacity-8.0.1.tar.gz", hash = "sha256:43242a20e3e73291a28bcbcacfd6e000b02d3857a9a9fff56b297a27afdc932f"},
 ]
 testpath = [
     {file = "testpath-0.6.0-py3-none-any.whl", hash = "sha256:8ada9f80a2ac6fb0391aa7cdb1a7d11cfa8429f693eda83f74dde570fe6fa639"},

@@ -17,11 +17,22 @@ jupyter:
 
 
 ```python
+from tempfile import mkdtemp
+from shutil import rmtree
+
 import pandas as pd
 import numpy as np
 
+
+# Other models -----------
+from catboost import CatBoostRegressor
+
+
 # Sklearn helpers ------------------------------
 from sklearn.linear_model import LinearRegression, Ridge
+from sklearn.dummy import DummyRegressor
+from sklearn.svm import LinearSVR
+
 from sklearn.model_selection import (
     train_test_split,
     GridSearchCV,
@@ -70,10 +81,6 @@ df_modelling = dt.stream_parquet_to_dataframe(input_blob_name, input_container_n
 ```
 
 ```python
-df_modelling.columns
-```
-
-```python
 df_modelling = (
     df_modelling
     .assign(
@@ -104,10 +111,18 @@ df_train, df_valid_test = train_test_split(df_modelling, test_size=0.3, random_s
 df_valid, df_test = train_test_split(df_valid_test, test_size=0.5, random_state=42)
 
 X_train = df_train[["ad_title","description","original_post_date"]]
-y_train = df_train[["price_cpi_adjusted_CAD"]]
+y_train = df_train["price_cpi_adjusted_CAD"]
 
 X_valid = df_valid[["ad_title","description","original_post_date"]]
-y_valid = df_valid[["price_cpi_adjusted_CAD"]]
+y_valid = df_valid["price_cpi_adjusted_CAD"]
+
+X_test = df_test[["ad_title","description","original_post_date"]]
+y_test = df_test['price_cpi_adjusted_CAD']
+
+# For deterministic validation splits, need train and valid in one array and can pass
+# a mask to indicate beginning is train, end of data is valid. See PredefinedSplit docs for more:
+X_train_valid = pd.concat([X_train,X_valid],axis=0)
+y_train_valid = pd.concat([y_train,y_valid],axis=0)
 
 ```
 
@@ -147,10 +162,10 @@ class add_age_of_equipment(BaseEstimator, TransformerMixin):
         return (
             X
             .assign(
-                age_at_post = lambda _df: _df.original_post_date.dt.year - _df.ad_title.str.extract("(19|20[0-9]{2})", expand=False).fillna(10000).astype(int),
+                age_at_post = lambda _df: _df.original_post_date.dt.year - _df.ad_title.str.extract("((?:19|20)\d{2})", expand=False).fillna(10000).astype(int),
             )
             .assign(    
-                age_at_post = lambda _df: np.where(_df.age_at_post < 0, -1000, _df.age_at_post)
+                age_at_post = lambda _df: np.where(_df.age_at_post < -3, -1000, _df.age_at_post)
             )
             .drop(
                 columns=["ad_title","original_post_date"]
@@ -161,7 +176,7 @@ class add_age_of_equipment(BaseEstimator, TransformerMixin):
 
 ## Baseline
 
-We'll first do some baselines - first a simple bag of words, with logistic regression
+We'll first do some baselines - first a simple bag of words, with dummy regressor (predict the mean) and with a linear regression
 
 ```python
 transformer = ColumnTransformer(
@@ -176,44 +191,126 @@ transformer = ColumnTransformer(
 ```
 
 ```python
-
-pipe = Pipeline(
-    steps = [
-        ("transform", transformer),
-        ("model", LinearRegression())
-    ]
-)
-
-hparams ={
-    "transform__title_bow__max_features" : [100,500,1000],
-    "transform__description_bow__max_features" : [100,500,1000]
-}
-
 # Assign static validation split
 # -1 indicates train set, 0 is valid set
 split_mask = np.vstack((np.ones((len(X_train),1))*-1, np.zeros((len(X_valid),1))))
 cv_strat = PredefinedSplit(test_fold=split_mask)
+```
 
-grid_search = GridSearchCV(pipe, param_grid=hparams, cv=cv_strat,scoring="neg_root_mean_squared_error", n_jobs=4, error_score="raise")
+```python
+# Store modelling results over all experiments:
+results = {}
+```
 
-grid_search.fit(pd.concat([X_train,X_valid]), pd.concat([y_train,y_valid]))
+```python
+# cachedir = mkdtemp()
+base_pipe = Pipeline(
+    steps = [
+        ("transform", transformer),
+        ("model", DummyRegressor())
+    ],
+    # memory=cachedir
+)
+
+hparams ={
+    "transform__title_bow__max_features" : [10000],
+    "transform__description_bow__max_features" : [10000]
+}
+
+base_grid_search = GridSearchCV(base_pipe, param_grid=hparams, cv=cv_strat,scoring="neg_root_mean_squared_error", n_jobs=4, error_score="raise")
+base_grid_search.fit(X_train_valid, y_train_valid)
 
 ```
 
 ```python
-pd.DataFrame(grid_search.cv_results_)
+
+results["baseline"] = pd.DataFrame(base_grid_search.cv_results_).drop(columns=[c for c in base_grid_search.cv_results_.keys() if "param_" in c])
+pd.DataFrame(base_grid_search.cv_results_)
+```
+
+# Stronger Baseline
+
+```python
+svr_pipe = Pipeline(
+    steps = [
+        ("transform", transformer),
+        ("model", LinearSVR(max_iter=1000))
+    ],
+)
+
+hparams ={
+    "transform__title_bow__max_features" : [10000],
+    "transform__description_bow__max_features" : [10000],
+    "model__C": [30]
+}
+
+svr_grid_search = GridSearchCV(svr_pipe, param_grid=hparams, cv=cv_strat,scoring="neg_root_mean_squared_error", n_jobs=8, error_score="raise")
+svr_grid_search.fit(X_train_valid, y_train_valid)
+
+results["linear_svr"] = pd.DataFrame(svr_grid_search.cv_results_).drop(columns=[c for c in svr_grid_search.cv_results_.keys() if "param_" in c])
+pd.DataFrame(svr_grid_search.cv_results_)
+```
+
+```python
+# gbm_pipe = Pipeline(
+#     steps = [
+#         ("transform", transformer),
+#         ("model", CatBoostRegressor())
+#     ]
+# )
+
+# hparams ={
+#     "transform__title_bow__max_features" : [1000],
+#     "transform__description_bow__max_features" : [1000],
+#     "model__max_depth": [30],
+#     # "model__num_leaves": [100],
+#     "model__n_estimators": [10]
+# }
+
+# gbm_grid_search = GridSearchCV(gbm_pipe, param_grid=hparams, cv=cv_strat,scoring="neg_root_mean_squared_error", n_jobs=8, error_score="raise")
+# gbm_grid_search.fit(X_train_valid, y_train_valid)
+
+# results["gbm"] = pd.DataFrame(gbm_grid_search.cv_results_).drop(columns=[c for c in gbm_grid_search.cv_results_.keys() if "param_" in c])
+# pd.DataFrame(gbm_grid_search.cv_results_)
+```
+
+```python
+pd.DataFrame(
+        data={
+            "ad_title":["2013 Rocky Mountain Altitude - Fully Custom"],
+            "original_post_date":[pd.to_datetime("2022-MAR-31")],
+    "description":[
+        """Custom built Rocky Mountain Altitude - one of the best bikes for big climbs and big descents. 28.5 pounds as built so it can handle the climbs but still has no problem getting down the gnar.
+
+Highlights:
+- Full carbon frame - front triangle warrantied and replaced brand new in 2017.
+- Pike RCT3 Fork (2015) - full damper rebuild in 2021. Lowers serviced consistently.
+- RockShox Monarch Debonair shock - full rebuild in 2019 at Fluid Function.
+- Race Face Next R Carbon rear wheel, Aeffect R 30 aluminum front wheel.
+- Easton Haven dropper - full rebuild in 2019. Very quick cable actuated post, without relying on hydraulic systems.
+- Deore XT groupset - 1x11 - new chain, chain ring (30T), and cassette (11-46) in July 2021.
+- Enve Carbon bar + Thompson Elite stem
+- Minion DHF + DHR tires
+
+Ride wrapped from day one - have kept up service of all the pivots as well.
+
+*Doesn't include bottle cages pictured. """]
+}).assign(
+        pred = lambda _df : svr_grid_search.predict(_df),
+    )
 ```
 
 ```python
 (
-    pd.concat(
-        [
-            X_valid,
-            y_valid
-        ], axis=1)
+    pd.concat([
+        X_test,
+        y_test
+    ],
+    axis=1
+    )
     .sample(20, random_state=42)
     .assign(
-        pred = lambda _df : grid_search.predict(_df),
+        pred = lambda _df : svr_grid_search.predict(_df),
     )
 )
 ```
