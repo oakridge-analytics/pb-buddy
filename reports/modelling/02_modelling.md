@@ -239,8 +239,10 @@ svr_pipe = Pipeline(
 )
 
 hparams ={
-    "transform__title_bow__max_features" : [10000],
-    "transform__description_bow__max_features" : [10000],
+    "transform__title_bow__max_features" : [1000000],
+    "transform__title_bow__ngram_range": [(1,1),(1,2),(1,3)],
+    "transform__description_bow__max_features" : [1000000],
+    "transform__description_bow__ngram_range": [(1,1),(1,2),(1,3)],
     "model__C": [30]
 }
 
@@ -275,9 +277,9 @@ pd.DataFrame(svr_grid_search.cv_results_)
 ```
 
 ```python
-pd.DataFrame(
+sample_data = pd.DataFrame(
         data={
-            "ad_title":["2013 Rocky Mountain Altitude - Fully Custom"],
+            "ad_title":["2013 Rocky Mountain Altitude - Custom"],
             "original_post_date":[pd.to_datetime("2022-MAR-31")],
     "description":[
         """Custom built Rocky Mountain Altitude - one of the best bikes for big climbs and big descents. 28.5 pounds as built so it can handle the climbs but still has no problem getting down the gnar.
@@ -295,9 +297,33 @@ Highlights:
 Ride wrapped from day one - have kept up service of all the pivots as well.
 
 *Doesn't include bottle cages pictured. """]
-}).assign(
+})
+
+sample_data.assign(
         pred = lambda _df : svr_grid_search.predict(_df),
     )
+```
+
+```python
+year_sweep = pd.DataFrame()
+for year in range(2010,2023):
+    new_result = (
+        sample_data
+        .assign(
+            # original_post_date = pd.to_datetime(f"{year}-01-01"),
+            ad_title = lambda _df: _df.ad_title.str.replace("2013",str(year), regex=False),
+            pred = lambda _df : svr_grid_search.predict(_df),
+        )
+        [["original_post_date","ad_title","pred"]]
+    )
+    year_sweep = pd.concat([
+        year_sweep,
+        new_result
+
+    ]
+    )
+
+year_sweep
 ```
 
 ```python
