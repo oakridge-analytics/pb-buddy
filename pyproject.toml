@@ -29,6 +29,7 @@ pandas-datareader = "^0.10.0"
 scikit-learn = "^1.1.1"
 lightgbm = "^3.3.2"
 catboost = "^1.0.6"
+shap = "^0.41.0"
 
 [tool.poetry.dev-dependencies]
 ipykernel = "^6.4.1"

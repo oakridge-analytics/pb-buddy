@@ -25,7 +25,7 @@ import numpy as np
 
 
 # Other models -----------
-from catboost import CatBoostRegressor
+from catboost import CatBoostRegressor, Pool
 
 
 # Sklearn helpers ------------------------------
@@ -60,6 +60,7 @@ from sklearn.compose import (
 import matplotlib.pyplot as plt
 from IPython.display import Markdown
 import seaborn as sns
+import shap
 
 # Custom code ---------------------
 import pb_buddy.data_processors as dt
@@ -239,10 +240,10 @@ svr_pipe = Pipeline(
 )
 
 hparams ={
-    "transform__title_bow__max_features" : [1000000],
-    "transform__title_bow__ngram_range": [(1,1),(1,2),(1,3)],
-    "transform__description_bow__max_features" : [1000000],
-    "transform__description_bow__ngram_range": [(1,1),(1,2),(1,3)],
+    "transform__title_bow__max_features" : [20000],
+    "transform__title_bow__ngram_range": [(1,3)],
+    "transform__description_bow__max_features" : [20000],
+    "transform__description_bow__ngram_range": [(1,3)],
     "model__C": [30]
 }
 
@@ -305,6 +306,63 @@ sample_data.assign(
 ```
 
 ```python
+sample_data = pd.DataFrame(
+        data={
+            "ad_title":["2016 Norco Sight C7.4"],
+            "original_post_date":[pd.to_datetime("2022-MAR-31")],
+    "description":[
+        """
+        Well loved bike, needs $600 dollars work
+
+        Seat Post	KS E-Ten Integra 30.9mm adj post w / remote stealth
+Seat Post Clamp	Norco design alloy nutted clamp (no cable guide)
+Saddle	WTB Volt Sport
+Shifter Casing	Jagwire LEX housing
+Headset	Cane Creek 10 series tapered (integrated)
+Headset Spacer	1x10mm - Black / 1x5mm - Black
+Top Cap	Black alloy with Cane Creek logo
+Stem	Alloy MTB stem with 4 bolt front clamp
+Handlebar	Norco 1" rise bar 760 mm width, 6061 DB alloy
+Grips	Norco single side lock
+Front Brake	Shimano Acera hydraulic disc brake M396
+Chain Tensioner	N/A
+Rear Brake	Shimano Acera hydraulic disc brake M396
+Brake Levers	Shimano Acera
+Brake Rotors	Shimano RT-54  180 mm rotors ( center lock)
+Brake Cable Casing	N/A
+Rims	Alex DP23 650B 28.5 mm wide w/TRS
+Tires	Schwalbe 27.5 x 2.25 Nobby Nic Performance
+Tubes	Schwalbe presta 27.5 inner tube
+Front Hub	Shimano Deore 618 15mm
+Rear Hub	Shimano Deore 618 142 x 12
+Spokes/Nipples	Stainless steel black 2.0 spokes
+Shifter Front	Shimano Deore M610 rapid fire 2/3 sp
+Shifter Rear	Shimano Deore M610 rapid fire 10 sp
+Front Derailleur	Sram X5 high direct mount FD
+Rear Derailleur	Shimano Deore M615 Shadow Plus SGS
+Cassette	Shimano HG-50 11-36T 10 sp
+Crankset	Shimano Deore M615 38/24T 2x10 w/bb
+Bottom Bracket	N/A
+Pedals	N/A
+Chain	KMC X-10
+
+"""]
+})
+
+sample_data.assign(
+        pred = lambda _df : svr_grid_search.predict(_df),
+    )
+```
+
+```python
+# --------------------- Attempt to use SHAP----------------------------
+# sample_expanded_data = svr_grid_search.best_estimator_.named_steps["transform"].transform(sample_data).toarray()
+# # df_sample_expanded_data = pd.DataFrame(sample_expanded_data, columns = svr_grid_search.best_estimator_.get_feature_names_out())
+# ex = shap.KernelExplainer(svr_grid_search.best_estimator_.named_steps["model"].predict, sample_expanded_data)
+# shap_values = ex.shap_values(sample_expanded_data, silent=True)
+```
+
+```python
 year_sweep = pd.DataFrame()
 for year in range(2010,2023):
     new_result = (
@@ -339,6 +397,44 @@ year_sweep
         pred = lambda _df : svr_grid_search.predict(_df),
     )
 )
+```
+
+```python
+# text_features = ["ad_title","description"]
+
+# def fit_catboost(X_train, X_valid, y_train, y_valid, catboost_params={}, verbose=100):
+#     learn_pool = Pool(
+#         X_train[text_features], 
+#         y_train, 
+#         text_features=text_features,
+#         feature_names=["ad_title","description"]
+#     )
+#     eval_pool = Pool(
+#         X_valid[text_features], 
+#         y_valid, 
+#         text_features=text_features,
+#         feature_names=["ad_title","description"]
+#     )
+    
+#     catboost_default_params = {
+#         'iterations': 1000,
+#         'learning_rate': 0.03,
+#         # 'eval_metric': 'Accuracy',
+#         'task_type': 'GPU'
+#     }
+    
+#     catboost_default_params.update(catboost_params)
+    
+#     model = CatBoostRegressor(**catboost_default_params)
+#     model.fit(learn_pool, eval_set=eval_pool, verbose=verbose)
+
+#     return model
+
+
+```
+
+```python
+# fit_catboost(X_train, X_valid, y_train, y_valid)
 ```
 
 ```python
