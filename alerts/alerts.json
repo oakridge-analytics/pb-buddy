@@ -10,14 +10,6 @@
         },
         {
             "category_num": 2,
-            "alert_name": "All Mtn Check",
-            "search_string": "price > 0 and price < 5000 and location.str.contains('Canada')",
-            "email_stem": "dustin.brown.andrews",
-            "email_domain": "@gmail.com",
-            "last_checked": "2022-06-27 20:43:53.960346-06:00"
-        },
-        {
-            "category_num": 2,
             "alert_name": "Johnny All Mtn",
             "search_string": "price < 4000 and frame_size == 'L' and location.str.contains('Canada') and (front_travel.str.contains('150') or front_travel.str.contains('160') or front_travel.str.contains('170'))",
             "email_stem": "john",
