@@ -40,7 +40,8 @@ from sklearn.model_selection import (
 )
 
 from sklearn.feature_extraction.text import (
-    CountVectorizer
+    CountVectorizer,
+    TfidfVectorizer
 )
 from sklearn.base import (
     BaseEstimator,
@@ -54,6 +55,10 @@ from sklearn.pipeline import (
 
 from sklearn.compose import (
     ColumnTransformer
+)
+
+from sklearn.preprocessing import (
+    FunctionTransformer
 )
 
 # Visuals ------------------
@@ -141,38 +146,31 @@ ax.set_title("Train/Valid/Test Price Distributions")
 ```python
 # Helper code for sklearn pipelines --------------------------
 
-class add_age_of_equipment(BaseEstimator, TransformerMixin):
+def age_of_equipment(df):
     """
     Calculate age of equipment being sold based on:
-    - Year extracted from `ad_title`
-    - Year extracted from `original_post_date`, requires datetime type
+    - Bike model year extracted from `ad_title`, assigned to Jan 01 of this year for date comparison
+        Requires 19XX, or 20XX pattern to be present for finding year.
+    - Date of ad posted extracted from `original_post_date`, requires datetime type
 
-    Ads column `age_at_post` that is number of years old.
-    Rows where year of equipment couldn't be extracted from ad title,
-    are returned as -1000
+    Ads column `age_at_post` that is number of days old (Posted date compared to Jan 01 of bike model year)
+    Rows where year of equipment couldn't be extracted from ad title, are returned as -1000
     """
-
-    def __init__(self):
-        return None
-
-    def fit(self, X, y=None):
-        return self
-
-    def transform(self, X, y=None):
-
-        return (
-            X
-            .assign(
-                age_at_post = lambda _df: _df.original_post_date.dt.year - _df.ad_title.str.extract("((?:19|20)\d{2})", expand=False).fillna(10000).astype(int),
-            )
-            .assign(    
-                age_at_post = lambda _df: np.where(_df.age_at_post < -3, -1000, _df.age_at_post)
-            )
-            .drop(
-                columns=["ad_title","original_post_date"]
-            )
+    return (
+        df
+        .assign(
+            bike_model_date = lambda _df: pd.to_datetime(_df.ad_title.str.extract("((?:19|20)\d{2})", expand=False)),
+            age_at_post = lambda _df: (_df.original_post_date - _df.bike_model_date).dt.days,
         )
+        [["age_at_post"]]
+    )
 
+age_of_equipment_transformer = FunctionTransformer(age_of_equipment)
+
+```
+
+```python
+pd.concat([X_train,age_of_equipment_transformer.fit_transform(X_train)],axis=1).dropna().shape
 ```
 
 ## Baseline
@@ -182,9 +180,9 @@ We'll first do some baselines - first a simple bag of words, with dummy regresso
 ```python
 transformer = ColumnTransformer(
     transformers = [
-        ("add_age", add_age_of_equipment(), ["original_post_date","ad_title"]),
-        ("title_bow", CountVectorizer(token_pattern = '[a-zA-Z0-9$&+,:;=?@#|<>.^*()%!-]+'), "ad_title"),
-        ("description_bow", CountVectorizer(token_pattern = '[a-zA-Z0-9$&+,:;=?@#|<>.^*()%!-]+'), "description")
+        ("add_age", age_of_equipment_transformer, ["original_post_date","ad_title"]),
+        ("title_bow", TfidfVectorizer(token_pattern = '[a-zA-Z0-9$&+,:;=?@#|<>.^*()%!-]+'), "ad_title"),
+        ("description_bow", TfidfVectorizer(token_pattern = '[a-zA-Z0-9$&+,:;=?@#|<>.^*()%!-]+'), "description")
     ],
     remainder="drop"
 )
@@ -232,18 +230,22 @@ pd.DataFrame(base_grid_search.cv_results_)
 # Stronger Baseline
 
 ```python
+# Setup caching of pipeline
+# cachedir = mkdtemp()
+
 svr_pipe = Pipeline(
     steps = [
         ("transform", transformer),
         ("model", LinearSVR(max_iter=1000))
     ],
+    # memory=cachedir
 )
 
 hparams ={
-    "transform__title_bow__max_features" : [20000],
-    "transform__title_bow__ngram_range": [(1,3)],
-    "transform__description_bow__max_features" : [20000],
-    "transform__description_bow__ngram_range": [(1,3)],
+    "transform__title_bow__max_features" : [15000],
+    "transform__title_bow__ngram_range": [(1,3),(3,3)],
+    "transform__description_bow__max_features" : [15000],
+    "transform__description_bow__ngram_range": [(1,3),(3,3)],
     "model__C": [30]
 }
 
@@ -369,7 +371,7 @@ for year in range(2010,2023):
         sample_data
         .assign(
             # original_post_date = pd.to_datetime(f"{year}-01-01"),
-            ad_title = lambda _df: _df.ad_title.str.replace("2013",str(year), regex=False),
+            ad_title = lambda _df: _df.ad_title.str.replace("\d{4}",str(year), regex=True),
             pred = lambda _df : svr_grid_search.predict(_df),
         )
         [["original_post_date","ad_title","pred"]]
