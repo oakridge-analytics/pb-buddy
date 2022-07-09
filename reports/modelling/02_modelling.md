@@ -58,7 +58,8 @@ from sklearn.compose import (
 )
 
 from sklearn.preprocessing import (
-    FunctionTransformer
+    FunctionTransformer,
+    OneHotEncoder
 )
 
 # Visuals ------------------
@@ -87,12 +88,57 @@ df_modelling = dt.stream_parquet_to_dataframe(input_blob_name, input_container_n
 ```
 
 ```python
+# Helper code for sklearn transformers --------------------------
+def add_country(df):
+    """
+    Extract country from location string, of form "city, country"
+    """
+    return (
+        df
+        .assign(
+            country = lambda _df:_df.location.str.extract(r', ([A-Za-z]+)')
+        )
+        [["country"]]
+    )
+    
+add_country_transformer = FunctionTransformer(add_country, feature_names_out=lambda x,y: ["country"])
+
+def add_age(df):
+    """
+    Calculate the age of bike, using year identified in `ad_title` and the 
+    `original_post_date`. Assings Jan,1 of year identified in `ad_title` and
+    calculates difference in days.
+
+    Requires:
+    - Columns: `ad_title`, `original_post_date`
+    """
+    return (
+        df
+        .assign(
+            bike_model_date = lambda _df: pd.to_datetime(_df.ad_title.str.extract("((?:19|20)\d{2})", expand=False)),
+            age_at_post = lambda _df: (_df.original_post_date - _df.bike_model_date).dt.days,
+        )
+        [["age_at_post"]]
+    )
+
+add_age_transformer = FunctionTransformer(add_age, feature_names_out=lambda x,y: ["age_at_post"])
+```
+
+```python
+# Do general pre processing of dataset
+# Notes:
+# - Cast date columns to correct datetime type
+# - Remove ads where the year of the bike can't be identified in ad_title
+# - Remove ads that appear to be more than 1 model year ahead of current year (age_at_post<-365)
 df_modelling = (
     df_modelling
     .assign(
         original_post_date = lambda _df: pd.to_datetime(_df.original_post_date),
         last_repost_date = lambda _df: pd.to_datetime(_df.last_repost_date),
+        age_at_post = lambda _df: add_age(_df).fillna(-1000),
     )
+    .query("age_at_post>-365")
+    .drop(columns=["age_at_post"])
 )
 ```
 
@@ -116,13 +162,13 @@ We likely want to mix Covid era ads into our train, valid, test sets - we don't 
 df_train, df_valid_test = train_test_split(df_modelling, test_size=0.3, random_state=42)
 df_valid, df_test = train_test_split(df_valid_test, test_size=0.5, random_state=42)
 
-X_train = df_train[["ad_title","description","original_post_date"]]
+X_train = df_train.drop(columns=["price_cpi_adjusted_CAD"])
 y_train = df_train["price_cpi_adjusted_CAD"]
 
-X_valid = df_valid[["ad_title","description","original_post_date"]]
+X_valid = df_valid.drop(columns=["price_cpi_adjusted_CAD"])
 y_valid = df_valid["price_cpi_adjusted_CAD"]
 
-X_test = df_test[["ad_title","description","original_post_date"]]
+X_test = df_test.drop(columns=["price_cpi_adjusted_CAD"])
 y_test = df_test['price_cpi_adjusted_CAD']
 
 # For deterministic validation splits, need train and valid in one array and can pass
@@ -143,36 +189,6 @@ for _df in [df_train,df_valid,df_test]:
 ax.set_title("Train/Valid/Test Price Distributions")
 ```
 
-```python
-# Helper code for sklearn pipelines --------------------------
-
-def age_of_equipment(df):
-    """
-    Calculate age of equipment being sold based on:
-    - Bike model year extracted from `ad_title`, assigned to Jan 01 of this year for date comparison
-        Requires 19XX, or 20XX pattern to be present for finding year.
-    - Date of ad posted extracted from `original_post_date`, requires datetime type
-
-    Ads column `age_at_post` that is number of days old (Posted date compared to Jan 01 of bike model year)
-    Rows where year of equipment couldn't be extracted from ad title, are returned as -1000
-    """
-    return (
-        df
-        .assign(
-            bike_model_date = lambda _df: pd.to_datetime(_df.ad_title.str.extract("((?:19|20)\d{2})", expand=False)),
-            age_at_post = lambda _df: (_df.original_post_date - _df.bike_model_date).dt.days,
-        )
-        [["age_at_post"]]
-    )
-
-age_of_equipment_transformer = FunctionTransformer(age_of_equipment)
-
-```
-
-```python
-pd.concat([X_train,age_of_equipment_transformer.fit_transform(X_train)],axis=1).dropna().shape
-```
-
 ## Baseline
 
 We'll first do some baselines - first a simple bag of words, with dummy regressor (predict the mean) and with a linear regression
@@ -180,13 +196,32 @@ We'll first do some baselines - first a simple bag of words, with dummy regresso
 ```python
 transformer = ColumnTransformer(
     transformers = [
-        ("add_age", age_of_equipment_transformer, ["original_post_date","ad_title"]),
+        ("add_age", add_age_transformer, ["ad_title","original_post_date"]),
+        (
+            "add_country",
+            Pipeline(
+                steps=[
+                    ("get_country",add_country_transformer),
+                    ("one_hot", OneHotEncoder(handle_unknown="infrequent_if_exist"))
+                ]
+            ),
+            ['location']
+        ),
         ("title_bow", TfidfVectorizer(token_pattern = '[a-zA-Z0-9$&+,:;=?@#|<>.^*()%!-]+'), "ad_title"),
         ("description_bow", TfidfVectorizer(token_pattern = '[a-zA-Z0-9$&+,:;=?@#|<>.^*()%!-]+'), "description")
     ],
     remainder="drop"
 )
 
+```
+
+```python
+transformer.fit_transform(X_train.head())
+transformer.get_feature_names_out()
+```
+
+```python
+transformer.fit_transform(X_train.head()).toarray()
 ```
 
 ```python
@@ -202,18 +237,33 @@ results = {}
 ```
 
 ```python
+
+# svr_pipe = Pipeline(
+#     steps = [
+#         ("transform", transformer),
+#         ("model", LinearSVR(max_iter=1000))
+#     ],
+# )
+#     # me
+
+# svr_pipe.fit(X_train_valid, y_train_valid)
+```
+
+```python
+# from sklearn.metrics import mean_squared_error
+# mean_squared_error(svr_pipe.predict(X_valid),y_valid)**0.5
+```
+
+```python
 # cachedir = mkdtemp()
 base_pipe = Pipeline(
     steps = [
-        ("transform", transformer),
         ("model", DummyRegressor())
     ],
     # memory=cachedir
 )
 
 hparams ={
-    "transform__title_bow__max_features" : [10000],
-    "transform__description_bow__max_features" : [10000]
 }
 
 base_grid_search = GridSearchCV(base_pipe, param_grid=hparams, cv=cv_strat,scoring="neg_root_mean_squared_error", n_jobs=4, error_score="raise")
@@ -238,14 +288,15 @@ svr_pipe = Pipeline(
         ("transform", transformer),
         ("model", LinearSVR(max_iter=1000))
     ],
-    # memory=cachedir
 )
 
 hparams ={
-    "transform__title_bow__max_features" : [15000],
-    "transform__title_bow__ngram_range": [(1,3),(3,3)],
-    "transform__description_bow__max_features" : [15000],
-    "transform__description_bow__ngram_range": [(1,3),(3,3)],
+    # "transform__title_bow__max_features" : [1000],
+    "transform__title_bow__ngram_range": [(1,3),],
+    "transform__title_bow__max_df":[0.6,],
+    # "transform__description_bow__max_features" : [1000],
+    "transform__description_bow__ngram_range": [(1,3),],
+    "transform__description_bow__max_df":[0.5,0.6,0.7,0.8],
     "model__C": [30]
 }
 
@@ -283,6 +334,8 @@ pd.DataFrame(svr_grid_search.cv_results_)
 sample_data = pd.DataFrame(
         data={
             "ad_title":["2013 Rocky Mountain Altitude - Custom"],
+            "age_at_post":[9*365],
+            "location":["United States"],
             "original_post_date":[pd.to_datetime("2022-MAR-31")],
     "description":[
         """Custom built Rocky Mountain Altitude - one of the best bikes for big climbs and big descents. 28.5 pounds as built so it can handle the climbs but still has no problem getting down the gnar.
