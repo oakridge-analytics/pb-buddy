@@ -22,7 +22,7 @@ from shutil import rmtree
 
 import pandas as pd
 import numpy as np
-
+from joblib import dump, load
 
 # Other models -----------
 from catboost import CatBoostRegressor, Pool
@@ -59,7 +59,8 @@ from sklearn.compose import (
 
 from sklearn.preprocessing import (
     FunctionTransformer,
-    OneHotEncoder
+    OneHotEncoder,
+    MaxAbsScaler
 )
 
 # Visuals ------------------
@@ -87,6 +88,8 @@ input_blob_name =  '2022-05-20_05_00_04__adjusted_bike_ads.parquet.gzip'
 df_modelling = dt.stream_parquet_to_dataframe(input_blob_name, input_container_name)
 ```
 
+## Sklearn Utils
+
 ```python
 # Helper code for sklearn transformers --------------------------
 def add_country(df):
@@ -96,7 +99,7 @@ def add_country(df):
     return (
         df
         .assign(
-            country = lambda _df:_df.location.str.extract(r', ([A-Za-z]+)')
+            country = lambda _df:_df.location.str.extract(r', ([A-Za-z\s]+)')
         )
         [["country"]]
     )
@@ -107,7 +110,8 @@ def add_age(df):
     """
     Calculate the age of bike, using year identified in `ad_title` and the 
     `original_post_date`. Assings Jan,1 of year identified in `ad_title` and
-    calculates difference in days.
+    calculates difference in days. Ads where year can't be identified in title,
+    assigns `age_at_post`=-1000.
 
     Requires:
     - Columns: `ad_title`, `original_post_date`
@@ -118,10 +122,16 @@ def add_age(df):
             bike_model_date = lambda _df: pd.to_datetime(_df.ad_title.str.extract("((?:19|20)\d{2})", expand=False)),
             age_at_post = lambda _df: (_df.original_post_date - _df.bike_model_date).dt.days,
         )
+        .fillna(-1000)
+        .astype({"age_at_post":int})
         [["age_at_post"]]
     )
 
 add_age_transformer = FunctionTransformer(add_age, feature_names_out=lambda x,y: ["age_at_post"])
+
+# def custom_names_out(func, desired_name):
+#     """ To avoid issues with pickling pipeline, don't use lambda func"""
+#     return desired_name
 ```
 
 ```python
@@ -130,15 +140,18 @@ add_age_transformer = FunctionTransformer(add_age, feature_names_out=lambda x,y:
 # - Cast date columns to correct datetime type
 # - Remove ads where the year of the bike can't be identified in ad_title
 # - Remove ads that appear to be more than 1 model year ahead of current year (age_at_post<-365)
+# - Remove ads posted from countries outside Canada, United States
+# - Remove calculated columns so Sklearn transformer pipeline can add back in later for ease of downstream use
 df_modelling = (
     df_modelling
     .assign(
         original_post_date = lambda _df: pd.to_datetime(_df.original_post_date),
         last_repost_date = lambda _df: pd.to_datetime(_df.last_repost_date),
         age_at_post = lambda _df: add_age(_df).fillna(-1000),
+        country  = lambda _df: add_country(_df)
     )
-    .query("age_at_post>-365")
-    .drop(columns=["age_at_post"])
+    .query("age_at_post>-365 and (country=='Canada' or country=='United States')")
+    .drop(columns=["age_at_post","country"])
 )
 ```
 
@@ -194,34 +207,30 @@ ax.set_title("Train/Valid/Test Price Distributions")
 We'll first do some baselines - first a simple bag of words, with dummy regressor (predict the mean) and with a linear regression
 
 ```python
-transformer = ColumnTransformer(
-    transformers = [
-        ("add_age", add_age_transformer, ["ad_title","original_post_date"]),
-        (
-            "add_country",
-            Pipeline(
-                steps=[
-                    ("get_country",add_country_transformer),
-                    ("one_hot", OneHotEncoder(handle_unknown="infrequent_if_exist"))
-                ]
-            ),
-            ['location']
-        ),
-        ("title_bow", TfidfVectorizer(token_pattern = '[a-zA-Z0-9$&+,:;=?@#|<>.^*()%!-]+'), "ad_title"),
-        ("description_bow", TfidfVectorizer(token_pattern = '[a-zA-Z0-9$&+,:;=?@#|<>.^*()%!-]+'), "description")
-    ],
-    remainder="drop"
+transformer = Pipeline(steps=[
+    ('preprocess',
+        ColumnTransformer(
+            transformers = [
+                ("add_age", add_age_transformer, ["ad_title","original_post_date"]),
+                (
+                    "add_country",
+                    Pipeline(
+                        steps=[
+                            ("get_country",add_country_transformer),
+                            ("one_hot", OneHotEncoder(handle_unknown="infrequent_if_exist"))
+                        ]
+                    ),
+                    ['location']
+                ),
+                ("title_bow", TfidfVectorizer(token_pattern = '[a-zA-Z0-9$&+,:;=?@#|<>.^*()%!-]+'), "ad_title"),
+                ("description_bow", TfidfVectorizer(token_pattern = '[a-zA-Z0-9$&+,:;=?@#|<>.^*()%!-]+'), "description")
+            ],
+        remainder="drop"
+    )),
+    ('scale', MaxAbsScaler()) # Maintains sparsity!
+]
 )
 
-```
-
-```python
-transformer.fit_transform(X_train.head())
-transformer.get_feature_names_out()
-```
-
-```python
-transformer.fit_transform(X_train.head()).toarray()
 ```
 
 ```python
@@ -237,30 +246,11 @@ results = {}
 ```
 
 ```python
-
-# svr_pipe = Pipeline(
-#     steps = [
-#         ("transform", transformer),
-#         ("model", LinearSVR(max_iter=1000))
-#     ],
-# )
-#     # me
-
-# svr_pipe.fit(X_train_valid, y_train_valid)
-```
-
-```python
-# from sklearn.metrics import mean_squared_error
-# mean_squared_error(svr_pipe.predict(X_valid),y_valid)**0.5
-```
-
-```python
 # cachedir = mkdtemp()
 base_pipe = Pipeline(
     steps = [
         ("model", DummyRegressor())
     ],
-    # memory=cachedir
 )
 
 hparams ={
@@ -286,22 +276,27 @@ pd.DataFrame(base_grid_search.cv_results_)
 svr_pipe = Pipeline(
     steps = [
         ("transform", transformer),
-        ("model", LinearSVR(max_iter=1000))
+        ("model", LinearSVR(max_iter=1000, random_state=42))
     ],
 )
 
 hparams ={
-    # "transform__title_bow__max_features" : [1000],
-    "transform__title_bow__ngram_range": [(1,3),],
-    "transform__title_bow__max_df":[0.6,],
-    # "transform__description_bow__max_features" : [1000],
-    "transform__description_bow__ngram_range": [(1,3),],
-    "transform__description_bow__max_df":[0.5,0.6,0.7,0.8],
-    "model__C": [30]
+    # "transform__preprocess__title_bow__max_features" : [10000,100000,200000],
+    "transform__preprocess__title_bow__ngram_range": [(1,3),],
+    # "transform__title_bow__max_df":[0.6,],
+    # "transform__preprocess__description_bow__max_features" : [10000,100000,200000],
+    "transform__preprocess__description_bow__ngram_range": [(1,3),],
+    # "transform__preprocess__description_bow__max_df":[0.6,],
+    "model__C": [1,10,30]
 }
 
-svr_grid_search = GridSearchCV(svr_pipe, param_grid=hparams, cv=cv_strat,scoring="neg_root_mean_squared_error", n_jobs=8, error_score="raise")
+svr_grid_search = GridSearchCV(svr_pipe, param_grid=hparams, cv=cv_strat,scoring="neg_root_mean_squared_error", error_score="raise")
 svr_grid_search.fit(X_train_valid, y_train_valid)
+
+```
+
+```python
+# dump(svr_grid_search.best_estimator_, "../../data/svr_pipe.joblib")
 
 results["linear_svr"] = pd.DataFrame(svr_grid_search.cv_results_).drop(columns=[c for c in svr_grid_search.cv_results_.keys() if "param_" in c])
 pd.DataFrame(svr_grid_search.cv_results_)
@@ -330,12 +325,14 @@ pd.DataFrame(svr_grid_search.cv_results_)
 # pd.DataFrame(gbm_grid_search.cv_results_)
 ```
 
+## Model Interpretation
+
 ```python
 sample_data = pd.DataFrame(
         data={
             "ad_title":["2013 Rocky Mountain Altitude - Custom"],
-            "age_at_post":[9*365],
-            "location":["United States"],
+        #     "age_at_post":[9*365],
+            "location":["Calgary, Canada"],
             "original_post_date":[pd.to_datetime("2022-MAR-31")],
     "description":[
         """Custom built Rocky Mountain Altitude - one of the best bikes for big climbs and big descents. 28.5 pounds as built so it can handle the climbs but still has no problem getting down the gnar.
@@ -365,6 +362,7 @@ sample_data = pd.DataFrame(
         data={
             "ad_title":["2016 Norco Sight C7.4"],
             "original_post_date":[pd.to_datetime("2022-MAR-31")],
+                "location":["Calgary, Canada"],
     "description":[
         """
         Well loved bike, needs $600 dollars work
@@ -440,6 +438,7 @@ year_sweep
 ```
 
 ```python
+pd.set_option("display.max_colwidth", None)
 (
     pd.concat([
         X_test,
@@ -450,7 +449,13 @@ year_sweep
     .sample(20, random_state=42)
     .assign(
         pred = lambda _df : svr_grid_search.predict(_df),
+        diff = lambda _df: _df.price_cpi_adjusted_CAD - _df.pred
     )
+    [["ad_title","description","original_post_date","price_cpi_adjusted_CAD","pred","diff"]]
+    .sort_values("diff")
+    .style
+    .hide_index()
+    .background_gradient(subset=["diff"])
 )
 ```
 
