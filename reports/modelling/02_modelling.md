@@ -91,7 +91,12 @@ df_modelling = dt.stream_parquet_to_dataframe(input_blob_name, input_container_n
 ## Sklearn Utils
 
 ```python
-# Helper code for sklearn transformers --------------------------
+# -----------------------------Helper code for sklearn transformers --------------------------
+# `get_feature_names_out()` on Pipeline instances requires us to have callable functions
+# for returning calculated feature names and be able to pickle the resulting estimator. 
+# We create small functions to do this despite how silly they look.
+
+# For encoding country info:----------------------
 def add_country(df):
     """
     Extract country from location string, of form "city, country"
@@ -103,9 +108,13 @@ def add_country(df):
         )
         [["country"]]
     )
-    
-add_country_transformer = FunctionTransformer(add_country, feature_names_out=lambda x,y: ["country"])
 
+def add_country_names(func_transformer, feature_names_in):
+    return ["country"]
+    
+add_country_transformer = FunctionTransformer(add_country, feature_names_out=add_country_names)
+
+# For calculating how old bike was at time of posting:----------------------------------
 def add_age(df):
     """
     Calculate the age of bike, using year identified in `ad_title` and the 
@@ -127,11 +136,37 @@ def add_age(df):
         [["age_at_post"]]
     )
 
-add_age_transformer = FunctionTransformer(add_age, feature_names_out=lambda x,y: ["age_at_post"])
+def add_age_names(func_transformer, feature_names_in):
+    return ["age_at_post"]
 
-# def custom_names_out(func, desired_name):
-#     """ To avoid issues with pickling pipeline, don't use lambda func"""
-#     return desired_name
+add_age_transformer = FunctionTransformer(add_age, feature_names_out=add_age_names)
+
+# Add a flag for Covid affected market or not. End of Covid market not totally done yet.....
+def add_covid_flag(df):
+    """
+    Use `original_post_date` and check if inbetween March 2020 - July 2022 as
+    a flag for COVID affected market...may need to tune these dates once impact
+    is more sorted out
+
+    Requires:
+    - Column `original_post_date`
+
+    Returns:
+    - 1 column dataframe with `covid_flag` column
+    """
+    return (
+        df
+        .assign(
+            covid_flag = lambda _df: np.where((_df.original_post_date > '20-MARCH-2020') & (_df.original_post_date < '01-AUG-2022'), 1, 0)
+        )
+        [["covid_flag"]]
+    )
+
+def add_covid_name(func_transformer, feature_names_in):
+    return ["covid_flag"]
+
+add_covid_transformer = FunctionTransformer(add_covid_flag, feature_names_out=add_covid_name)
+
 ```
 
 ```python
@@ -222,6 +257,7 @@ transformer = Pipeline(steps=[
                     ),
                     ['location']
                 ),
+                ("add_covid_flag", add_covid_transformer,["original_post_date"]),
                 ("title_bow", TfidfVectorizer(token_pattern = '[a-zA-Z0-9$&+,:;=?@#|<>.^*()%!-]+'), "ad_title"),
                 ("description_bow", TfidfVectorizer(token_pattern = '[a-zA-Z0-9$&+,:;=?@#|<>.^*()%!-]+'), "description")
             ],
@@ -281,13 +317,13 @@ svr_pipe = Pipeline(
 )
 
 hparams ={
-    # "transform__preprocess__title_bow__max_features" : [10000,100000,200000],
+    "transform__preprocess__title_bow__max_features" : [10000,100000,200000],
     "transform__preprocess__title_bow__ngram_range": [(1,3),],
     # "transform__title_bow__max_df":[0.6,],
-    # "transform__preprocess__description_bow__max_features" : [10000,100000,200000],
+    "transform__preprocess__description_bow__max_features" : [10000,100000,200000],
     "transform__preprocess__description_bow__ngram_range": [(1,3),],
     # "transform__preprocess__description_bow__max_df":[0.6,],
-    "model__C": [1,10,30]
+    "model__C": [30]
 }
 
 svr_grid_search = GridSearchCV(svr_pipe, param_grid=hparams, cv=cv_strat,scoring="neg_root_mean_squared_error", error_score="raise")
@@ -296,7 +332,7 @@ svr_grid_search.fit(X_train_valid, y_train_valid)
 ```
 
 ```python
-# dump(svr_grid_search.best_estimator_, "../../data/svr_pipe.joblib")
+dump(svr_grid_search.best_estimator_, "../../data/svr_pipe.joblib")
 
 results["linear_svr"] = pd.DataFrame(svr_grid_search.cv_results_).drop(columns=[c for c in svr_grid_search.cv_results_.keys() if "param_" in c])
 pd.DataFrame(svr_grid_search.cv_results_)
@@ -343,13 +379,14 @@ Highlights:
 - RockShox Monarch Debonair shock - full rebuild in 2019 at Fluid Function.
 - Race Face Next R Carbon rear wheel, Aeffect R 30 aluminum front wheel.
 - Easton Haven dropper - full rebuild in 2019. Very quick cable actuated post, without relying on hydraulic systems.
-- Deore XT groupset - 1x11 - new chain, chain ring (30T), and cassette (11-46) in July 2021.
+- Deore XTR groupset - 1x11 - new chain, chain ring (30T), and cassette (11-46) in July 2021.
 - Enve Carbon bar + Thompson Elite stem
 - Minion DHF + DHR tires
 
 Ride wrapped from day one - have kept up service of all the pivots as well.
 
-*Doesn't include bottle cages pictured. """]
+*Doesn't include bottle cages pictured."""
+]
 })
 
 sample_data.assign(
