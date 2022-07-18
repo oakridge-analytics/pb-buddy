@@ -198,6 +198,8 @@ Likely predictor columns:
 - `description`: Ad description, free form text
 - `original_post_date`: Original date ad was posted
 - `ad_title`: Title of the ad 
+- `location`: What country, and potentially what city/region was the bike listed in?
+- `Covid`: Was COVID-19 impacting the market when this bike was listed? We know retail sale of bikes was overwhelmed by demand, likely this occured in used market as well and saw increased prices.
 
 
 # Train/Valid/Test Split
@@ -306,6 +308,27 @@ pd.DataFrame(base_grid_search.cv_results_)
 # Stronger Baseline
 
 ```python
+
+
+def predefined_grid_search(X_train_valid: pd.DataFrame, y_train_valid: pd.DataFrame, pipeline: Pipeline, hyperparams: dict, cv: PredefinedSplit, **kwargs):
+    """
+    Helper func for modelling with predefined split, getting valid results, and refitting just on train set:
+    - Do normal grid search to check hyperparams with valid set, refit=False to prevent refitting on all data.
+    - Fit on just train set
+    - Return grid search validation set results, fitted best estimator
+    """
+    grid = GridSearchCV(estimator=pipeline, param_grid=hyperparams, refit=False, cv=cv, **kwargs)
+    grid.fit(X_train_valid, y_train_valid)
+    
+    # Refit to just train set:
+    for train_set_ix,_ in cv.split():
+        X_train, y_train = X_train_valid.iloc[train_set_ix], y_train_valid.iloc[train_set_ix]
+    best_estimator = pipeline.set_params(**grid.best_params_).fit(X_train,y_train)
+
+    return grid.cv_results_, best_estimator
+```
+
+```python
 # Setup caching of pipeline
 # cachedir = mkdtemp()
 
@@ -323,19 +346,29 @@ hparams ={
     "transform__preprocess__description_bow__max_features" : [10000,100000,200000],
     "transform__preprocess__description_bow__ngram_range": [(1,3),],
     # "transform__preprocess__description_bow__max_df":[0.6,],
-    "model__C": [30]
+    "model__C": [1,10,30]
 }
 
-svr_grid_search = GridSearchCV(svr_pipe, param_grid=hparams, cv=cv_strat,scoring="neg_root_mean_squared_error", error_score="raise")
-svr_grid_search.fit(X_train_valid, y_train_valid)
+svr_results, svr_estimator = predefined_grid_search(
+    X_train_valid.head(50),
+    y_train_valid.head(50),
+    svr_pipe, 
+    hparams,
+    cv=PredefinedSplit(test_fold=([-1]*25 + [0]*25)),
+    n_jobs=4
+    )
+
 
 ```
 
 ```python
-dump(svr_grid_search.best_estimator_, "../../data/svr_pipe.joblib")
+# dump(svr_estimator, "../../data/svr_pipe.joblib")
+```
 
-results["linear_svr"] = pd.DataFrame(svr_grid_search.cv_results_).drop(columns=[c for c in svr_grid_search.cv_results_.keys() if "param_" in c])
-pd.DataFrame(svr_grid_search.cv_results_)
+```python
+
+results["linear_svr"] = pd.DataFrame(svr_results).drop(columns=[c for c in svr_results.keys() if "param_" in c])
+pd.DataFrame(svr_results)
 ```
 
 ```python
@@ -361,7 +394,24 @@ pd.DataFrame(svr_grid_search.cv_results_)
 # pd.DataFrame(gbm_grid_search.cv_results_)
 ```
 
-## Model Interpretation
+# Model Interpretation
+
+```python
+feature_imp = pd.DataFrame(
+    data=svr_estimator.named_steps['model'].coef_,
+    index=svr_estimator.named_steps["transform"].get_feature_names_out()
+)
+
+(
+    feature_imp
+    .reset_index()
+    .rename(columns={"index":"feature",0:"importance"})
+    .assign(abs_importance = lambda _df: np.abs(_df.importance))
+    .sort_values("abs_importance", ascending=False)
+    # .query("feature.str.contains('covid')")
+    .head(50)
+)
+```
 
 ```python
 sample_data = pd.DataFrame(
@@ -390,7 +440,7 @@ Ride wrapped from day one - have kept up service of all the pivots as well.
 })
 
 sample_data.assign(
-        pred = lambda _df : svr_grid_search.predict(_df),
+        pred = lambda _df : svr_estimator.predict(_df),
     )
 ```
 
@@ -440,7 +490,34 @@ Chain	KMC X-10
 })
 
 sample_data.assign(
-        pred = lambda _df : svr_grid_search.predict(_df),
+        pred = lambda _df : svr_estimator.predict(_df),
+    )
+```
+
+```python
+sample_data = pd.DataFrame(
+        data={
+            "ad_title":["Norco CRR SL H&R Block Team Edition - Dura Ace"],
+            "location":["Calgary, Canada"],
+            "original_post_date":[pd.to_datetime("2022-MAR-31")],
+    "description":[
+        """Excellent condition H&R Block Team Bike. Based on the Norco CRR SL Frame from 2011: https://www.norco.com/bike-archives/2011/crr-sl/
+
+Hasn't been ridden since 2015 - chain has  20 rides on it. 
+
+Highlights:
+- Full carbon frame
+- Full Dura Ace shifters, derailleurs, and cassette (2x10)
+- FSA K-Force full carbon cranks (length=172.5)
+- Brand new Fulcrum Racing 6 wheelset
+- FSA Bar & Stem (110 mm stem, 42 cm wide bars)
+- Fully integrated seat mast (+/- 1 cm adjustment). Currently set at 73 cm saddle height (center of BB to saddle surface). Most likely will fit people  5'6 to 5'10kept up service of all the pivots as well.
+"""
+]
+})
+
+sample_data.assign(
+        pred = lambda _df : svr_estimator.predict(_df),
     )
 ```
 
@@ -459,10 +536,11 @@ for year in range(2010,2023):
         sample_data
         .assign(
             # original_post_date = pd.to_datetime(f"{year}-01-01"),
+            bike_model_year = lambda _df: pd.to_datetime(f"{year}-01-01"),
             ad_title = lambda _df: _df.ad_title.str.replace("\d{4}",str(year), regex=True),
-            pred = lambda _df : svr_grid_search.predict(_df),
+            pred = lambda _df : svr_estimator.predict(_df),
         )
-        [["original_post_date","ad_title","pred"]]
+        [["original_post_date","bike_model_year","ad_title","pred"]]
     )
     year_sweep = pd.concat([
         year_sweep,
@@ -471,7 +549,7 @@ for year in range(2010,2023):
     ]
     )
 
-year_sweep
+year_sweep.plot(x="bike_model_year", y="pred")
 ```
 
 ```python
@@ -485,7 +563,7 @@ pd.set_option("display.max_colwidth", None)
     )
     .sample(20, random_state=42)
     .assign(
-        pred = lambda _df : svr_grid_search.predict(_df),
+        pred = lambda _df : svr_estimator.predict(_df),
         diff = lambda _df: _df.price_cpi_adjusted_CAD - _df.pred
     )
     [["ad_title","description","original_post_date","price_cpi_adjusted_CAD","pred","diff"]]
@@ -494,44 +572,6 @@ pd.set_option("display.max_colwidth", None)
     .hide_index()
     .background_gradient(subset=["diff"])
 )
-```
-
-```python
-# text_features = ["ad_title","description"]
-
-# def fit_catboost(X_train, X_valid, y_train, y_valid, catboost_params={}, verbose=100):
-#     learn_pool = Pool(
-#         X_train[text_features], 
-#         y_train, 
-#         text_features=text_features,
-#         feature_names=["ad_title","description"]
-#     )
-#     eval_pool = Pool(
-#         X_valid[text_features], 
-#         y_valid, 
-#         text_features=text_features,
-#         feature_names=["ad_title","description"]
-#     )
-    
-#     catboost_default_params = {
-#         'iterations': 1000,
-#         'learning_rate': 0.03,
-#         # 'eval_metric': 'Accuracy',
-#         'task_type': 'GPU'
-#     }
-    
-#     catboost_default_params.update(catboost_params)
-    
-#     model = CatBoostRegressor(**catboost_default_params)
-#     model.fit(learn_pool, eval_set=eval_pool, verbose=verbose)
-
-#     return model
-
-
-```
-
-```python
-# fit_catboost(X_train, X_valid, y_train, y_valid)
 ```
 
 ```python
