@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.13.8
+      jupytext_version: 1.14.0
   kernelspec:
     display_name: Python 3.8.12 ('pb-buddy-BzHdUS67-py3.8')
     language: python
@@ -167,6 +167,13 @@ def add_covid_name(func_transformer, feature_names_in):
 
 add_covid_transformer = FunctionTransformer(add_covid_flag, feature_names_out=add_covid_name)
 
+# Remove year information from ad title and ad description - so model learns based on age of ad instead of encoding specific knowledge about each
+# year.
+def remove_year(df):
+    return df.replace("((?:19|20)\d{2})","", regex=True)
+
+remove_year_transformer = FunctionTransformer(remove_year, feature_names_out="one-to-one")
+
 ```
 
 ```python
@@ -260,8 +267,26 @@ transformer = Pipeline(steps=[
                     ['location']
                 ),
                 ("add_covid_flag", add_covid_transformer,["original_post_date"]),
-                ("title_bow", TfidfVectorizer(token_pattern = '[a-zA-Z0-9$&+,:;=?@#|<>.^*()%!-]+'), "ad_title"),
-                ("description_bow", TfidfVectorizer(token_pattern = '[a-zA-Z0-9$&+,:;=?@#|<>.^*()%!-]+'), "description")
+                (
+                    "title_text", 
+                    Pipeline(
+                        steps=[
+                            ('remove_year', remove_year_transformer),
+                            ('tfidf',TfidfVectorizer(token_pattern = '[a-zA-Z0-9$&+,:;=?@#|<>.^%!]+')),
+                        ]
+                    ), 
+                    "ad_title"
+                ),
+                (
+                    "description_text", 
+                    Pipeline(
+                        steps=[
+                            ('remove_year', remove_year_transformer),
+                            ('tfidf',TfidfVectorizer(token_pattern = '[a-zA-Z0-9$&+,:;=?@#|<>.^%!]+')),
+                        ]
+                    ), 
+                    "description"
+                ),
             ],
         remainder="drop"
     )),
@@ -269,6 +294,14 @@ transformer = Pipeline(steps=[
 ]
 )
 
+```
+
+```python
+# Check ---------------------------------
+# pd.DataFrame(
+#     data=transformer.fit_transform(X_train.head(10)).toarray(),
+#     columns=transformer.fit(X_train.head(10)).get_feature_names_out()
+# ).iloc[0:5,0:20]
 ```
 
 ```python
@@ -340,23 +373,24 @@ svr_pipe = Pipeline(
 )
 
 hparams ={
-    "transform__preprocess__title_bow__max_features" : [10000,100000,200000],
-    "transform__preprocess__title_bow__ngram_range": [(1,3),],
+    "transform__preprocess__title_text__tfidf__max_features" : [200000],
+    "transform__preprocess__title_text__tfidf__ngram_range": [(1,3),],
     # "transform__title_bow__max_df":[0.6,],
-    "transform__preprocess__description_bow__max_features" : [10000,100000,200000],
-    "transform__preprocess__description_bow__ngram_range": [(1,3),],
+    "transform__preprocess__description_text__tfidf__max_features" : [200000],
+    "transform__preprocess__description_text__tfidf__ngram_range": [(1,3),],
     # "transform__preprocess__description_bow__max_df":[0.6,],
-    "model__C": [1,10,30]
+    "model__C": [30]
 }
 
 svr_results, svr_estimator = predefined_grid_search(
-    X_train_valid.head(50),
-    y_train_valid.head(50),
+    X_train_valid,
+    y_train_valid,
     svr_pipe, 
     hparams,
-    cv=PredefinedSplit(test_fold=([-1]*25 + [0]*25)),
+    cv=cv_strat,
+    scoring="neg_root_mean_squared_error",
     n_jobs=4
-    )
+)
 
 
 ```
@@ -368,30 +402,37 @@ svr_results, svr_estimator = predefined_grid_search(
 ```python
 
 results["linear_svr"] = pd.DataFrame(svr_results).drop(columns=[c for c in svr_results.keys() if "param_" in c])
-pd.DataFrame(svr_results)
+pd.DataFrame(svr_results).sort_values("split0_test_score", ascending=False)
 ```
 
 ```python
-# gbm_pipe = Pipeline(
-#     steps = [
-#         ("transform", transformer),
-#         ("model", CatBoostRegressor())
-#     ]
-# )
+catboost_pipe = Pipeline(
+    steps = [
+        ("transform", transformer),
+        ("model", CatBoostRegressor(verbose=False))
+    ]
+)
 
-# hparams ={
-#     "transform__title_bow__max_features" : [1000],
-#     "transform__description_bow__max_features" : [1000],
-#     "model__max_depth": [30],
-#     # "model__num_leaves": [100],
-#     "model__n_estimators": [10]
-# }
+hparams ={
+    "transform__preprocess__title_text__tfidf__max_features" : [50000],
+    "transform__preprocess__title_text__tfidf__ngram_range": [(1,1),],
+    "transform__preprocess__description_text__tfidf__max_features" : [50000],
+    "transform__preprocess__description_text__tfidf__ngram_range": [(1,1),],
+    # "model__C": [30]
+}
 
-# gbm_grid_search = GridSearchCV(gbm_pipe, param_grid=hparams, cv=cv_strat,scoring="neg_root_mean_squared_error", n_jobs=8, error_score="raise")
-# gbm_grid_search.fit(X_train_valid, y_train_valid)
+catboost_results, catboost_estimator = predefined_grid_search(
+    X_train_valid,
+    y_train_valid,
+    catboost_pipe, 
+    hparams,
+    cv=cv_strat,
+    scoring="neg_root_mean_squared_error",
+    n_jobs=8
+)
 
-# results["gbm"] = pd.DataFrame(gbm_grid_search.cv_results_).drop(columns=[c for c in gbm_grid_search.cv_results_.keys() if "param_" in c])
-# pd.DataFrame(gbm_grid_search.cv_results_)
+results["catboost"] = pd.DataFrame(catboost_results).drop(columns=[c for c in catboost_results.keys() if "param_" in c])
+pd.DataFrame(catboost_results)
 ```
 
 # Model Interpretation
@@ -497,7 +538,25 @@ sample_data.assign(
 ```python
 sample_data = pd.DataFrame(
         data={
-            "ad_title":["Norco CRR SL H&R Block Team Edition - Dura Ace"],
+            "ad_title":["2018 Yeti SB5.5 Medium TURQ Mountain Bike"],
+            "location":["Calgary, United States"],
+            "original_post_date":[pd.to_datetime("2022-MAR-31")],
+    "description":[
+        """
+        2018 Yeti SB5.5 Medium TURQ Mountain Bike. Will clean up like new. everything works and is well lubrcated. it looks alittle dirty in the pics but this bike will clean right up. rims ae perfect and the shocks still ride like new. the derailer is scratched up. that is the only mrks on the bike tha wont assh off.
+"""
+]
+})
+
+sample_data.assign(
+        pred = lambda _df : svr_estimator.predict(_df),
+    )
+```
+
+```python
+sample_data = pd.DataFrame(
+        data={
+            "ad_title":["2011 Norco CRR SL H&R Block Team Edition - Dura Ace"],
             "location":["Calgary, Canada"],
             "original_post_date":[pd.to_datetime("2022-MAR-31")],
     "description":[
@@ -545,8 +604,7 @@ for year in range(2010,2023):
     year_sweep = pd.concat([
         year_sweep,
         new_result
-
-    ]
+        ]
     )
 
 year_sweep.plot(x="bike_model_year", y="pred")
@@ -556,8 +614,8 @@ year_sweep.plot(x="bike_model_year", y="pred")
 pd.set_option("display.max_colwidth", None)
 (
     pd.concat([
-        X_test,
-        y_test
+        X_valid,
+        y_valid
     ],
     axis=1
     )
