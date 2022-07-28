@@ -415,9 +415,9 @@ catboost_pipe = Pipeline(
 
 hparams ={
     "transform__preprocess__title_text__tfidf__max_features" : [50000],
-    "transform__preprocess__title_text__tfidf__ngram_range": [(1,1),],
+    "transform__preprocess__title_text__tfidf__ngram_range": [(1,2),],
     "transform__preprocess__description_text__tfidf__max_features" : [50000],
-    "transform__preprocess__description_text__tfidf__ngram_range": [(1,1),],
+    "transform__preprocess__description_text__tfidf__ngram_range": [(1,2),],
     # "model__C": [30]
 }
 
@@ -428,7 +428,7 @@ catboost_results, catboost_estimator = predefined_grid_search(
     hparams,
     cv=cv_strat,
     scoring="neg_root_mean_squared_error",
-    n_jobs=8
+    n_jobs=-1
 )
 
 results["catboost"] = pd.DataFrame(catboost_results).drop(columns=[c for c in catboost_results.keys() if "param_" in c])
@@ -481,7 +481,7 @@ Ride wrapped from day one - have kept up service of all the pivots as well.
 })
 
 sample_data.assign(
-        pred = lambda _df : svr_estimator.predict(_df),
+        pred = lambda _df : catboost_estimator.predict(_df),
     )
 ```
 
@@ -531,7 +531,7 @@ Chain	KMC X-10
 })
 
 sample_data.assign(
-        pred = lambda _df : svr_estimator.predict(_df),
+        pred = lambda _df : catboost_estimator.predict(_df),
     )
 ```
 
@@ -549,7 +549,7 @@ sample_data = pd.DataFrame(
 })
 
 sample_data.assign(
-        pred = lambda _df : svr_estimator.predict(_df),
+        pred = lambda _df : catboost_estimator.predict(_df),
     )
 ```
 
