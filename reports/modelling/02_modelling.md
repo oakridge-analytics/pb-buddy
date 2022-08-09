@@ -63,6 +63,8 @@ from sklearn.preprocessing import (
     MaxAbsScaler
 )
 
+from sklearn.base import clone
+
 # Visuals ------------------
 import matplotlib.pyplot as plt
 from IPython.display import Markdown
@@ -89,6 +91,15 @@ df_modelling = dt.stream_parquet_to_dataframe(input_blob_name, input_container_n
 ```
 
 ## Sklearn Utils
+
+```python
+
+```
+
+```python
+df_modelling.loc[df_modelling.frame_size.str.strip() == 'nan',:]
+
+```
 
 ```python
 # -----------------------------Helper code for sklearn transformers --------------------------
@@ -173,6 +184,8 @@ def remove_year(df):
     return df.replace("((?:19|20)\d{2})","", regex=True)
 
 remove_year_transformer = FunctionTransformer(remove_year, feature_names_out="one-to-one")
+
+
 
 ```
 
@@ -294,6 +307,7 @@ transformer = Pipeline(steps=[
 ]
 )
 
+transformer
 ```
 
 ```python
@@ -350,6 +364,7 @@ def predefined_grid_search(X_train_valid: pd.DataFrame, y_train_valid: pd.DataFr
     - Fit on just train set
     - Return grid search validation set results, fitted best estimator
     """
+    pipeline = clone(pipeline)
     grid = GridSearchCV(estimator=pipeline, param_grid=hyperparams, refit=False, cv=cv, **kwargs)
     grid.fit(X_train_valid, y_train_valid)
     
@@ -409,15 +424,17 @@ pd.DataFrame(svr_results).sort_values("split0_test_score", ascending=False)
 catboost_pipe = Pipeline(
     steps = [
         ("transform", transformer),
-        ("model", CatBoostRegressor(verbose=False))
+        ("model", CatBoostRegressor(verbose=False, task_type="GPU"))
     ]
 )
 
 hparams ={
-    "transform__preprocess__title_text__tfidf__max_features" : [50000],
-    "transform__preprocess__title_text__tfidf__ngram_range": [(1,2),],
-    "transform__preprocess__description_text__tfidf__max_features" : [50000],
-    "transform__preprocess__description_text__tfidf__ngram_range": [(1,2),],
+    "transform__preprocess__title_text__tfidf__max_features" : [10000],
+    "transform__preprocess__title_text__tfidf__ngram_range": [(1,3),],
+    "transform__preprocess__title_text__tfidf__max_df": [0.6,0.7],
+    "transform__preprocess__description_text__tfidf__max_features" : [10000],
+    "transform__preprocess__description_text__tfidf__ngram_range": [(1,3),],
+    "transform__preprocess__description_text__tfidf__max_df": [0.6,0.7],
     # "model__C": [30]
 }
 
@@ -597,7 +614,7 @@ for year in range(2010,2023):
             # original_post_date = pd.to_datetime(f"{year}-01-01"),
             bike_model_year = lambda _df: pd.to_datetime(f"{year}-01-01"),
             ad_title = lambda _df: _df.ad_title.str.replace("\d{4}",str(year), regex=True),
-            pred = lambda _df : svr_estimator.predict(_df),
+            pred = lambda _df : catboost_estimator.predict(_df),
         )
         [["original_post_date","bike_model_year","ad_title","pred"]]
     )
