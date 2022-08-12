@@ -93,15 +93,6 @@ df_modelling = dt.stream_parquet_to_dataframe(input_blob_name, input_container_n
 ## Sklearn Utils
 
 ```python
-
-```
-
-```python
-df_modelling.loc[df_modelling.frame_size.str.strip() == 'nan',:]
-
-```
-
-```python
 # -----------------------------Helper code for sklearn transformers --------------------------
 # `get_feature_names_out()` on Pipeline instances requires us to have callable functions
 # for returning calculated feature names and be able to pickle the resulting estimator. 
@@ -186,7 +177,15 @@ def remove_year(df):
 remove_year_transformer = FunctionTransformer(remove_year, feature_names_out="one-to-one")
 
 
+# Get month ad is posted, encode as one hot for modelling
+def get_post_month(df):
+    """ 
+    Extracts month from `original_post_date`, returns as string for encoding in later
+    transforms.
+    """
+    return df.original_post_date.dt.month_name().to_frame()
 
+get_post_month_transformer = FunctionTransformer(get_post_month, feature_names_out="one-to-one")
 ```
 
 ```python
@@ -270,6 +269,16 @@ transformer = Pipeline(steps=[
             transformers = [
                 ("add_age", add_age_transformer, ["ad_title","original_post_date"]),
                 (
+                    "add_post_month",
+                    Pipeline(
+                        steps=[
+                            ("get_post_month",get_post_month_transformer),
+                            ("one_hot", OneHotEncoder(handle_unknown="infrequent_if_exist"))
+                        ]
+                    ),
+                    ['original_post_date']
+                ),
+                (
                     "add_country",
                     Pipeline(
                         steps=[
@@ -285,7 +294,12 @@ transformer = Pipeline(steps=[
                     Pipeline(
                         steps=[
                             ('remove_year', remove_year_transformer),
-                            ('tfidf',TfidfVectorizer(token_pattern = '[a-zA-Z0-9$&+,:;=?@#|<>.^%!]+')),
+                            ('tfidf',
+                                TfidfVectorizer(
+                                        # Allow periods only inside numbers for model names etc. 
+                                        token_pattern = "[a-zA-Z0-9$&+,:;=?@#|<>^%!]+|[0-9$&+,.:;=?@#|<>^%!]+"
+                                )
+                            ),
                         ]
                     ), 
                     "ad_title"
@@ -295,7 +309,12 @@ transformer = Pipeline(steps=[
                     Pipeline(
                         steps=[
                             ('remove_year', remove_year_transformer),
-                            ('tfidf',TfidfVectorizer(token_pattern = '[a-zA-Z0-9$&+,:;=?@#|<>.^%!]+')),
+                            ('tfidf',
+                                TfidfVectorizer(
+                                        # Allow periods only inside numbers for model names etc. 
+                                        token_pattern = "[a-zA-Z0-9$&+,:;=?@#|<>^%!]+|[0-9$&+,.:;=?@#|<>^%!]+"
+                                )
+                            ),
                         ]
                     ), 
                     "description"
@@ -311,7 +330,7 @@ transformer
 ```
 
 ```python
-# Check ---------------------------------
+# transform Check ---------------------------------
 # pd.DataFrame(
 #     data=transformer.fit_transform(X_train.head(10)).toarray(),
 #     columns=transformer.fit(X_train.head(10)).get_feature_names_out()
@@ -430,11 +449,11 @@ catboost_pipe = Pipeline(
 
 hparams ={
     "transform__preprocess__title_text__tfidf__max_features" : [10000],
-    "transform__preprocess__title_text__tfidf__ngram_range": [(1,3),],
-    "transform__preprocess__title_text__tfidf__max_df": [0.6,0.7],
+    "transform__preprocess__title_text__tfidf__ngram_range": [(1,1),],
+    # "transform__preprocess__title_text__tfidf__max_df": [0.6,0.7],
     "transform__preprocess__description_text__tfidf__max_features" : [10000],
-    "transform__preprocess__description_text__tfidf__ngram_range": [(1,3),],
-    "transform__preprocess__description_text__tfidf__max_df": [0.6,0.7],
+    "transform__preprocess__description_text__tfidf__ngram_range": [(1,1),],
+    # "transform__preprocess__description_text__tfidf__max_df": [0.6,0.7],
     # "model__C": [30]
 }
 
@@ -466,40 +485,9 @@ feature_imp = pd.DataFrame(
     .rename(columns={"index":"feature",0:"importance"})
     .assign(abs_importance = lambda _df: np.abs(_df.importance))
     .sort_values("abs_importance", ascending=False)
-    # .query("feature.str.contains('covid')")
+    .query("feature.str.contains('add_post_month')")
     .head(50)
 )
-```
-
-```python
-sample_data = pd.DataFrame(
-        data={
-            "ad_title":["2013 Rocky Mountain Altitude - Custom"],
-        #     "age_at_post":[9*365],
-            "location":["Calgary, Canada"],
-            "original_post_date":[pd.to_datetime("2022-MAR-31")],
-    "description":[
-        """Custom built Rocky Mountain Altitude - one of the best bikes for big climbs and big descents. 28.5 pounds as built so it can handle the climbs but still has no problem getting down the gnar.
-
-Highlights:
-- Full carbon frame - front triangle warrantied and replaced brand new in 2017.
-- Pike RCT3 Fork (2015) - full damper rebuild in 2021. Lowers serviced consistently.
-- RockShox Monarch Debonair shock - full rebuild in 2019 at Fluid Function.
-- Race Face Next R Carbon rear wheel, Aeffect R 30 aluminum front wheel.
-- Easton Haven dropper - full rebuild in 2019. Very quick cable actuated post, without relying on hydraulic systems.
-- Deore XTR groupset - 1x11 - new chain, chain ring (30T), and cassette (11-46) in July 2021.
-- Enve Carbon bar + Thompson Elite stem
-- Minion DHF + DHR tires
-
-Ride wrapped from day one - have kept up service of all the pivots as well.
-
-*Doesn't include bottle cages pictured."""
-]
-})
-
-sample_data.assign(
-        pred = lambda _df : catboost_estimator.predict(_df),
-    )
 ```
 
 ```python
@@ -593,7 +581,7 @@ Highlights:
 })
 
 sample_data.assign(
-        pred = lambda _df : svr_estimator.predict(_df),
+        pred = lambda _df : catboost_estimator.predict(_df),
     )
 ```
 
@@ -603,6 +591,24 @@ sample_data.assign(
 # # df_sample_expanded_data = pd.DataFrame(sample_expanded_data, columns = svr_grid_search.best_estimator_.get_feature_names_out())
 # ex = shap.KernelExplainer(svr_grid_search.best_estimator_.named_steps["model"].predict, sample_expanded_data)
 # shap_values = ex.shap_values(sample_expanded_data, silent=True)
+```
+
+```python
+sample_data = pd.DataFrame(
+        data={
+            "ad_title":["2021 Trek Fuel EX 7"],
+        #     "age_at_post":[9*365],
+            "location":["Calgary, Canada"],
+            "original_post_date":[pd.to_datetime("2022-AUG-31")],
+    "description":[
+        """2021 Trek Fuel EX 7
+        Full SRAM NX Eagle 1x12, Bontrager Kovee Pro 30 TLR Boost 29" MTB Wheelset."""
+]
+})
+
+sample_data.assign(
+        pred = lambda _df : catboost_estimator.predict(_df),
+)
 ```
 
 ```python
@@ -628,6 +634,27 @@ year_sweep.plot(x="bike_model_year", y="pred")
 ```
 
 ```python
+month_sweep = pd.DataFrame()
+for month in range(1,13):
+    new_result = (
+        sample_data
+        .assign(
+            original_post_date = pd.to_datetime(f"2022-{month}-01"),
+            month_of_sale = month,
+            pred = lambda _df : catboost_estimator.predict(_df),
+        )
+        [["original_post_date","month_of_sale","ad_title","pred"]]
+    )
+    month_sweep = pd.concat([
+        month_sweep,
+        new_result
+        ]
+    )
+
+month_sweep.plot(x="month_of_sale", y="pred")
+```
+
+```python
 pd.set_option("display.max_colwidth", None)
 (
     pd.concat([
@@ -636,6 +663,7 @@ pd.set_option("display.max_colwidth", None)
     ],
     axis=1
     )
+    .query("description.str.contains('[$][0-9]+[.]', regex=True)") #Check ads where prices are mentioned!
     .sample(20, random_state=42)
     .assign(
         pred = lambda _df : svr_estimator.predict(_df),
