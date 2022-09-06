@@ -13,7 +13,7 @@ jobs:
     concurrency:
       group: scrape
       cancel-in-progress: false
-    runs-on: self-hosted-testing
+    runs-on: [self-hosted, self-hosted-testing]
     steps:
       - name: Setup repo
         uses: actions/checkout@v2
