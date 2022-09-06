@@ -20,7 +20,8 @@ jobs:
       - name: Install python version
         uses: gabrielfalcao/pyenv-action@v9
         with:
-          default: 3.8
+          default: 3.8.1
+          versions: 3.8.1
           command: |
             pip install -U pip  # upgrade pip after installing python
             pip install poetry
@@ -31,7 +32,7 @@ jobs:
       #     python-version: 3.8
       - name: Install package
         run : |
-          pyenv global 3.8
+          pyenv global 3.8.1
           poetry install
       - name: Set env vars
         run: |
@@ -54,7 +55,8 @@ jobs:
         - name: Install python version
           uses: gabrielfalcao/pyenv-action@v9
           with:
-            default: 3.8
+            default: 3.8.1
+            versions: 3.8.1
             command: |
               pip install -U pip  # upgrade pip after installing python
               pip install poetry
@@ -65,7 +67,7 @@ jobs:
         #     python-version: 3.8
         - name: Install package
           run : |
-            pyenv global 3.8
+            pyenv global 3.8.1
             poetry install
         - name: Set env vars
           run: |
