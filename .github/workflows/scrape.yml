@@ -21,16 +21,15 @@ jobs:
 #         uses: actions/setup-python@v2
 #         with:
 #           python-version: 3.8
-      - name: Install python version
-        uses: gabrielfalcao/pyenv-action@v9
-        with:
-          default: 3.8.2
-          command: pip install -U pip 
+#      - name: Install python version
+#        uses: gabrielfalcao/pyenv-action@v9
+#        with:
+#          default: 3.8.2
+#          command: pip install -U pip 
       - name: Install package
+        shell: bash -l {0}
         run : |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install poetry
-          python3 -m poetry install
+          poetry install
       - name: Set env vars
         run: |
           echo "DATE=$(python -c 'import datetime as dt; print((dt.datetime.now()))')" >> $GITHUB_ENV
@@ -49,20 +48,19 @@ jobs:
       steps:
         - name: Setup repo
           uses: actions/checkout@v2
-        - name: Install python version
-          uses: gabrielfalcao/pyenv-action@v9
-          with:
-            default: 3.8.2
-            command: pip install -U pip 
-#         - name: Set up Python 3.8
-#           uses: actions/setup-python@v2
-#           with:
-#             python-version: 3.8
+#       - name: Set up Python 3.8
+#         uses: actions/setup-python@v2
+#         with:
+#           python-version: 3.8
+#      - name: Install python version
+#        uses: gabrielfalcao/pyenv-action@v9
+#        with:
+#          default: 3.8.2
+#          command: pip install -U pip 
         - name: Install package
+          shell: bash -l {0}
           run : |
-            python3 -m pip install --upgrade pip
-            python3 -m pip install poetry
-            python3 -m poetry install
+            poetry install
         - name: Set env vars
           run: |
             echo "DATE=$(python -c 'import datetime as dt; print((dt.datetime.now()))')" >> $GITHUB_ENV
