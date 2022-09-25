@@ -13,33 +13,22 @@ jobs:
     concurrency:
       group: scrape
       cancel-in-progress: false
-    runs-on: [self-hosted, self-hosted-testing]
+    runs-on: self-hosted-pi
     steps:
       - name: Setup repo
         uses: actions/checkout@v2
-      # - name: Install python version
-      #   uses: gabrielfalcao/pyenv-action@v9
-      #   with:
-      #     default: 3.8.1
-      #     versions: 3.8.1
-      #     command: |
-      #       pip install -U pip  # upgrade pip after installing python
-      #       pip install poetry
-
-      # - name: Set up Python 3.8
-      #   uses: actions/setup-python@v2
-      #   with:
-      #     python-version: 3.8
-      # For Pyenv setup:
-      - name: Setup Pyenv global version under Pi user
-        run: |
-          export PYENV_ROOT="/home/pi/.pyenv"
-          command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
-          eval "$(pyenv init -)"
+#       - name: Set up Python 3.8
+#         uses: actions/setup-python@v2
+#         with:
+#           python-version: 3.8
+#      - name: Install python version
+#        uses: gabrielfalcao/pyenv-action@v9
+#        with:
+#          default: 3.8.2
+#          command: pip install -U pip 
       - name: Install package
         shell: bash -l {0}
         run : |
-          pyenv global 3.8.1
           poetry install
       - name: Set env vars
         run: |
@@ -55,32 +44,22 @@ jobs:
       concurrency:
         group: scrape
         cancel-in-progress: false
-      runs-on: [self-hosted, self-hosted-testing]
+      runs-on: self-hosted-pi
       steps:
         - name: Setup repo
           uses: actions/checkout@v2
-        # - name: Install python version
-        #   uses: gabrielfalcao/pyenv-action@v9
-        #   with:
-        #     default: 3.8.1
-        #     versions: 3.8.1
-        #     command: |
-        #       pip install -U pip  # upgrade pip after installing python
-        #       pip install poetry
-
-        # - name: Set up Python 3.8
-        #   uses: actions/setup-python@v2
-        #   with:
-        #     python-version: 3.8
-        - name: Setup Pyenv global version under Pi user
-          run: |
-            export PYENV_ROOT="/home/pi/.pyenv"
-            command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
-            eval "$(pyenv init -)"
+#       - name: Set up Python 3.8
+#         uses: actions/setup-python@v2
+#         with:
+#           python-version: 3.8
+#      - name: Install python version
+#        uses: gabrielfalcao/pyenv-action@v9
+#        with:
+#          default: 3.8.2
+#          command: pip install -U pip 
         - name: Install package
           shell: bash -l {0}
           run : |
-            pyenv global 3.8.1
             poetry install
         - name: Set env vars
           run: |
