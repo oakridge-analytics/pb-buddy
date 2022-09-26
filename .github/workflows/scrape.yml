@@ -29,6 +29,7 @@ jobs:
       - name: Install package
         shell: bash -l {0}
         run : |
+          pip install poetry
           poetry install
       - name: Set env vars
         run: |
@@ -60,6 +61,7 @@ jobs:
         - name: Install package
           shell: bash -l {0}
           run : |
+            pip install poetry
             poetry install
         - name: Set env vars
           run: |
