@@ -13,12 +13,13 @@ import sys
 import pb_buddy.scraper as scraper
 import pb_buddy.utils as ut
 import pb_buddy.data_processors as dt
-from pb_buddy.resources import category_dict
+from pb_buddy.resources import get_category_list
 
+category_dict = get_category_list()
 # %%
 # Settings -----------------------------------------------------------------
-start_category = 1
-end_category = 101
+start_category = min(category_dict.values())
+end_category = max(category_dict.values())
 full_refresh = False
 num_jobs = os.cpu_count()  # Curently only for initial link grab
 delay_s = 0.0
@@ -252,8 +253,7 @@ for category_to_scrape in np.random.choice(
     # remove ads that didn't sell or sold and shouldn't be in anymore ---------------
     dt.remove_from_base_data(
         removal_df=base_data.loc[
-            (base_data.url.isin(urls_to_remove))
-            | (base_data.url.isin(sold_ad_data.url)),
+            (base_data.url.isin(urls_to_remove)) | (base_data.url.isin(sold_ad_data.url)),
             :,
         ],
         index_col="url",
