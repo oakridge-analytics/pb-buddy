@@ -28,7 +28,6 @@ import warnings
 import pb_buddy.scraper as scraper
 import pb_buddy.utils as ut
 import pb_buddy.data_processors as dt
-from pb_buddy.resources import category_dict
 
 load_dotenv("../.env")
 warnings.filterwarnings("ignore")
@@ -98,13 +97,13 @@ plt.suptitle("Sold Ads and Active Ads Over Time");
 ```python
 (
     df_combined
-    .query("scrape_day > @pd.to_datetime('01-OCT-2021').date() and category_num.isin([1,2,6])")
+    .query("scrape_day > @pd.to_datetime('01-OCT-2021').date() and (category.str.contains('Enduro') or category.str.contains('Cross Country') or category.str.contains('Trail'))")
     .groupby(["scrape_day","category"])
     .count()
     [["url"]]
     .reset_index()
     .rename(columns={"url":"count_ads"})
-    .plot(x="scrape_day",by="category", xlabel="Original Post Date", ylabel="Cout of Ads Per Day")
+    .plot(x="scrape_day",by="category", xlabel="Original Post Date", ylabel="Count of Ads Per Day")
 )
 plt.suptitle("Count of Active+Sold Ads Over Time");
 ```
