@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "23 */2 * * *"
   workflow_dispatch:
+    inputs:
+      full_refresh:
+        description: "Should we check every ad for changes? Will take 5 hrs +"
+        required: true
+        default: "False"
 
 env:
   ACTIONS_ALLOW_UNSECURE_COMMANDS: true
@@ -30,7 +35,7 @@ jobs:
         run: env
       - name: Run Scraper
         shell: bash -l {0}
-        run: python3 -m poetry run python scripts/scrape_base.py
+        run: python3 -m poetry run python scripts/scrape_base.py --full_refresh=${{github.event.inputs.full_refresh}}
         env: 
           COSMOS_CONN_STR : ${{secrets.COSMOS_CONN_STR}}
   email-alerts:
