@@ -3,7 +3,7 @@ name: Scrape
 on:
  schedule:
    - cron: "23 */2 * * *"
-  workflow_dispatch:
+ workflow_dispatch:
     inputs:
       full_refresh:
         description: "Should we check every ad for changes? Will take 5 hrs +"
