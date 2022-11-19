@@ -15,7 +15,7 @@ env:
 
 jobs:
   scrape-latest:
-    runs-on: self-hosted
+    runs-on: self-hosted2
     steps:
       - name: Setup repo
         uses: actions/checkout@v2
@@ -39,7 +39,7 @@ jobs:
         env: 
           COSMOS_CONN_STR : ${{secrets.COSMOS_CONN_STR}}
   email-alerts:
-      runs-on: self-hosted
+      runs-on: self-hosted2
       needs: scrape-latest
       steps:
         - name: Setup repo
