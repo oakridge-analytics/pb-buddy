@@ -18,13 +18,12 @@ import pb_buddy.data_processors as dt
 from pb_buddy.resources import get_category_list
 
 
-def main(full_refresh=False, delay_s=0.0):
+def main(full_refresh=False, delay_s=0.0, num_jobs=4):
 
     category_dict = get_category_list()
     # Settings -----------------------------------------------------------------
     start_category = min(category_dict.values())
     end_category = max(category_dict.values())
-    num_jobs = os.cpu_count()  # Curently only for initial link grab
     log_level = "INFO"
     show_progress = False if os.environ.get("PROGRESS", "0") == "0" else True
 
