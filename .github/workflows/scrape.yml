@@ -42,7 +42,7 @@ jobs:
         env: 
           COSMOS_CONN_STR : ${{secrets.COSMOS_CONN_STR}}
   email-alerts:
-      runs-on: self-hosted2
+      runs-on: self-hosted
       needs: scrape-latest
       steps:
         - name: Setup repo
