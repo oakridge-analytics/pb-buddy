@@ -20,7 +20,12 @@ from pb_buddy.resources import get_category_list
 
 def main(full_refresh=False, delay_s=0.0, num_jobs=4):
 
-    num_jobs=int(num_jobs) 
+    # TODO: Fix how we handle poor formatted inputs when using
+    # workflow_dispatch vs. cron scheduled runs
+    num_jobs=int(num_jobs) if num_jobs else 4 
+    full_refresh = False if not full_refresh else full_refresh
+    
+    
     category_dict = get_category_list()
     # Settings -----------------------------------------------------------------
     start_category = min(category_dict.values())
