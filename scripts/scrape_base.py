@@ -18,7 +18,7 @@ import pb_buddy.data_processors as dt
 from pb_buddy.resources import get_category_list
 
 
-def main(full_refresh=False, delay_s=0.0, num_jobs=4):
+def main(full_refresh=False, delay_s=3, num_jobs=4):
 
     # TODO: Fix how we handle poor formatted inputs when using
     # workflow_dispatch vs. cron scheduled runs
