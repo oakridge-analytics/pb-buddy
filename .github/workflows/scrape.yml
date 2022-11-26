@@ -17,6 +17,7 @@ env:
   ACTIONS_ALLOW_UNSECURE_COMMANDS: true
 
 jobs:
+  timeout-minutes: 1000
   scrape-latest:
     runs-on: self-hosted2
     steps:
