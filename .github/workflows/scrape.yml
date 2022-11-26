@@ -17,9 +17,9 @@ env:
   ACTIONS_ALLOW_UNSECURE_COMMANDS: true
 
 jobs:
-  timeout-minutes: 1000
   scrape-latest:
     runs-on: self-hosted2
+    timeout-minutes: 1000
     steps:
       - name: Setup repo
         uses: actions/checkout@v2
@@ -44,6 +44,7 @@ jobs:
           COSMOS_CONN_STR : ${{secrets.COSMOS_CONN_STR}}
   email-alerts:
       runs-on: self-hosted2
+      timeout-minutes: 1000
       needs: scrape-latest
       steps:
         - name: Setup repo
