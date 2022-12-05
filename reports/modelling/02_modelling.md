@@ -6,9 +6,9 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.14.1
+      jupytext_version: 1.14.0
   kernelspec:
-    display_name: Python 3.8.12 ('pb-buddy-BzHdUS67-py3.8')
+    display_name: pb-buddy
     language: python
     name: python3
 ---
@@ -74,7 +74,6 @@ import shap
 # Custom code ---------------------
 import pb_buddy.data_processors as dt
 import pb_buddy.utils as ut
-from pb_buddy.resources import category_dict
 
 %load_ext autoreload
 %autoreload 2
@@ -263,6 +262,12 @@ ax.set_title("Train/Valid/Test Price Distributions")
 We'll first do some baselines - first a simple bag of words, with dummy regressor (predict the mean) and with a linear regression
 
 ```python
+# Allow periods only inside numbers for model names,
+# otherwise, we don't want to include periods as part of tokens
+# as end of sentence words will get treated as a different token
+# with a period on the end.
+token_pattern = "[a-zA-Z0-9$&+,:;=?@#|<>^%!]+|[0-9$&+,.:;=?@#|<>^%!]+"
+
 transformer = Pipeline(steps=[
     ('preprocess',
         ColumnTransformer(
@@ -293,11 +298,11 @@ transformer = Pipeline(steps=[
                     "title_text", 
                     Pipeline(
                         steps=[
+                            # Remove mentions of year so model doesn't learn to predict based on that year's prices
                             ('remove_year', remove_year_transformer),
                             ('tfidf',
                                 TfidfVectorizer(
-                                        # Allow periods only inside numbers for model names etc. 
-                                        token_pattern = "[a-zA-Z0-9$&+,:;=?@#|<>^%!]+|[0-9$&+,.:;=?@#|<>^%!]+"
+                                        token_pattern = token_pattern 
                                 )
                             ),
                         ]
@@ -308,11 +313,12 @@ transformer = Pipeline(steps=[
                     "description_text", 
                     Pipeline(
                         steps=[
-                            ('remove_year', remove_year_transformer),
+                            # Remove mentions of year so model doesn't learn to predict based on that year's prices
+                            ('remove_year', remove_year_transformer), 
                             ('tfidf',
                                 TfidfVectorizer(
                                         # Allow periods only inside numbers for model names etc. 
-                                        token_pattern = "[a-zA-Z0-9$&+,:;=?@#|<>^%!]+|[0-9$&+,.:;=?@#|<>^%!]+"
+                                        token_pattern = token_pattern
                                 )
                             ),
                         ]
@@ -331,10 +337,10 @@ transformer
 
 ```python
 # transform Check ---------------------------------
-# pd.DataFrame(
-#     data=transformer.fit_transform(X_train.head(10)).toarray(),
-#     columns=transformer.fit(X_train.head(10)).get_feature_names_out()
-# ).iloc[0:5,0:20]
+pd.DataFrame(
+    data=transformer.fit_transform(X_train.head(1)),
+    columns=transformer.fit(X_train.head(1)).get_feature_names_out()
+)#.transpose().to_csv("test.csv")#.iloc[0:5,0:20]
 ```
 
 ```python
@@ -402,18 +408,19 @@ def predefined_grid_search(X_train_valid: pd.DataFrame, y_train_valid: pd.DataFr
 svr_pipe = Pipeline(
     steps = [
         ("transform", transformer),
-        ("model", LinearSVR(max_iter=1000, random_state=42))
+        ("model", LinearSVR(max_iter=100000, random_state=42))
     ],
 )
 
 hparams ={
-    "transform__preprocess__title_text__tfidf__max_features" : [200000],
+    "transform__preprocess__title_text__tfidf__max_features" : [100000,200000],
     "transform__preprocess__title_text__tfidf__ngram_range": [(1,3),],
-    # "transform__title_bow__max_df":[0.6,],
-    "transform__preprocess__description_text__tfidf__max_features" : [200000],
+    # "transform__preprocess__title_text__tfidf__max_df":[0.4,0.6,0.7,1],
+    "transform__preprocess__description_text__tfidf__max_features" : [100000,200000],
     "transform__preprocess__description_text__tfidf__ngram_range": [(1,3),],
-    # "transform__preprocess__description_bow__max_df":[0.6,],
-    "model__C": [30]
+    # "transform__preprocess__description _text__tfidf__max_df":[0.4,0.6,0.7,1],
+    "model__C": [30],
+    "model__tol": [1e-4]
 }
 
 svr_results, svr_estimator = predefined_grid_search(
@@ -423,18 +430,14 @@ svr_results, svr_estimator = predefined_grid_search(
     hparams,
     cv=cv_strat,
     scoring="neg_root_mean_squared_error",
-    n_jobs=4
+    n_jobs=4, # Keep as 1 if using large tfidf matrices due to RAM limits
+    verbose=3
 )
 
 
 ```
 
 ```python
-# dump(svr_estimator, "../../data/svr_pipe.joblib")
-```
-
-```python
-
 results["linear_svr"] = pd.DataFrame(svr_results).drop(columns=[c for c in svr_results.keys() if "param_" in c])
 pd.DataFrame(svr_results).sort_values("split0_test_score", ascending=False)
 ```
@@ -448,11 +451,11 @@ catboost_pipe = Pipeline(
 )
 
 hparams ={
-    "transform__preprocess__title_text__tfidf__max_features" : [10000],
-    "transform__preprocess__title_text__tfidf__ngram_range": [(1,1),],
+    "transform__preprocess__title_text__tfidf__max_features" : [10000, 20000],
+    "transform__preprocess__title_text__tfidf__ngram_range": [(1,3),],
     # "transform__preprocess__title_text__tfidf__max_df": [0.6,0.7],
-    "transform__preprocess__description_text__tfidf__max_features" : [10000],
-    "transform__preprocess__description_text__tfidf__ngram_range": [(1,1),],
+    "transform__preprocess__description_text__tfidf__max_features" : [10000,20000],
+    "transform__preprocess__description_text__tfidf__ngram_range": [(1,3),],
     # "transform__preprocess__description_text__tfidf__max_df": [0.6,0.7],
     # "model__C": [30]
 }
@@ -464,7 +467,7 @@ catboost_results, catboost_estimator = predefined_grid_search(
     hparams,
     cv=cv_strat,
     scoring="neg_root_mean_squared_error",
-    n_jobs=-1
+    n_jobs=1
 )
 
 results["catboost"] = pd.DataFrame(catboost_results).drop(columns=[c for c in catboost_results.keys() if "param_" in c])
@@ -651,30 +654,46 @@ for month in range(1,13):
         ]
     )
 
-month_sweep.plot(x="month_of_sale", y="pred")
+month_sweep.plot(x="month_of_sale", y="pred", marker='o')
 ```
 
 ```python
+X_valid.columns
+```
+
+```python
+# Rough exploration of validation set with SVR model
+# - Appears we overpredict more heavily on 2022 ads, appears 2022 prices might have gotten weaker?
+# - We overpredict on certain E-bike categories (E-Bike MTB)
+# - Doesn't appear to cause issues if price is mentioned in Ad text (residuals distribution ~ the same with and without)
+# - By month residuals don't show clear trends
+# - Otherwise no clear trends to improve modelling with
+
 pd.set_option("display.max_colwidth", None)
-(
+df_valid_inspection = (
     pd.concat([
         X_valid,
         y_valid
     ],
     axis=1
     )
-    .query("description.str.contains('[$][0-9]+[.]', regex=True)") #Check ads where prices are mentioned!
-    .sample(20, random_state=42)
     .assign(
         pred = lambda _df : svr_estimator.predict(_df),
-        diff = lambda _df: _df.price_cpi_adjusted_CAD - _df.pred
+        residual = lambda _df: _df.price_cpi_adjusted_CAD - _df.pred,
+        price_in_description = lambda _df: _df.description.str.contains('[$][0-9]+[.]', regex=True),
+        month = lambda _df : _df.original_post_date.dt.month,
+        condition = lambda _df: _df.condition.str.strip(),
+        restrictions = lambda _df: _df.restrictions.str.strip(),
     )
-    [["ad_title","description","original_post_date","price_cpi_adjusted_CAD","pred","diff"]]
-    .sort_values("diff")
-    .style
-    .hide_index()
-    .background_gradient(subset=["diff"])
 )
+```
+
+```python
+for col in ["year","month", "price_in_description", "condition", "restrictions"]:
+    (
+        df_valid_inspection
+            .pipe((sns.displot, "data"), x="residual", hue=col, kind="kde", common_norm=False, bw_adjust=1, height=5, aspect=2, rug=True)
+    )
 ```
 
 ```python
