@@ -15,10 +15,14 @@ jupyter:
 
 # Modelling Prices - Bike Ads
 
+These datasets have been pre calculated in `01_historical_data_preprocessing.md`. This has taken care of adjusting for inflation, and currency conversion on ads.
+
+Ads have been pre filtered to complete bike categories.
 
 ```python
 from tempfile import mkdtemp
 from shutil import rmtree
+import os
 
 import pandas as pd
 import numpy as np
@@ -28,10 +32,13 @@ from joblib import dump, load
 from catboost import CatBoostRegressor, Pool
 
 
+
+
 # Sklearn helpers ------------------------------
 from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.dummy import DummyRegressor
 from sklearn.svm import LinearSVR
+from sklearn.metrics import mean_squared_error
 
 from sklearn.model_selection import (
     train_test_split,
@@ -75,9 +82,21 @@ import shap
 import pb_buddy.data_processors as dt
 import pb_buddy.utils as ut
 
+from pb_buddy.modelling.skhelpers import (
+    add_age,
+    add_country,
+    add_country_transformer,
+    add_age_transformer,
+    add_covid_transformer,
+    remove_year_transformer,
+    get_post_month_transformer
+)
+
 %load_ext autoreload
 %autoreload 2
 ```
+
+# Setup Cells
 
 ```python
 # Where set processed data path in Azure Blob storage
@@ -86,105 +105,12 @@ input_blob_name =  '2022-05-20_05_00_04__adjusted_bike_ads.parquet.gzip'
 ```
 
 ```python
-df_modelling = dt.stream_parquet_to_dataframe(input_blob_name, input_container_name)
-```
-
-## Sklearn Utils
-
-```python
-# -----------------------------Helper code for sklearn transformers --------------------------
-# `get_feature_names_out()` on Pipeline instances requires us to have callable functions
-# for returning calculated feature names and be able to pickle the resulting estimator. 
-# We create small functions to do this despite how silly they look.
-
-# For encoding country info:----------------------
-def add_country(df):
-    """
-    Extract country from location string, of form "city, country"
-    """
-    return (
-        df
-        .assign(
-            country = lambda _df:_df.location.str.extract(r', ([A-Za-z\s]+)')
-        )
-        [["country"]]
-    )
-
-def add_country_names(func_transformer, feature_names_in):
-    return ["country"]
-    
-add_country_transformer = FunctionTransformer(add_country, feature_names_out=add_country_names)
-
-# For calculating how old bike was at time of posting:----------------------------------
-def add_age(df):
-    """
-    Calculate the age of bike, using year identified in `ad_title` and the 
-    `original_post_date`. Assings Jan,1 of year identified in `ad_title` and
-    calculates difference in days. Ads where year can't be identified in title,
-    assigns `age_at_post`=-1000.
-
-    Requires:
-    - Columns: `ad_title`, `original_post_date`
-    """
-    return (
-        df
-        .assign(
-            bike_model_date = lambda _df: pd.to_datetime(_df.ad_title.str.extract("((?:19|20)\d{2})", expand=False)),
-            age_at_post = lambda _df: (_df.original_post_date - _df.bike_model_date).dt.days,
-        )
-        .fillna(-1000)
-        .astype({"age_at_post":int})
-        [["age_at_post"]]
-    )
-
-def add_age_names(func_transformer, feature_names_in):
-    return ["age_at_post"]
-
-add_age_transformer = FunctionTransformer(add_age, feature_names_out=add_age_names)
-
-# Add a flag for Covid affected market or not. End of Covid market not totally done yet.....
-def add_covid_flag(df):
-    """
-    Use `original_post_date` and check if inbetween March 2020 - July 2022 as
-    a flag for COVID affected market...may need to tune these dates once impact
-    is more sorted out
-
-    Requires:
-    - Column `original_post_date`
-
-    Returns:
-    - 1 column dataframe with `covid_flag` column
-    """
-    return (
-        df
-        .assign(
-            covid_flag = lambda _df: np.where((_df.original_post_date > '20-MARCH-2020') & (_df.original_post_date < '01-AUG-2022'), 1, 0)
-        )
-        [["covid_flag"]]
-    )
-
-def add_covid_name(func_transformer, feature_names_in):
-    return ["covid_flag"]
-
-add_covid_transformer = FunctionTransformer(add_covid_flag, feature_names_out=add_covid_name)
-
-# Remove year information from ad title and ad description - so model learns based on age of ad instead of encoding specific knowledge about each
-# year.
-def remove_year(df):
-    return df.replace("((?:19|20)\d{2})","", regex=True)
-
-remove_year_transformer = FunctionTransformer(remove_year, feature_names_out="one-to-one")
-
-
-# Get month ad is posted, encode as one hot for modelling
-def get_post_month(df):
-    """ 
-    Extracts month from `original_post_date`, returns as string for encoding in later
-    transforms.
-    """
-    return df.original_post_date.dt.month_name().to_frame()
-
-get_post_month_transformer = FunctionTransformer(get_post_month, feature_names_out="one-to-one")
+# Get dataset from blob storage, unless already found in data folder
+local_cache_file_path = os.path.join("data",f"{input_blob_name.split('.')[0]}.csv")
+if os.path.exists(local_cache_file_path):
+    df_modelling = pd.read_csv(local_cache_file_path, index_col=None)
+else:
+    df_modelling = dt.stream_parquet_to_dataframe(input_blob_name, input_container_name)
 ```
 
 ```python
@@ -201,7 +127,8 @@ df_modelling = (
         original_post_date = lambda _df: pd.to_datetime(_df.original_post_date),
         last_repost_date = lambda _df: pd.to_datetime(_df.last_repost_date),
         age_at_post = lambda _df: add_age(_df).fillna(-1000),
-        country  = lambda _df: add_country(_df)
+        country  = lambda _df: add_country(_df),
+        ad_title_description = lambda _df: _df.ad_title + " " + _df.description
     )
     .query("age_at_post>-365 and (country=='Canada' or country=='United States')")
     .drop(columns=["age_at_post","country"])
@@ -220,7 +147,7 @@ Likely predictor columns:
 - `Covid`: Was COVID-19 impacting the market when this bike was listed? We know retail sale of bikes was overwhelmed by demand, likely this occured in used market as well and saw increased prices.
 
 
-# Train/Valid/Test Split
+## Train/Valid/Test Split
 
 
 We likely want to mix Covid era ads into our train, valid, test sets - we don't want to hold out just a period of time. It's unlikely there is any other temporal trend in the data but we'll check residuals in our fitting process.
@@ -257,7 +184,7 @@ for _df in [df_train,df_valid,df_test]:
 ax.set_title("Train/Valid/Test Price Distributions")
 ```
 
-## Baseline
+# Baseline
 
 We'll first do some baselines - first a simple bag of words, with dummy regressor (predict the mean) and with a linear regression
 
@@ -441,6 +368,8 @@ svr_results, svr_estimator = predefined_grid_search(
 results["linear_svr"] = pd.DataFrame(svr_results).drop(columns=[c for c in svr_results.keys() if "param_" in c])
 pd.DataFrame(svr_results).sort_values("split0_test_score", ascending=False)
 ```
+
+# Boosting Models
 
 ```python
 catboost_pipe = Pipeline(
@@ -683,19 +612,68 @@ df_valid_inspection = (
         price_in_description = lambda _df: _df.description.str.contains('[$][0-9]+[.]', regex=True),
         month = lambda _df : _df.original_post_date.dt.month,
         condition = lambda _df: _df.condition.str.strip(),
-        restrictions = lambda _df: _df.restrictions.str.strip(),
+        shipping_restrictions = lambda _df: np.select(
+            [
+                _df.restrictions.str.contains("Local pickup"),
+                _df.restrictions.str.contains("within country"),
+                _df.restrictions.str.contains("within continent"),
+                _df.restrictions.str.contains("globally"),
+                _df.restrictions.str.contains("ship locally"),
+            ],
+            [
+                "local_pickup_only",
+                "within_country",
+                "within_continent",
+                "globally",
+                "ship_locally"
+            ],
+            default="None"
+    )
     )
 )
 ```
 
 ```python
-for col in ["year","month", "price_in_description", "condition", "restrictions"]:
+for col in ["year","month", "price_in_description", "condition", "shipping_restrictions"]:
     (
         df_valid_inspection
-            .pipe((sns.displot, "data"), x="residual", hue=col, kind="kde", common_norm=False, bw_adjust=1, height=5, aspect=2, rug=True)
+            .pipe((sns.displot, "data"), x="residual", hue=col, kind="kde", common_norm=False, bw_adjust=0.5, height=5, aspect=2, rug=True)
     )
 ```
 
-```python
+# Transformers Approach
 
+```python
+import transformers
+from datasets import load_metric
+from datasets import Dataset,load_dataset, load_from_disk
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+```
+
+```python
+model_name = "distilbert-base-uncased"
+```
+
+```python
+# Need columns of "text" and "label" for typical datasets usage
+hf_train_dataset = Dataset.from_pandas(df_train.rename(columns={"ad_title_description":"text", "price_cpi_adjusted_CAD":"label"}))
+hf_valid_dataset = Dataset.from_pandas(df_valid.rename(columns={"ad_title_description":"text", "price_cpi_adjusted_CAD":"label"}))
+
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+def tokenize_function(examples):
+    return tokenizer(examples["text"], padding="max_length", truncation=True)
+
+hf_train_encoded_dataset = hf_train_dataset.map(tokenize_function, batched=True)
+hf_valid_encoded_dataset = hf_valid_dataset.map(tokenize_function, batched=True)
+
+```
+
+```python
+model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=1)
+
+def compute_metrics(eval_pred):
+    predictions, labels = eval_pred
+    rmse = mean_squared_error(labels, predictions, squared=False)
+    return {"rmse": rmse}
 ```
