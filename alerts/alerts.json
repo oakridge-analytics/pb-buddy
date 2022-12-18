@@ -6,7 +6,7 @@
             "search_string": "price > 3000 and price < 5000 and material.str.contains('Carbon') and location.str.contains('Canada') and (restrictions.str.contains('within') or restrictions.str.contains('globally')) and frame_size.str.contains('M') and (front_travel.str.contains('140') or front_travel.str.contains('130')) and (ad_title.str.contains('2019') or ad_title.str.contains('2020') or ad_title.str.contains('2021'))",
             "email_stem": "dustin.brown.andrews",
             "email_domain": "@gmail.com",
-            "last_checked": "2022-12-16 18:43:27.450772-07:00"
+            "last_checked": "2022-12-20 07:56:49.695950-07:00"
         },
         {
             "category_num": 2,
@@ -14,7 +14,7 @@
             "search_string": "price < 4000 and frame_size == 'L' and location.str.contains('Canada') and (front_travel.str.contains('150') or front_travel.str.contains('160') or front_travel.str.contains('170'))",
             "email_stem": "john",
             "email_domain": "@northinteractive.co",
-            "last_checked": "2022-12-16 18:43:35.711589-07:00"
+            "last_checked": "2022-12-20 07:57:03.676283-07:00"
         }
     ]
 }
