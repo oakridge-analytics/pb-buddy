@@ -35,6 +35,6 @@ jobs:
         run: env
       - name: Run Scraper
         shell: bash -l {0}
-        run: python3 -m poetry run python scripts/scrape_base.py --num_jobs=${{github.event.inputs.num_jobs}}
+        run: python3 -m poetry run python scripts/scrape_base.py --full_refresh=True --num_jobs=${{github.event.inputs.num_jobs}}
         env: 
           COSMOS_CONN_STR : ${{secrets.COSMOS_CONN_STR}}
