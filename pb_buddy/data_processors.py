@@ -192,8 +192,8 @@ def get_mongodb():
     client = pymongo.MongoClient(
         conn_str,
         tlsCAFile=certifi.where(),
-        serverSelectionTimeoutMS=20000,
-        connectTimeoutMS=30000,
+        serverSelectionTimeoutMS=200000,
+        connectTimeoutMS=300000,
         socketTimeoutMS=None,
         socketKeepAlive=True,
         connect=False,
