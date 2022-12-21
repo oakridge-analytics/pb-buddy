@@ -70,6 +70,12 @@ from sklearn.preprocessing import (
     MaxAbsScaler
 )
 
+# Transformers modelling ---------------
+from datasets import Dataset
+from transformers import TrainingArguments, Trainer
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+from transformers import RobertaModel
+
 from sklearn.base import clone
 
 # Visuals ------------------
@@ -182,6 +188,13 @@ fig,ax = plt.subplots()
 for _df in [df_train,df_valid,df_test]:
     sns.kdeplot(data=_df, x="price_cpi_adjusted_CAD", ax=ax)
 ax.set_title("Train/Valid/Test Price Distributions")
+```
+
+# End Setup
+
+```python
+import torch
+torch.cuda.is_available()
 ```
 
 # Baseline
@@ -644,14 +657,11 @@ for col in ["year","month", "price_in_description", "condition", "shipping_restr
 # Transformers Approach
 
 ```python
-import transformers
-from datasets import load_metric
-from datasets import Dataset,load_dataset, load_from_disk
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
+os.environ['MLFLOW_TRACKING_URI'] = "http://192.168.0.26:5000"
 ```
 
 ```python
-model_name = "distilbert-base-uncased"
+model_name = "roberta-large"
 ```
 
 ```python
@@ -676,4 +686,156 @@ def compute_metrics(eval_pred):
     predictions, labels = eval_pred
     rmse = mean_squared_error(labels, predictions, squared=False)
     return {"rmse": rmse}
+
+batch_size = 10
+
+args = TrainingArguments(
+    evaluation_strategy = "epoch",
+    save_strategy = "epoch",
+    learning_rate=2e-5,
+    per_device_train_batch_size=batch_size,
+    per_device_eval_batch_size=batch_size,
+    num_train_epochs=3,
+    fp16=True,
+    # report_to=MLFlow,
+    weight_decay=0.01,
+     output_dir='/mnt/h/',
+    metric_for_best_model='rmse'
+    )
+
+trainer = Trainer(
+    model,
+    args,
+    train_dataset=hf_train_encoded_dataset,
+    eval_dataset=hf_valid_encoded_dataset,
+    tokenizer=tokenizer,
+    compute_metrics=compute_metrics
+)
+
+trainer.train()
+```
+
+# AutoGluon MultiModal
+
+```python
+# Setup transformations prior to fit using Sklearn helpers
+gluon_transformer = Pipeline(steps=[
+    ('preprocess',
+        ColumnTransformer(
+            transformers = [
+                ("price", "passthrough", ["price_cpi_adjusted_CAD"] ),
+                ("add_age", add_age_transformer, ["ad_title","original_post_date"]),
+                (
+                    "add_post_month",
+                    Pipeline(
+                        steps=[
+                            ("get_post_month",get_post_month_transformer),
+                        ]
+                    ),
+                    ['original_post_date']
+                ),
+                (
+                    "add_country",
+                    Pipeline(
+                        steps=[
+                            ("get_country",add_country_transformer),
+                        ]
+                    ),
+                    ['location']
+                ),
+                ("add_covid_flag", add_covid_transformer,["original_post_date"]),
+                ("text", remove_year_transformer, ["ad_title_description"]),
+            ],
+        remainder="drop"
+    )
+    ),
+    ]
+)
+gluon_transformer
+
+```
+
+```python
+gluon_transformer.fit(df_train)
+df_train_gluon = pd.DataFrame(data=gluon_transformer.transform(df_train), columns=gluon_transformer.get_feature_names_out())
+df_valid_gluon = pd.DataFrame(data=gluon_transformer.transform(df_valid), columns=gluon_transformer.get_feature_names_out())
+```
+
+```python
+from autogluon.multimodal import MultiModalPredictor
+import uuid
+
+time_limit = 12*60*60  # set to larger value in your applications
+model_path = f"./tmp/{uuid.uuid4().hex}-auto_mm_bikes"
+predictor = MultiModalPredictor(
+        label='price__price_cpi_adjusted_CAD',
+        problem_type="regression",
+        path=model_path,
+        eval_metric="rmse",
+        verbosity=4)
+predictor.fit(
+        train_data=df_train_gluon,
+        tuning_data=df_valid_gluon,
+        time_limit=time_limit
+        )
+```
+
+```python
+print(f"Best RMSE found on Validation Set: {predictor.best_score}")
+```
+
+```python
+df_valid_gluon_inspection = (
+    pd.DataFrame(
+        data=gluon_transformer.transform(df_valid), 
+        columns=gluon_transformer.fit(df_valid).get_feature_names_out()
+    )
+    .assign(
+        pred = lambda _df : predictor.predict(_df)
+    )
+)
+```
+
+```python
+df_valid_gluon_inspection = pd.concat([
+    df_valid_gluon_inspection.assign(
+    resid = lambda _df: _df.price__price_cpi_adjusted_CAD - _df.pred
+    ),
+    df_valid.reset_index()
+],
+axis=1
+)
+
+```
+
+```python
+pd.set_option('display.max_colwidth', 0)
+
+def make_clickable(val):
+    return '<a href="{}">{}</a>'.format(val,val)
+
+(
+    df_valid_gluon_inspection
+    .query("resid > 5000")
+    [["url","add_age__age_at_post","original_post_date","pred","price_cpi_adjusted_CAD", "ad_title", "description"]]
+    .assign(
+        url = lambda _df : _df.url.apply(make_clickable)
+    )
+    .style
+)
+```
+
+```python
+fig,ax = plt.subplots(figsize=(12,12))
+(
+    df_valid_gluon_inspection
+    .pipe((sns.scatterplot, "data"), y="pred", x="price__price_cpi_adjusted_CAD", ax=ax)
+)
+ax.axline([0,0],[1,1], color="red")
+plt.legend()
+
+```
+
+```python
+
 ```
