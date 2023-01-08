@@ -78,6 +78,11 @@ from transformers import RobertaModel
 
 from sklearn.base import clone
 
+from autogluon.multimodal import MultiModalPredictor
+from ray import tune
+import uuid
+
+
 # Visuals ------------------
 import matplotlib.pyplot as plt
 from IPython.display import Markdown
@@ -762,26 +767,48 @@ df_valid_gluon = pd.DataFrame(data=gluon_transformer.transform(df_valid), column
 ```
 
 ```python
-from autogluon.multimodal import MultiModalPredictor
-import uuid
+df_train_gluon.head()
+```
 
-time_limit = 12*60*60  # set to larger value in your applications
+```python
+
+# time_limit = 12*60*60  # set to larger value in your applications
 model_path = f"./tmp/{uuid.uuid4().hex}-auto_mm_bikes"
 predictor = MultiModalPredictor(
         label='price__price_cpi_adjusted_CAD',
         problem_type="regression",
         path=model_path,
-        eval_metric="rmse",
-        verbosity=4)
+        eval_metric="mae",
+        verbosity=4
+        )
 predictor.fit(
         train_data=df_train_gluon,
         tuning_data=df_valid_gluon,
-        time_limit=time_limit
-        )
+        time_limit=None,
+        hyperparameters={
+                # "optimization.learning_rate": tune.uniform(0.00001, 0.00006),
+                # "optimization.optim_type": tune.choice(["adamw"]),
+                "optimization.max_epochs": 5,
+                "optimization.patience": 6, # Num checks without valid improvement, every 0.5 epoch by default
+                "env.per_gpu_batch_size": 28,
+                "env.num_workers": 10,
+                "env.num_workers_evaluation": 10,
+                # "model.hf_text.text_trivial_aug_maxscale": tune.choice(["0.0","0.25", "0.5"])
+        },
+        # hyperparameter_tune_kwargs = {
+        #         "searcher": "bayes",
+        #         "scheduler": "ASHA",
+        #         "num_trials": 30,
+        # }
+)
 ```
 
 ```python
 print(f"Best RMSE found on Validation Set: {predictor.best_score}")
+```
+
+```python
+predictor = MultiModalPredictor.load("tmp/efb96b1ac66244abb2a70b3789dddd8e-auto_mm_bikes/")
 ```
 
 ```python
@@ -816,24 +843,39 @@ def make_clickable(val):
 
 (
     df_valid_gluon_inspection
-    .query("resid > 5000")
-    [["url","add_age__age_at_post","original_post_date","pred","price_cpi_adjusted_CAD", "ad_title", "description"]]
+    .assign(
+        abs_resid = lambda _df: np.abs(_df.resid)
+    )
+    [["url","add_age__age_at_post","original_post_date", "resid", "abs_resid","pred","price_cpi_adjusted_CAD", "ad_title", "description"]]
+    .sort_values("abs_resid", ascending=False)
+    .head(50)
     .assign(
         url = lambda _df : _df.url.apply(make_clickable)
     )
     .style
+    .background_gradient(subset="resid", cmap="RdBu")
 )
 ```
 
 ```python
-fig,ax = plt.subplots(figsize=(12,12))
-(
-    df_valid_gluon_inspection
-    .pipe((sns.scatterplot, "data"), y="pred", x="price__price_cpi_adjusted_CAD", ax=ax)
+# fig,ax = plt.subplots(figsize=(12,12))
+g= (
+    df_valid_gluon_inspection.astype({"price__price_cpi_adjusted_CAD":float})
+    .pipe((sns.jointplot, "data"),kind="resid", y="pred", x="price__price_cpi_adjusted_CAD", height=10)
 )
-ax.axline([0,0],[1,1], color="red")
-plt.legend()
+g.fig.suptitle("Residuals");
+# axes = g.axes
+# g.fig.axline([0,0],[1,1], color="red")
+# plt.legend()
 
+```
+
+```python
+g= (
+    df_valid_gluon_inspection.astype({"price__price_cpi_adjusted_CAD":float})
+    .pipe((sns.jointplot, "data"),kind="reg", y="pred", x="price__price_cpi_adjusted_CAD", joint_kws={"scatter_kws": {"alpha":0.1}}, height=10)
+)
+g.fig.suptitle("Predicted vs. Actual")
 ```
 
 ```python
