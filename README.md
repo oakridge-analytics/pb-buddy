@@ -19,6 +19,8 @@ For running modelling with GPU+CUDA after initial environment setup is done, can
 conda activate pb-buddy
 poetry install --with modelling
 conda install pytorch torchvision torchaudio pytorch-cuda=11.6 -c pytorch -c nvidia
+pip uninstall torchtext # For some reason unknown symbol in installed environment, not needed explicitly
+conda install -c rapidsai -c conda-forge -c nvidia cuml=22.12 # To be confirmed, may need to conda install psutil after this step
 ```
 
 ### Refreshing PAT for self hosted Github Actions Runner
