@@ -3,7 +3,7 @@ import numpy as np
 from dash import Dash, html, dcc, Input, Output
 import dash_bootstrap_components as dbc
 import plotly.express as px
-# import cuml
+import cuml
 import umap
 
 app = Dash(__name__)
@@ -12,7 +12,7 @@ app = Dash(__name__)
 df_valid_gluon_inspection = pd.read_csv("data/df_valid_gluon_inspection.csv", index_col=None)
 valid_gluon_embeddings = np.load("data/valid_gluon_embeddings.npy")
 metrics = [
-    "euclidean", "manhattan", "chebyshev", "minkowski"
+    "euclidean", "manhattan", "chebyshev", "minkowski", "cosine","correlation","mahalanobis"
 ]
 
 # ----------------------------Helper functions------------------------------------------------
@@ -40,7 +40,7 @@ app.layout = dbc.Col([
         html.Label("Select n_neigbhors for UMAP"),
         dcc.Slider(id="n-neighbors", min=1, max=100, value=10),
         html.Label("Select distance metric for UMAP"),
-        dcc.Dropdown(id="metric", values=metrics, value=metrics[0])
+        dcc.Dropdown(id="metric", options=metrics, value=metrics[0])
      ]
     ),
     dbc.Row(
@@ -67,10 +67,10 @@ def build_umap_visual(
     n_neighbors,
     metric
 ):
-    reducer = umap.UMAP(random_state=42, n_components=3, n_neighbors=n_neighbors, min_dist=min_dist, metric=metric)
+    reducer = cuml.UMAP(random_state=42, n_components=3, n_neighbors=n_neighbors, min_dist=min_dist, metric=metric)
     valid_gluon_umap = reducer.fit_transform(valid_gluon_embeddings)
 
-    if df_valid_gluon_inspection[color_by].value_counts() > 10000:
+    if df_valid_gluon_inspection[color_by].unique().shape[0] > 10000:
         color_by = pd.cut(df_valid_gluon_inspection[color_by], bins=20).astype(str)
     else:
         color_by = df_valid_gluon_inspection[color_by]
@@ -94,4 +94,4 @@ def build_umap_visual(
     return fig
 
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run_server(debug=True, port=8060)
