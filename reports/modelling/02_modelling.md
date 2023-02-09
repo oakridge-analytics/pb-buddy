@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.14.0
+      jupytext_version: 1.14.4
   kernelspec:
     display_name: pb-buddy
     language: python
@@ -752,7 +752,26 @@ gluon_transformer = Pipeline(steps=[
                     ['location']
                 ),
                 ("add_covid_flag", add_covid_transformer,["original_post_date"]),
-                ("text", remove_year_transformer, ["ad_title_description"]),
+                 (
+                    "title_text", 
+                    Pipeline(
+                        steps=[
+                            # Remove mentions of year so model doesn't learn to predict based on that year's prices
+                            ('remove_year', remove_year_transformer),
+                        ]
+                    ), 
+                    ["ad_title"]
+                ),
+                (
+                    "description_text", 
+                    Pipeline(
+                        steps=[
+                            # Remove mentions of year so model doesn't learn to predict based on that year's prices
+                            ('remove_year', remove_year_transformer), 
+                        ]
+                    ), 
+                    ["description"]
+                ),
             ],
         remainder="drop"
     )
@@ -783,28 +802,28 @@ predictor = MultiModalPredictor(
         label='price__price_cpi_adjusted_CAD',
         problem_type="regression",
         path=model_path,
-        eval_metric="mean_absolute_error",
+        # eval_metric="mean",
         verbosity=4
         )
 predictor.fit(
         train_data=df_train_gluon,
         tuning_data=df_valid_gluon,
         time_limit=None,
-        hyperparameters={
-                # "optimization.learning_rate": tune.uniform(0.00001, 0.00006),
-                # "optimization.optim_type": tune.choice(["adamw"]),
-                "optimization.max_epochs": 5,
-                "optimization.patience": 6, # Num checks without valid improvement, every 0.5 epoch by default
-                "env.per_gpu_batch_size": 28,
-                "env.num_workers": 10,
-                "env.num_workers_evaluation": 10,
-                "model.hf_text.text_trivial_aug_maxscale": tune.choice(["0.0","0.25", "0.5", "0.75", "1"])
-        },
-        hyperparameter_tune_kwargs = {
-                "searcher": "bayes",
-                "scheduler": "ASHA",
-                "num_trials": 30,
-        }
+        # hyperparameters={
+        #         # "optimization.learning_rate": tune.uniform(0.00001, 0.00006),
+        #         # "optimization.optim_type": tune.choice(["adamw"]),
+        #         "optimization.max_epochs": 5,
+        #         "optimization.patience": 6, # Num checks without valid improvement, every 0.5 epoch by default
+        #         "env.per_gpu_batch_size": 28,
+        #         "env.num_workers": 10,
+        #         "env.num_workers_evaluation": 10,
+        #         "model.hf_text.text_trivial_aug_maxscale": tune.choice(["0.0","0.25", "0.5", "0.75", "1"])
+        # },
+        # hyperparameter_tune_kwargs = {
+        #         "searcher": "bayes",
+        #         "scheduler": "ASHA",
+        #         "num_trials": 30,
+        # }
 )
 ```
 
@@ -901,58 +920,6 @@ valid_gluon_embeddings = predictor.extract_embedding(df_valid_gluon)
 
 df_valid_gluon_inspection = pd.read_csv("data/df_valid_gluon_inspection.csv", index_col=None)
 valid_gluon_embeddings = np.load("data/valid_gluon_embeddings.npy")
-```
-
-```python
-import umap
-import cuml
-import plotly.express as px
-from itertools import product
-
-
-def wrap_to_width(text):
-    """ 
-    Helper func to wrap text for hover data
-    inserts <br> where needed for HTML line breaks
-    """
-    max_width_in_words = 10
-    if len(text.split()) > max_width_in_words:
-        num_chunks = np.ceil(len(text.split()) // max_width_in_words)
-        chunks = np.array_split(text.split(), num_chunks)
-        return "<br>".join([" ".join(chunk[:]) for chunk in chunks])
-    else:
-        return text
-    
-
-# Experiment with different UMAP settings
-n_neighbors = [5,10,15,20,30]
-min_dist = [0.1,0.3,0.5,0.7,1]
-metric = [
-    "euclidean", "manhattan", "chebyshev", "minkowski"
-]
-
-
-
-for neighbors, min_dist, metric in product(n_neighbors, min_dist, metric):
-    reducer = cuml.UMAP(random_state=42, n_components=3, n_neighbors=neighbors, min_dist=min_dist, metric=metric)
-    valid_gluon_umap = reducer.fit_transform(valid_gluon_embeddings)
-
-    fig = px.scatter_3d(
-        x=valid_gluon_umap[:,0],
-        y=valid_gluon_umap[:,1],
-        z=valid_gluon_umap[:,2],
-        color=pd.cut(x=df_valid_gluon_inspection.resid, bins=np.arange(-10000,10000,1000), labels=list(np.arange(-10000,10000,1000)[1:])).astype(float),
-        hover_data=[
-        df_valid_gluon.text__ad_title_description.apply(wrap_to_width).values,
-        df_valid.original_post_date.values,
-        df_valid_gluon_inspection.add_age__age_at_post.values,
-        df_valid_gluon_inspection.resid
-        ],
-        height=1000,
-        width=2000
-    )
-
-    fig.write_html(f"autogluon_embeddings_{neighbors}_neighbors_{min_dist}_min_dist_{metric}_metric.html")
 ```
 
 ```python

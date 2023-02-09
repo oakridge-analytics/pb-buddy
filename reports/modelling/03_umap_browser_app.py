@@ -141,8 +141,8 @@ def build_umap_visual(
             ),
             color_by: (":.s", color_by_data),
         },
-        height=1000,
-        width=2000,
+        height=800,
+        # width=2000,
     )
     fig.update_traces(
         hovertemplate="""
