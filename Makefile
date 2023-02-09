@@ -17,3 +17,9 @@ conda :
 	($(CONDA_ACTIVATE) pb-buddy; \
 	pip install poetry; \
 	poetry install;)
+
+add_modelling : 
+	($(CONDA_ACTIVATE) pb-buddy; \
+	poetry install --with modelling; \
+	conda install pytorch torchvision torchaudio pytorch-cuda=11.6 -c pytorch -c nvidia -y; \
+	pip uninstall torchtext -y;) # For some reason unknown symbol in installed environment, not needed explicitly

@@ -4,22 +4,21 @@
 
 ### Environment Setup
 
-For normal web scraping work, use:
+For normal web scraping work, use the following to create the `pb-buddy` `conda` environment:
 
 ```bash
-conda create -n pb-buddy python=3.9
-conda activate pb-buddy
-pip install poetry
-poetry install
+make conda
 ```
 
 For running modelling with GPU+CUDA after initial environment setup is done, can use:
 
 ```bash
-conda activate pb-buddy
-poetry install --with modelling
-conda install pytorch torchvision torchaudio pytorch-cuda=11.6 -c pytorch -c nvidia
-pip uninstall torchtext # For some reason unknown symbol in installed environment, not needed explicitly
+make add_modelling
+```
+
+For running the UMAP browser, you need to install `cuml`, using `mamba` - *work in progress*:
+
+```bash
 conda install mamba -n base -c conda-forge -c defaults # Mamba solver appears to be recommended by RapidsAI
 mamba install -c rapidsai -c conda-forge -c nvidia cuml
 ```
