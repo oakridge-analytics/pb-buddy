@@ -2,7 +2,7 @@ name: Scrape Report
 
 on:
   schedule:
-    - cron: "23 23 * * *"
+    - cron: "23 06 * * *"
   workflow_dispatch:
 
 env:
@@ -14,10 +14,10 @@ jobs:
     steps:
       - name: Setup repo
         uses: actions/checkout@v2
-      - name: Set up Python 3.8
+      - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: 3.8
+          python-version: 3.9
       - name: Install package
         run : |
           python3 -m pip install --upgrade pip
@@ -28,9 +28,6 @@ jobs:
           echo "DATE=$(python -c 'import datetime as dt; print((dt.datetime.now()))')" >> $GITHUB_ENV
       - name: Log env
         run: env
-      - name: Install Make
-        run: |
-          sudo apt-get install -y make
       - name: Run Scrape Report
         run: |
           make scrape_report

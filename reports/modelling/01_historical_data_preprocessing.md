@@ -8,7 +8,7 @@ jupyter:
       format_version: '1.3'
       jupytext_version: 1.14.4
   kernelspec:
-    display_name: Python 3.8.12 ('pb-buddy-BzHdUS67-py3.8')
+    display_name: Python 3.9.2 ('pb-buddy-BzHdUS67-py3.9')
     language: python
     name: python3
 ---
@@ -23,16 +23,18 @@ from IPython.display import Markdown
 import seaborn as sns
 import pb_buddy.data_processors as dt
 import pb_buddy.utils as ut
-from pb_buddy.resources import category_dict
+from pb_buddy.resources import get_category_list
 
 %load_ext autoreload
 %autoreload 2
 ```
 
 ```python
+# ------------------- SETTINGS ----------------------
 # Where processed data will get written to
 container_to_write_to = 'pb-buddy-historical'
 file_stub = '_adjusted_bike_ads'
+#----------------------------------------------------
 ```
 
 ```python
@@ -44,15 +46,46 @@ df_current_sold = dt.get_dataset(-1, data_type="sold")
 ```
 
 ```python
+category_dict = get_category_list()
+bike_category_labels = [
+    'DH Bikes',
+    'All Mountain/Enduro Bikes',
+    'Dirt Jump Bikes',
+    'Kids Bikes',
+    'BMX Bikes',
+    'Road Bikes',
+    'Trials Bikes',
+    'E-Bikes Urban/Commuter',
+    'E-Bikes Road/Gravel',
+    'Fat Bikes',
+    'Fat Bike Frames',
+    'E-Bikes MTB',
+    'XC Bikes',
+    'Gravel/CX Bikes',
+    'Vintage Bikes',
+    'Enduro Bikes',
+    'Road Complete Bikes',
+    'XC / Cross Country Bikes',
+    'Downhill Bikes',
+    'Gravel/CX Complete Bikes',
+    'Fat Complete Bikes',
+    'Trail Bikes',
+    'BMX Complete Bikes',
+    'Triathlon Complete Bikes',
+    ' Vintage Bikes ',
+ ]
+```
+
+```python
 # Add in category num for each category, and clean up datatypes.
 df_historical_sold_NA = (
     pd.concat([df_historical_sold,df_current_sold], sort=False)
     .query("still_for_sale.str.contains('Sold')")
     .query("currency.isin(['CAD','USD'])")
     .assign(
-        category_num = lambda x: x["category"].apply(lambda x: category_dict[x]),
         original_post_date = lambda x: pd.to_datetime(x["original_post_date"]),
         last_repost_date = lambda x: pd.to_datetime(x["last_repost_date"]),
+        category = lambda x: x.category.str.strip(),
         last_repost_year = lambda x: x.last_repost_date.dt.year,
         price = lambda x: x["price"].astype(float),
     )
@@ -68,10 +101,10 @@ We'll first check how many ads we have that can be used for modelling bike price
 # Check dataset size to model North American Pricing
 (
     df_historical_sold_NA
-    .groupby(["category_num","category"],as_index=False)
+    .groupby(["category"],as_index=False)
     .count()
-    .query("category.str.contains('Bikes')")
-    [["category_num","category","original_post_date"]]
+    .query("category.isin(@bike_category_labels)")
+    [["category","original_post_date"]]
     .rename(columns={"original_post_date":"count_ads"})
     .sort_values("count_ads",ascending=False)
     .style
@@ -81,12 +114,10 @@ We'll first check how many ads we have that can be used for modelling bike price
 ```
 
 ```python
-bike_cats = [2,1,26,75,3,4,77,23,71,74,29,99,63,64]
-
 # for bikes ads - check how often each field is filled. This metadata couldn't have been entered all along
 (
     df_historical_sold_NA
-    .query("category_num.isin(@bike_cats)")
+    .query("category.isin(@bike_category_labels)")
     .dropna(axis=1, thresh=100) # Drop cols never used for bikes
     .notnull()
     .sum() # Sum TRUES for count
@@ -100,7 +131,7 @@ It appears we have good data for the standard ad title, description, frame size 
 ```python
 df_sold_bikes = (
     df_historical_sold_NA
-    .query("category_num.isin(@bike_cats)")
+    .query("category.isin(@bike_category_labels)")
 )
 ```
 
@@ -125,10 +156,10 @@ df_sold_bikes_model = (
 
 ```python
 top_n = 5
-top_bike_categories = (df_sold_bikes_model.category_num.value_counts().index[0:top_n].tolist())
+top_bike_categories = (df_sold_bikes_model.category.value_counts().index[0:top_n].tolist())
 (
     df_sold_bikes_model
-    .query("category_num.isin(@top_bike_categories)")
+    .query("category.isin(@top_bike_categories)")
     .groupby(["last_repost_month","category"])
     .mean()
     .unstack(1)
@@ -138,7 +169,7 @@ top_bike_categories = (df_sold_bikes_model.category_num.value_counts().index[0:t
 # Count of Ads 
 (
     df_sold_bikes_model
-    .query("category_num.isin(@top_bike_categories)")
+    .query("category.isin(@top_bike_categories)")
     .groupby(["last_repost_month","category"])
     .count()
     .unstack(1)
@@ -268,7 +299,7 @@ df_sold_bikes_model_adjusted = (
 (
     df_sold_bikes_model_adjusted
     .groupby(["last_repost_month"])
-    .mean()
+    .mean(numeric_only=True)
     [["price", "price_cpi_adjusted"]]
     .plot(figsize=(12,8), title="Inflation Adjusted Average Prices")
 );
@@ -303,10 +334,10 @@ df_fx = (
     .rename(columns={"Close":"fx_rate_USD_CAD"})
     .filter(["fx_month","currency","fx_rate_USD_CAD"])
     .groupby("fx_month", as_index=False)
-    .mean()
+    .mean(numeric_only=True)
     .set_index("fx_month")
     .resample('MS')
-    .mean()
+    .mean(numeric_only=True)
     .ffill()
     .reset_index()
     .assign(
@@ -343,7 +374,7 @@ df_sold_bikes_model_adjusted_CAD = (
 (
     df_sold_bikes_model_adjusted_CAD
     .groupby(["last_repost_month"])
-    .mean()
+    .mean(numeric_only=True)
     [["price", "price_cpi_adjusted", "price_cpi_adjusted_CAD"]]
     # .unstack(1)
     .plot(figsize=(12,8), title="Inflation Adjusted Average Prices")
@@ -421,6 +452,11 @@ df_sold_bikes_model_adjusted_CAD = (
 ```python
 # Checks!
 assert len(df_sold_bikes_model_adjusted_CAD) == len(df_sold_bikes_model_adjusted_CAD.drop_duplicates(subset=["url"])), "Duplicates found on URL!"
+```
+
+```python
+Markdown(f"Shape of modelling dataset for complete bikes, in North America: {len(df_sold_bikes_model_adjusted_CAD)} rows, \n"
+f"{df_sold_bikes_model_adjusted_CAD.shape[1]} columns.")
 ```
 
 ```python

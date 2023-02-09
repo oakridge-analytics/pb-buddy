@@ -173,3 +173,35 @@ def parse_buysell_ad(buysell_url: str, delay_s: int) -> dict:
     time.sleep(delay_s)
 
     return data_dict
+
+def retry(times, exceptions, time_delay=60):
+    """
+    Retries the wrapped function/method `times` times if the exceptions listed
+    in `exceptions` are thrown
+    
+    Params
+    ------
+    times : int
+        Number of times to retry with `time_delay` between attempts
+    exceptions : list
+        List of exceptions to capture and retry for. Otherwise, won't
+        retry.
+    time_delay : int
+        Number of seconds to sleep in between attempts
+    """
+    def decorator(func):
+        def newfn(*args, **kwargs):
+            attempt = 0
+            while attempt < times:
+                try:
+                    return func(*args, **kwargs)
+                except exceptions:
+                    print(
+                        'Exception thrown when attempting to run %s, attempt '
+                        '%d of %d' % (func, attempt, times)
+                    )
+                    time.sleep(time_delay)
+                    attempt += 1
+            return func(*args, **kwargs)
+        return newfn
+    return decorator

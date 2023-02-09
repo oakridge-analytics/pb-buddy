@@ -1,31 +1,33 @@
 name: Scrape
 
 on:
-  schedule:
-    - cron: "23 */2 * * *"
-  workflow_dispatch:
-
+ schedule:
+   - cron: "23 */2 * * 1-6"
+ workflow_dispatch:
+    inputs:
+      num_jobs:
+        description: "How many cores to use in building link list"
+        required: true
+        default: '4'
 env:
   ACTIONS_ALLOW_UNSECURE_COMMANDS: true
 
 jobs:
   scrape-latest:
-    concurrency:
-      group: scrape
-      cancel-in-progress: false
-    runs-on: self-hosted
+    runs-on: self-hosted2
+    timeout-minutes: 1000
     steps:
       - name: Setup repo
         uses: actions/checkout@v2
-      - name: Set up Python 3.8
+      - name: Set up Python 3.9
         uses: actions/setup-python@v2
         with:
-          python-version: 3.8
+          python-version: 3.9
       - name: Install package
+        shell: bash -l {0}
         run : |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install poetry
-          python3 -m poetry install
+          pip install poetry
+          poetry install
       - name: Set env vars
         run: |
           echo "DATE=$(python -c 'import datetime as dt; print((dt.datetime.now()))')" >> $GITHUB_ENV
@@ -33,26 +35,25 @@ jobs:
         run: env
       - name: Run Scraper
         shell: bash -l {0}
-        run: python3 -m poetry run python scripts/scrape_base.py
+        run: python3 -m poetry run python scripts/scrape_base.py --full_refresh=False --num_jobs=${{github.event.inputs.num_jobs}}
         env: 
           COSMOS_CONN_STR : ${{secrets.COSMOS_CONN_STR}}
   email-alerts:
-      concurrency:
-        group: scrape
-        cancel-in-progress: false
-      runs-on: self-hosted
+      runs-on: self-hosted2
+      timeout-minutes: 1000
+      needs: scrape-latest
       steps:
         - name: Setup repo
           uses: actions/checkout@v2
-        - name: Set up Python 3.8
+        - name: Set up Python 3.9
           uses: actions/setup-python@v2
           with:
-            python-version: 3.8
+            python-version: 3.9
         - name: Install package
+          shell: bash -l {0}
           run : |
-            python3 -m pip install --upgrade pip
-            python3 -m pip install poetry
-            python3 -m poetry install
+            pip install poetry
+            poetry install
         - name: Set env vars
           run: |
             echo "DATE=$(python -c 'import datetime as dt; print((dt.datetime.now()))')" >> $GITHUB_ENV
