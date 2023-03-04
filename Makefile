@@ -16,10 +16,13 @@ conda :
 	conda create -n pb-buddy python=3.9 -y; \
 	($(CONDA_ACTIVATE) pb-buddy; \
 	pip install poetry; \
-	poetry install;)
+	poetry install; \
+	python -m ipykernel install --user --name pb-buddy;)
 
 add_modelling : 
 	($(CONDA_ACTIVATE) pb-buddy; \
 	poetry install --with modelling; \
-	conda install pytorch torchvision torchaudio pytorch-cuda=11.6 -c pytorch -c nvidia -y; \
-	pip uninstall torchtext -y;) # For some reason unknown symbol in installed environment, not needed explicitly
+	# Install torch + autogluon separate to get different indexes \
+	pip3 install torch==1.13.1+cu116 torchvision==0.14.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116; \
+	pip3 install autogluon; \
+	); # For some reason unknown symbol in installed environment, not needed explicitly
