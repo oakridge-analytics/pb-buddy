@@ -1,3 +1,4 @@
+import json
 import pandas as pd
 import numpy as np
 from dash.exceptions import PreventUpdate
@@ -5,6 +6,7 @@ from dash import Dash, html, dcc, Input, Output
 import dash_bootstrap_components as dbc
 import plotly.express as px
 import cuml
+from cuml.metrics import pairwise_distances
 
 app = Dash(__name__, external_stylesheets=[dbc.themes.SANDSTONE])
 
@@ -37,55 +39,33 @@ def wrap_to_width(text):
         return text
 
 
-# -----------------------------Layout-----------------------------------------------------
-app.layout = dbc.Col(
-    [
-        dbc.Row(
-            [
-                html.Label("Select Column to Color By"),
-                dcc.Dropdown(
-                    id="color-by",
-                    options=df_gluon_inspection.columns.to_list(),
-                    value="category",
-                ),
-                html.Label("Select min_dist for UMAP"),
-                dcc.Slider(id="min-dist", min=0, max=1, value=0.1),
-                html.Label("Select n_neighbors for UMAP"),
-                dcc.Slider(id="n-neighbors", min=1, max=100, value=10),
-                html.Label("Select n_epochs for UMAP"),
-                dcc.Slider(id="n-epochs", min=0, step=10, max=500, value=200),
-                html.Label("Select spread for UMAP"),
-                dcc.Slider(id="spread", min=0, max=5, value=1),
-                html.Label("Select learning rate for UMAP"),
-                dcc.Slider(id="learning-rate", step=0.1, min=0, max=5, value=1),
-                html.Label("Select distance metric for UMAP"),
-                dcc.Dropdown(id="metric", options=metrics, value=metrics[0]),
-                dcc.Markdown(
-                    """
-            [Clicked Ad Link](/)
-        """,
-                    id="ad-link",
-                ),
-            ]
-        ),
-        dbc.Row([dcc.Graph(id="umap-visual-train"), dcc.Graph(id="umap-visual-valid")]),
-    ]
-)
+def get_nearest_examples(
+    selected_point_embedding: np.array,
+    num_neighbors: int,
+    embeddings_lookup: np.array,
+    df_metadata: pd.DataFrame,
+) -> tuple:
+    distance_matrix = pairwise_distances(
+        X=embeddings_lookup, Y=selected_point_embedding, metric="cosine"
+    )
+    closest_indices = np.argsort(distance_matrix, axis=0)[:num_neighbors].reshape(-1)
+    closest_distances = distance_matrix[closest_indices].reshape(-1)
+    return (
+        embeddings_lookup[closest_indices],
+        df_metadata.iloc[closest_indices, :].assign(distance=closest_distances),
+    )
 
 
-# -----------------------------Callbacks---------------------------------------------------
-
-
-# helper func for Scatter 3D plots with embeddings and metadata on hover
 def build_3d_scatter(
-    gluon_embeddings: np.array, df_gluon_inspection: pd.DataFrame, color_by: str
-) -> px.Figure:
+    gluon_umap: np.array, df_gluon_inspection: pd.DataFrame, color_by: str
+) -> px.scatter_3d:
     color_by_data = df_gluon_inspection[color_by]
     fig = px.scatter_3d(
-        x=gluon_embeddings[:, 0],
-        y=gluon_embeddings[:, 1],
-        z=gluon_embeddings[:, 2],
+        x=gluon_umap[:, 0],
+        y=gluon_umap[:, 1],
+        z=gluon_umap[:, 2],
         color=color_by_data,
+        # custom_data=df_gluon_inspection.url.values,
         hover_data={
             "URL": (":.s", df_gluon_inspection.url.values),
             "Ad Title": (":.s", df_gluon_inspection.ad_title.values),
@@ -115,6 +95,8 @@ def build_3d_scatter(
         height=800,
         # width=2000,
     )
+
+    # Format hover data
     fig.update_traces(
         hovertemplate="""
     <b>Ad Title</b>=%{customdata[1]:.s}<br>
@@ -132,11 +114,81 @@ def build_3d_scatter(
     return fig
 
 
+# -----------------------------Layout-----------------------------------------------------
+app.layout = dbc.Col(
+    [
+        dbc.Row(
+            [
+                html.Label("Select Column to Color By"),
+                dcc.Dropdown(
+                    id="color-by",
+                    options=df_gluon_inspection.columns.to_list(),
+                    value="category",
+                ),
+                html.Label("Select min_dist for UMAP"),
+                dcc.Slider(id="min-dist", min=0, max=1, value=0.1),
+                html.Label("Select n_neighbors for UMAP"),
+                dcc.Slider(id="n-neighbors", min=1, max=100, value=10),
+                html.Label("Select n_epochs for UMAP"),
+                dcc.Slider(id="n-epochs", min=0, step=10, max=500, value=200),
+                html.Label("Select spread for UMAP"),
+                dcc.Slider(id="spread", min=0, max=5, value=1),
+                html.Label("Select learning rate for UMAP"),
+                dcc.Slider(id="learning-rate", step=0.1, min=0, max=5, value=1),
+                html.Label("Select distance metric for UMAP"),
+                dcc.Dropdown(id="metric", options=metrics, value=metrics[0]),
+                dcc.Markdown(
+                    """
+                    [Clicked Ad Link](/)
+                    """,
+                    id="ad-link",
+                ),
+                html.Pre(id="debug-output"),
+            ]
+        ),
+        dbc.Row(
+            [
+                dbc.Col(
+                    [
+                        html.H2("Train Set"),
+                        dcc.Loading(
+                            type="cube", children=[dcc.Graph(id="umap-visual-train")]
+                        ),
+                    ]
+                ),
+                dbc.Col(
+                    [
+                        html.H2("Valid Set"),
+                        html.Label(
+                            "Click data point to get nearest neighbors in train set"
+                        ),
+                        dcc.Loading(
+                            type="cube", children=[dcc.Graph(id="umap-visual-valid")]
+                        ),
+                    ]
+                ),
+            ]
+        ),
+    ]
+)
+
+
+# -----------------------------Callbacks---------------------------------------------------
+
+
+# @app.callback(
+#     Output("debug-output", "children"), [Input("umap-visual-valid", "clickData")]
+# )
+# def get_selected_point(clicked_data):
+#     return json.dumps(clicked_data["points"], indent=2)
+
+
 @app.callback(
     [
         Output("umap-visual-train", "figure"),
         Output("umap-visual-valid", "figure"),
-    ][
+    ],
+    [
         Input("color-by", "value"),
         Input("min-dist", "value"),
         Input("n-neighbors", "value"),
@@ -144,10 +196,18 @@ def build_3d_scatter(
         Input("n-epochs", "value"),
         Input("spread", "value"),
         Input("learning-rate", "value"),
+        Input("umap-visual-valid", "clickData"),
     ],
 )
 def build_umap_visual(
-    color_by, min_dist, n_neighbors, metric, n_epochs, spread, learning_rate
+    color_by,
+    min_dist,
+    n_neighbors,
+    metric,
+    n_epochs,
+    spread,
+    learning_rate,
+    clicked_valid_point,
 ):
     reducer = cuml.UMAP(
         random_state=42,
@@ -159,25 +219,46 @@ def build_umap_visual(
         spread=spread,
         learning_rate=learning_rate,
     )
-    valid_gluon_umap = reducer.fit_transform(gluon_embeddings)
+    gluon_umap = reducer.fit_transform(gluon_embeddings)
 
-    color_by_data = df_gluon_inspection[color_by]
+    # If validation point clicked, return embeddings for nearest neighbours in embedded space
+    # before UMAP, within train set.
+    if clicked_valid_point:
+        num_neighbors = 30
+        selected_url = clicked_valid_point["points"][0]["customdata"][0]
+        (
+            nearest_neighbor_embeddings,
+            nearest_neighbor_metadata,
+        ) = get_nearest_examples(
+            selected_point_embedding=gluon_embeddings[
+                df_gluon_inspection.query("url == @selected_url").index
+            ],
+            num_neighbors=num_neighbors,
+            embeddings_lookup=gluon_embeddings[
+                df_gluon_inspection.query("split=='train'").index
+            ],
+            df_metadata=df_gluon_inspection,
+        )
 
-    # Embeddings and dataframe built in same order, use index to get correct rows of embeddings
-    train_fig = build_3d_scatter(
-        gluon_embeddings[df_gluon_inspection.query("split=='train'").index],
-        df_gluon_inspection.query("split=='train'"),
-        color_by,
-    )
+        # Hacky, but returned df has distance column added
+        train_fig = build_3d_scatter(
+            nearest_neighbor_embeddings, nearest_neighbor_metadata, color_by="distance"
+        )
+    else:
+        train_fig = build_3d_scatter(
+            gluon_umap[df_gluon_inspection.query("split=='train'").index],
+            df_gluon_inspection.query("split=='train'"),
+            color_by,
+        )
     valid_fig = build_3d_scatter(
-        gluon_embeddings[df_gluon_inspection.query("split=='valid'").index],
+        gluon_umap[df_gluon_inspection.query("split=='valid'").index],
         df_gluon_inspection.query("split=='valid'"),
         color_by,
     )
     return train_fig, valid_fig
 
 
-@app.callback(Output("ad-link", "children"), [Input("umap-visual", "clickData")])
+@app.callback(Output("ad-link", "children"), [Input("umap-visual-valid", "clickData")])
 def open_url(clickData):
     if clickData:
         url = clickData["points"][0]["customdata"][0]
