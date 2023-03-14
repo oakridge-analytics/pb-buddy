@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.14.4
+      jupytext_version: 1.14.5
   kernelspec:
     display_name: pb-buddy
     language: python
@@ -30,9 +30,6 @@ from joblib import dump, load
 
 # Other models -----------
 from catboost import CatBoostRegressor, Pool
-
-
-
 
 # Sklearn helpers ------------------------------
 from sklearn.linear_model import LinearRegression, Ridge
@@ -71,10 +68,10 @@ from sklearn.preprocessing import (
 )
 
 # Transformers modelling ---------------
-from datasets import Dataset
-from transformers import TrainingArguments, Trainer
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
-from transformers import RobertaModel
+# from datasets import Dataset
+# from transformers import TrainingArguments, Trainer
+# from transformers import AutoTokenizer, AutoModelForSequenceClassification
+# from transformers import RobertaModel
 
 from sklearn.base import clone
 
@@ -789,6 +786,12 @@ df_valid_gluon = pd.DataFrame(data=gluon_transformer.transform(df_valid), column
 ```
 
 ```python
+# Save transformation pipeline from raw ad data
+run_uuid = uuid.uuid4().hex
+dump(gluon_transformer, f"./tmp/{run_uuid}-transformer-auto_mm_bikes")
+```
+
+```python
 df_train_gluon.head()
 ```
 
@@ -797,64 +800,69 @@ df_train_gluon.head()
 ```python
 
 # time_limit = 12*60*60  # set to larger value in your applications
-model_path = f"./tmp/{uuid.uuid4().hex}-auto_mm_bikes"
+model_path = f"./tmp/{run_uuid}-auto_mm_bikes"
 predictor = MultiModalPredictor(
         label='price__price_cpi_adjusted_CAD',
         problem_type="regression",
         path=model_path,
         # eval_metric="mean",
         verbosity=4
-        )
+        ) 
 predictor.fit(
         train_data=df_train_gluon,
         tuning_data=df_valid_gluon,
         time_limit=None,
-        # hyperparameters={
-        #         # "optimization.learning_rate": tune.uniform(0.00001, 0.00006),
-        #         # "optimization.optim_type": tune.choice(["adamw"]),
-        #         "optimization.max_epochs": 5,
-        #         "optimization.patience": 6, # Num checks without valid improvement, every 0.5 epoch by default
-        #         "env.per_gpu_batch_size": 28,
-        #         "env.num_workers": 10,
-        #         "env.num_workers_evaluation": 10,
-        #         "model.hf_text.text_trivial_aug_maxscale": tune.choice(["0.0","0.25", "0.5", "0.75", "1"])
-        # },
+        hyperparameters={
+                # "optimization.learning_rate": tune.uniform(0.00001, 0.00006),
+                # "optimization.optim_type": tune.choice(["adamw"]),
+                "optimization.max_epochs": 8,
+                "optimization.patience": 6, # Num checks without valid improvement, every 0.5 epoch by default
+                "env.per_gpu_batch_size": 12,
+                "env.num_workers": 10,
+                "env.num_workers_evaluation": 10,
+                # "model.hf_text.checkpoint_name": tune.choice(["google/electra-base-discriminator", 'roberta-base','roberta-large']),
+                "model.hf_text.checkpoint_name": 'roberta-large',
+                # "model.hf_text.text_trivial_aug_maxscale": tune.choice(["0.0","0.10","0.15","0.2"])
+        },
         # hyperparameter_tune_kwargs = {
         #         "searcher": "bayes",
         #         "scheduler": "ASHA",
-        #         "num_trials": 30,
+        #         "num_trials": 15,
         # }
 )
 ```
 
 ```python
-print(f"Best RMSE found on Validation Set: {predictor.best_score}")
+predictor.fit_summary()
 ```
 
 ## Model Load and Results Inspection
 
 ```python
-predictor = MultiModalPredictor.load("tmp/efb96b1ac66244abb2a70b3789dddd8e-auto_mm_bikes")
+predictor = MultiModalPredictor.load("tmp/60ea93d73097408eb83209866febf831-auto_mm_bikes")
 ```
 
 ```python
-df_valid_gluon_inspection = (
-    pd.DataFrame(
-        data=gluon_transformer.transform(df_valid), 
-        columns=gluon_transformer.fit(df_valid).get_feature_names_out()
-    )
-    .assign(
-        pred = lambda _df : predictor.predict(_df)
-    )
-)
+df_gluon_inspection = pd.DataFrame(
+    data=gluon_transformer.transform(
+        pd.concat([df_valid.assign(split="valid"), df_train.assign(split="train")])
+    ),
+    columns=gluon_transformer.fit(df_valid).get_feature_names_out(),
+).assign(pred=lambda _df: predictor.predict(_df))
+
 ```
 
 ```python
-df_valid_gluon_inspection = pd.concat([
-        df_valid_gluon_inspection.assign(
+print(predictor.predict(df_valid_gluon.head()))
+```
+
+```python
+# Augment with all initial columns in dataset
+df_gluon_inspection = pd.concat([
+        df_gluon_inspection.assign(
         resid = lambda _df: _df.price__price_cpi_adjusted_CAD - _df.pred
         ),
-        df_valid.reset_index()
+         pd.concat([df_valid.assign(split="valid"), df_train.assign(split="train")]).reset_index()
     ],
 axis=1
 )
@@ -868,7 +876,7 @@ def make_clickable(val):
     return '<a href="{}">{}</a>'.format(val,val)
 
 (
-    df_valid_gluon_inspection
+    df_gluon_inspection
     .assign(
         abs_resid = lambda _df: np.abs(_df.resid)
     )
@@ -887,8 +895,8 @@ def make_clickable(val):
 ```python
 # fig,ax = plt.subplots(figsize=(12,12))
 g= (
-    df_valid_gluon_inspection.astype({"price__price_cpi_adjusted_CAD":float})
-    .pipe((sns.jointplot, "data"),kind="resid", y="pred", x="price__price_cpi_adjusted_CAD", height=10)
+    df_gluon_inspection.astype({"price__price_cpi_adjusted_CAD":float})
+    .pipe((sns.jointplot, "data"),y="pred", x="price__price_cpi_adjusted_CAD", hue="split", height=10, alpha=0.1)
 )
 g.fig.suptitle("Residuals");
 # axes = g.axes
@@ -899,7 +907,7 @@ g.fig.suptitle("Residuals");
 
 ```python
 g= (
-    df_valid_gluon_inspection.astype({"price__price_cpi_adjusted_CAD":float})
+    df_gluon_inspection.astype({"price__price_cpi_adjusted_CAD":float})
     .pipe((sns.jointplot, "data"),kind="reg", y="pred", x="price__price_cpi_adjusted_CAD", joint_kws={"scatter_kws": {"alpha":0.1}}, height=10)
 )
 g.fig.suptitle("Predicted vs. Actual")
@@ -908,18 +916,22 @@ g.fig.suptitle("Predicted vs. Actual")
 ## Embeddings Exploration
 
 ```python
-valid_gluon_embeddings = predictor.extract_embedding(df_valid_gluon)
+gluon_embeddings = predictor.extract_embedding(pd.concat([df_valid_gluon, df_train_gluon]))
 ```
 
 ### Save Files for External Exploration
 
 ```python
-# Save data for exploring in separate app
-# df_valid_gluon_inspection.to_csv("data/df_valid_gluon_inspection.csv", index=False)
-# np.save("valid_gluon_embeddings", valid_gluon_embeddings)
+gluon_embeddings.shape
+```
 
-df_valid_gluon_inspection = pd.read_csv("data/df_valid_gluon_inspection.csv", index_col=None)
-valid_gluon_embeddings = np.load("data/valid_gluon_embeddings.npy")
+```python
+# Save data for exploring in separate app
+df_gluon_inspection.to_csv("data/df_gluon_inspection.csv", index=False)
+np.save("data/gluon_embeddings", gluon_embeddings)
+
+# df_valid_gluon_inspection = pd.read_csv("data/df_valid_gluon_inspection.csv", index_col=None)
+# valid_gluon_embeddings = np.load("data/valid_gluon_embeddings.npy")
 ```
 
 ```python
