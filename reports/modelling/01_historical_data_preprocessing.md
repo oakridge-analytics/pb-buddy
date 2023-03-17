@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.14.1
+      jupytext_version: 1.14.5
   kernelspec:
     display_name: Python 3.9.2 ('pb-buddy-BzHdUS67-py3.9')
     language: python
@@ -337,7 +337,7 @@ df_fx = (
     .mean(numeric_only=True)
     .set_index("fx_month")
     .resample('MS')
-    .mean(numeric_only=True)
+    .mean()
     .ffill()
     .reset_index()
     .assign(
