@@ -1,4 +1,7 @@
 {
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
@@ -6,47 +9,7 @@
             "type": "python",
             "request": "launch",
             "program": "${file}",
-            "args": [
-                "--num_jobs=4",
-                "--categories_to_scrape='12'"
-            ],
             "console": "integratedTerminal",
-            "justMyCode": true
-        },
-        {
-            "name": "Python: Script + Args",
-            "type": "python",
-            "program": "${file}",
-            "request": "launch",
-            "args": [
-                "--manufacturer=Cervélo",
-                "--links_path_out='resources'"
-            ],
-            "console": "integratedTerminal",
-            "justMyCode": true
-        },
-        {
-            "name": "Python: FastAPI",
-            "type": "python",
-            "request": "launch",
-            "module": "uvicorn",
-            "cwd": "${workspaceFolder}/api",
-            "justMyCode": false,
-            "args": [
-                "main:app",
-                "--reload"
-            ],
-            "jinja": true,
-            "env": {
-                "ENVIRONMENT": "development",
-                "LOG_LEVEL": "debug"
-            }
-        },
-        {
-            "name": "Python: File",
-            "type": "python",
-            "request": "launch",
-            "program": "${file}",
             "justMyCode": true
         }
     ]
