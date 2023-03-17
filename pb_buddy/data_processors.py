@@ -1,11 +1,9 @@
-from matplotlib import blocking_input
 import pandas as pd
 import os
 import pymongo
 import certifi
 from typing import List
 from io import BytesIO
-from tqdm import tqdm
 from azure.storage.blob import BlobServiceClient
 
 
@@ -216,7 +214,7 @@ def stream_parquet_to_blob(df: pd.DataFrame, blob_name: str, blob_container: str
         File name to upload as in container
     blob_container : str
         Container to upload to
-    """    
+    """
     # Create a blob client using the local account credentials
     blob_service_client = BlobServiceClient.from_connection_string(
         os.environ["AZURE_STORAGE_CONN_STR"]
@@ -227,19 +225,17 @@ def stream_parquet_to_blob(df: pd.DataFrame, blob_name: str, blob_container: str
 
     # Create a blob client using the container client
     blob_client = blob_service_client.get_blob_client(
-        container=container_name,
-        blob=blob_name
+        container=container_name, blob=blob_name
     )
 
     parquet_file = BytesIO()
-    df.to_parquet(parquet_file, engine='pyarrow', compression="gzip")
+    df.to_parquet(parquet_file, engine="pyarrow", compression="gzip")
     parquet_file.seek(0)  # change the stream position back to the beginning after writing
 
-    blob_client.upload_blob(
-        data=parquet_file
-    )
+    blob_client.upload_blob(data=parquet_file)
 
-def stream_parquet_to_dataframe( blob_name: str, blob_container: str) -> pd.DataFrame:
+
+def stream_parquet_to_dataframe(blob_name: str, blob_container: str) -> pd.DataFrame:
     """Stream pandas DataFrame as parquet.gzip blob from Azure Blob storage.
     Uses `pyarrow` and requires env variable to be set:
     AZURE_STORAGE_CONN_STR=Connection string to authenticate with.
@@ -266,8 +262,7 @@ def stream_parquet_to_dataframe( blob_name: str, blob_container: str) -> pd.Data
 
     # Create a blob client using the container client
     blob_client = blob_service_client.get_blob_client(
-        container=container_name,
-        blob=blob_name
+        container=container_name, blob=blob_name
     )
 
     stream_download = blob_client.download_blob()
