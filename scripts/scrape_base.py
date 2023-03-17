@@ -36,8 +36,6 @@ def main(full_refresh=False, delay_s=1, num_jobs=4):
     # Config main settings -----------------------------------------------
     categories_to_scrape = range(start_category, end_category + 1)
     logging.basicConfig(
-        filename=os.path.join("logs", "scrape.log"),
-        filemode="w",
         level=getattr(logging, log_level.upper(), None),
         format="%(asctime)s %(message)s",
     )
