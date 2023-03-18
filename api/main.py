@@ -48,8 +48,6 @@ async def predict(ads: List[BikeBuddyAd]) -> BikeBuddyAdPredictions:
         columns=predictor.pipeline.get_feature_names_out(),
     )
 
-    # print(df_predict.transpose())
-    # print(predictor.model.predict(df_predict))
     predictions = predictor.model.predict(df_predict).to_list()
     outputs = BikeBuddyAdPredictions(predictions=predictions)
 
