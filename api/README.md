@@ -38,3 +38,15 @@ Then run the image locally using:
 ```
 docker run -p 80:80 -it bikebuddy-api
 ```
+
+#### Azure Deployment Notes
+
+With existing `pbbuddy` Azure Container Registry:
+
+`az acr login --name pbbuddy`
+
+`docker tag bikebuddy-api:latest pbbuddy.azurecr.io/bikebuddy:latest`
+
+`docker push pbbuddy.azurecr.io/bikebuddy:latest`
+
+

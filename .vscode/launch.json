@@ -18,6 +18,7 @@
             "request": "launch",
             "module": "uvicorn",
             "cwd": "${workspaceFolder}/api",
+            "justMyCode": false,
             "args": [
                 "main:app",
                 "--reload"
