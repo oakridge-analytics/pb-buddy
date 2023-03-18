@@ -1,1 +1,2 @@
-BikeBuddyModel = None
+model = None
+pipeline = None

@@ -1,45 +1,37 @@
 from pydantic import BaseModel
+from typing import List
 
 
 class BikeBuddyAd(BaseModel):
-    category: str
-    original_post_date: str
-    last_repost_date: str
-    still_for_sale: str
-    view_count: float
-    watch_count: float
-    price: float
-    currency: str
-    description: str
-    ad_title: str
-    location: str
-    datetime_scraped: str
-    url: str
-    frame_size: str
-    wheel_size: str
-    front_travel: str
-    condition: str
-    material: str
-    rear_travel: str
+    category: str = None
+    original_post_date: str = None
+    last_repost_date: str = None
+    still_for_sale: str = None
+    view_count: float = None
+    watch_count: float = None
+    price: float = None
+    currency: str = None
+    description: str = None
+    ad_title: str = None
+    location: str = None
+    datetime_scraped: str = None
+    url: str = None
+    frame_size: str = None
+    wheel_size: str = None
+    front_travel: str = None
+    condition: str = None
+    material: str = None
+    rear_travel: str = None
     seat_post_diameter: float = None
-    seat_post_travel: str
-    front_axle: str
-    rear_axle: str
-    shock_eye_to_eye: str
-    shock_stroke: str
+    seat_post_travel: str = None
+    front_axle: str = None
+    rear_axle: str = None
+    shock_eye_to_eye: str = None
+    shock_stroke: str = None
     shock_spring_rate: float = None
-    restrictions: str
-    _id: int = None
-    category_num: int
-    scrape_rank: float
-    last_repost_year: int
-    last_repost_month: str
-    year: int
-    cpi: float
-    most_recent_cpi: float
-    price_cpi_adjusted: float
-    fx_month: str
-    fx_rate_USD_CAD: float
+    restrictions: str = None
     price_cpi_adjusted_CAD: float = None
-    url_rank: float
-    ad_title_description: str
+
+
+class BikeBuddyAdPredictions(BaseModel):
+    predictions: List[float]
