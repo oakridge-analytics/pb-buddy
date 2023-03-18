@@ -1,8 +1,10 @@
 ## Bike Buddy API
 
-Usage:
+### Usage:
+
 - Copy MultiModal model snapshot, and paired sklearn Pipeline to transform input ad data -> prediction input dataframe expected
-- Update .env file, pointing to correct files
+    - These are generated in `reports/modelling/`
+- Update .env file, pointing to correct file for sklearn transformer file, and AutoGluon model folder
 - Setup environment with from within `api` folder:
 
 ```
@@ -11,7 +13,6 @@ conda activate pb-buddy-api
 pip install -r requirements.txt
 cd .. && pip install -e .
 ```
-- Use `source .env` to set env variables in current shell
 - Launch server with:
 
 ```
@@ -22,4 +23,18 @@ uvicorn main:app --port 8000
 
 ```
 curl -X POST -H "Content-Type: application/json" -d @test.json http://localhost:8000/text-predict
+```
+
+### Dockerfile:
+
+Once you have added the model assets to `api/assets` and updated the `.env` file in `api/.env` to point to these files, build the Docker image from the root of the `pb-buddy` repo:
+
+```
+docker build -t bikebuddy-api -f api/Dockerfile .
+```
+
+Then run the image locally using:
+
+```
+docker run -p 80:80 -it bikebuddy-api
 ```

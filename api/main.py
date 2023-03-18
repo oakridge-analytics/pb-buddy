@@ -8,6 +8,9 @@ from joblib import load
 import pandas as pd
 from model import BikeBuddyAd, BikeBuddyAdPredictions
 import predictor as predictor
+from dotenv import load_dotenv
+
+load_dotenv(".env")
 
 app = FastAPI(
     title="Bike Buddy API", description="API bike price prediction", version="0.0"
