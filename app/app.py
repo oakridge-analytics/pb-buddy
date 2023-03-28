@@ -15,9 +15,10 @@ from pb_buddy.scraper import parse_buysell_ad
 # constants
 current_year = pd.Timestamp.now().year
 
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.SLATE])
+dash_app = dash.Dash(__name__, external_stylesheets=[dbc.themes.SLATE])
+app = dash_app.server
 
-app.layout = dbc.Container(
+dash_app.layout = dbc.Container(
     [
         html.H1("Bike Buddy", className="text-center mb-4"),
         dbc.Row(
@@ -118,7 +119,7 @@ app.layout = dbc.Container(
 
 
 # Callback function
-@app.callback(
+@dash_app.callback(
     [
         Output("model-year", "value"),
         Output("ad-title", "value"),
@@ -135,7 +136,7 @@ def update_ad_fields(n_clicks, ad_url):
 
     parsed_ad = parse_buysell_ad(buysell_url=ad_url, delay_s=0)
 
-    # Post process for app inputs:
+    # Post process for dash_app inputs:
     year_match = re.search(r"((?:19|20)\d{2})", parsed_ad["ad_title"])
     if year_match:
         parsed_ad["model_year"] = year_match.group(1)
@@ -156,7 +157,7 @@ def update_ad_fields(n_clicks, ad_url):
     )
 
 
-@app.callback(
+@dash_app.callback(
     Output("kpi", "children"),
     [Input("submit-prediction", "n_clicks")],
     [
@@ -218,4 +219,4 @@ def update_output(n_clicks, model_year, ad_title, ad_description, country, post_
 
 
 if __name__ == "__main__":
-    app.run_server(host="0.0.0.0", debug=True)
+    dash_app.run_server(host="0.0.0.0", debug=True)
