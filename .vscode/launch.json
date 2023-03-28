@@ -11,6 +11,23 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true
+        },
+        {
+            "name": "Python: FastAPI",
+            "type": "python",
+            "request": "launch",
+            "module": "uvicorn",
+            "cwd": "${workspaceFolder}/api",
+            "justMyCode": false,
+            "args": [
+                "main:app",
+                "--reload"
+            ],
+            "jinja": true,
+            "env": {
+                "ENVIRONMENT": "development",
+                "LOG_LEVEL": "debug"
+            }
         }
     ]
 }

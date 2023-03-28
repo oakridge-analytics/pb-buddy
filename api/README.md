@@ -2,27 +2,51 @@
 
 ### Usage:
 
-- Copy Autgluon MultiModal model snapshot folder, and paired sklearn Pipeline to transform input ad data -> prediction input dataframe expected
+- Copy MultiModal model snapshot, and paired sklearn Pipeline to transform input ad data -> prediction input dataframe expected
     - These are generated in `reports/modelling/`
-    - Load to S3, under `s3://bike-buddy/models`
-    - Update `main.py` with the correct S3 path to the model snapshot folder and the paired sklearn Pipeline
-- Update modal image build steps to force build if needing an update (re-download model into image, pip install from repo)
+- Update .env file, pointing to correct file for sklearn transformer file, and AutoGluon model folder
+- Setup environment with from within `api` folder:
 
-- Serve as ephemeral API with `modal`:
+```
+conda create --name pb-buddy-api python=3.9
+conda activate pb-buddy-api
+pip install -r requirements.txt
+cd .. && pip install -e .
+```
+- Launch server with:
 
-```console
-modal serve main.py
+```
+uvicorn main:app --port 8000
 ```
 
-- Then test with:
+- Test with:
 
-```console
-curl -X POST -H "Content-Type: application/json" -d @test.json  https://dbandrews--bike-buddy-api-autogluonmodelinference-predict-dev.modal.run
+```
+curl -X POST -H "Content-Type: application/json" -d @test.json http://localhost:8000/text-predict
 ```
 
-- To deploy once happy:
+### Dockerfile:
 
-```console
-modal deploy main.py
+Once you have added the model assets to `api/assets` and updated the `.env` file in `api/.env` to point to these files, build the Docker image from the root of the `pb-buddy` repo:
+
 ```
+docker build -t bikebuddy-api -f api/Dockerfile .
+```
+
+Then run the image locally using:
+
+```
+docker run -p 80:80 -it bikebuddy-api
+```
+
+#### Azure Deployment Notes
+
+With existing `pbbuddy` Azure Container Registry:
+
+`az acr login --name pbbuddy`
+
+`docker tag bikebuddy-api:latest pbbuddy.azurecr.io/bikebuddy:latest`
+
+`docker push pbbuddy.azurecr.io/bikebuddy:latest`
+
 

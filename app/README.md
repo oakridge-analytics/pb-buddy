@@ -1,18 +1,12 @@
 # Bike Buddy App
 
-To demo the Bike Buddy price prediction model, a simple interface for parsing ads and getting predicted price.
+## Setup
 
-### Usage:
+From root of the `app/` folder:
 
-- Serve as ephemeral app with `modal`:
-
-```console
-modal serve app.py
 ```
-
-- To deploy once happy:
-
-```console
-modal deploy main.py
+conda create --name bike-buddy-app python=3.9
+conda activate bike-buddy-app
+pip install -r requirements.txt
+cd .. && pip install -e .
 ```
-
