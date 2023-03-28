@@ -15,7 +15,7 @@ from pb_buddy.scraper import parse_buysell_ad
 # constants
 current_year = pd.Timestamp.now().year
 
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.SLATE])
 
 app.layout = dbc.Container(
     [
@@ -84,43 +84,35 @@ app.layout = dbc.Container(
                             className="mt-3",
                         ),
                     ],
-                    width=4,
+                    md=4,
                 ),
                 dbc.Col(
                     [
-                        dbc.Row(
-                            [
-                                dbc.Col(
-                                    [
-                                        dcc.Loading(
-                                            [html.Div(id="kpi", className="text-center")],
-                                            type="cube",
-                                        )
-                                    ],
-                                    width=12,
-                                ),
-                            ]
-                        ),
-                        # dbc.Row(
-                        #     [
-                        #         dbc.Col(
-                        #             [
-                        #                 dcc.Loading(
-                        #                     [
-                        #                         dcc.Graph(id="depreciation-graph"),
-                        #                     ],
-                        #                     type="cube",
-                        #                 )
-                        #             ],
-                        #             width=12,
-                        #         ),
-                        #     ]
-                        # ),
+                        dcc.Loading(
+                            [html.Div(id="kpi")],
+                            type="cube",
+                        )
                     ],
-                    width=8,
+                    md=8,
+                    align="center",
                 ),
-            ]
+            ],
         ),
+        # dbc.Row(
+        #     [
+        #         dbc.Col(
+        #             [
+        #                 dcc.Loading(
+        #                     [
+        #                         dcc.Graph(id="depreciation-graph"),
+        #                     ],
+        #                     type="cube",
+        #                 )
+        #             ],
+        #             width=12,
+        #         ),
+        #     ]
+        # ),
     ]
 )
 
@@ -139,7 +131,7 @@ app.layout = dbc.Container(
 )
 def update_ad_fields(n_clicks, ad_url):
     if n_clicks is None or ad_url is None:
-        return [None, None, None, None, None]
+        return [None, None, None, str(pd.Timestamp.now()), None]
 
     parsed_ad = parse_buysell_ad(buysell_url=ad_url, delay_s=0)
 
@@ -181,8 +173,6 @@ def update_output(n_clicks, model_year, ad_title, ad_description, country, post_
             "Please Enter Data For Price Prediction and Click Submit"
         )  # , go.Figure()
 
-    api_url = "https://bikebuddy-api.azurewebsites.net/text-predict"
-
     # Single request
     data = [
         {
@@ -192,6 +182,8 @@ def update_output(n_clicks, model_year, ad_title, ad_description, country, post_
             "original_post_date": post_date,
         }
     ]
+
+    api_url = "https://bikebuddy-api.azurewebsites.net/text-predict"
 
     response = requests.post(api_url, json=data)
     response_data = response.json()
@@ -226,4 +218,4 @@ def update_output(n_clicks, model_year, ad_title, ad_description, country, post_
 
 
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run_server(host="0.0.0.0", debug=True)
