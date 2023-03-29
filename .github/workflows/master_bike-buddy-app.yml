@@ -41,8 +41,9 @@ jobs:
         with:
           name: python-app
           path: |
-            app/ 
-            !venv/
+            app/
+            app/**/*
+            !app/venv/
 
   deploy:
     runs-on: ubuntu-latest
@@ -63,5 +64,4 @@ jobs:
         id: deploy-to-webapp
         with:
           app-name: 'bike-buddy-app'
-          slot-name: 'Production'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_362561A98EFF4F7189491F84ECCACE31 }}
