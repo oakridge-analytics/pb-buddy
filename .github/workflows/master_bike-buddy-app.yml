@@ -6,27 +6,27 @@ on:
       - master
   workflow_dispatch:
 
-  build:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python 3.9
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.9
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e .
-        cd app/
-        pip install -r requirements.txt
-    - name: Building web app
-      uses: azure/appservice-build@v2   
-    - name: 'Deploy to Azure Web App'
-      uses: azure/webapps-deploy@v2
-      id: deploy-to-webapp
-      with:
-        app-name: 'bike-buddy-app'
-        # package: app
-        # startup-command: gunicorn --bind=0.0.0.0 --timeout 600 app:app
-        publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_362561A98EFF4F7189491F84ECCACE31 }}
+build:
+  runs-on: ubuntu-latest
+  steps:
+  - uses: actions/checkout@v2
+  - name: Set up Python 3.9
+    uses: actions/setup-python@v2
+    with:
+      python-version: 3.9
+  - name: Install dependencies
+    run: |
+      python -m pip install --upgrade pip
+      pip install -e .
+      cd app/
+      pip install -r requirements.txt
+  - name: Building web app
+    uses: azure/appservice-build@v2   
+  - name: 'Deploy to Azure Web App'
+    uses: azure/webapps-deploy@v2
+    id: deploy-to-webapp
+    with:
+      app-name: 'bike-buddy-app'
+      # package: app
+      # startup-command: gunicorn --bind=0.0.0.0 --timeout 600 app:app
+      publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_362561A98EFF4F7189491F84ECCACE31 }}
