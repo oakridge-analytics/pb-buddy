@@ -10,7 +10,7 @@ import plotly.graph_objs as go
 import plotly.express as px
 import requests
 
-from pb_buddy.scraper import parse_buysell_ad
+from parser import parse_buysell_ad
 
 # constants
 current_year = pd.Timestamp.now().year
