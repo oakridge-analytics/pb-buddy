@@ -64,6 +64,6 @@ jobs:
         id: deploy-to-webapp
         with:
           app-name: 'bike-buddy-app'
-          package: "./app"
+          package: app
           # startup-command: gunicorn --bind=0.0.0.0 --timeout 600 app:app
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_362561A98EFF4F7189491F84ECCACE31 }}
