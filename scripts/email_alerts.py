@@ -1,7 +1,9 @@
 # %%
 import pandas as pd
 import json
+import requests
 import os
+import pandas_datareader.data as web
 
 # Custom code
 import pb_buddy.emailer as et
@@ -12,6 +14,25 @@ import pb_buddy.data_processors as dt
 # Get rules to check and email for each
 alerts = json.load(open(os.path.join("alerts", "alerts.json")))
 changes = dt.get_dataset(-1, data_type="changes")
+api_url = "https://bikebuddy-api.azurewebsites.net/text-predict"
+email_cols = [
+    "url",
+    "ad_title",
+    "price",
+    "price_change",
+    "pred_price",
+    "pred_price_diff",
+    "original_post_date",
+    "location",
+    "last_repost_date",
+    "datetime_scraped",
+]
+api_cols = [
+    "ad_title",
+    "description",
+    "original_post_date",
+    "location",
+]
 
 # %%
 for alert in alerts["alerts"]:
@@ -47,19 +68,16 @@ for alert in alerts["alerts"]:
                     x.datetime_scraped, utc=True
                 ).dt.tz_convert("US/Mountain")
             )
-            .query("datetime_scraped > @last_check_dt")[
-                [
-                    "url",
-                    "ad_title",
-                    "price",
-                    "price_change",
-                    "currency",
-                    "location",
-                    "last_repost_date",
-                    "datetime_scraped",
-                ]
-            ]
-            .sort_values(["price_change", "price"], ascending=[False, True])
+            .assign(
+                pred_price=lambda _df: requests.post(
+                    api_url, json=_df[api_cols].to_dict(orient="records")
+                ).json()["predictions"],
+                price=lambda _df: _df.apply(
+                    lambda x: ut.convert_to_cad(x.price, x.currency), axis=1
+                ),
+                pred_price_diff=lambda _df: _df.pred_price - _df.price,
+            )
+            .sort_values(["price_change", "price"], ascending=[False, True])[email_cols]
             .fillna("0")
         )
         error_message = None
