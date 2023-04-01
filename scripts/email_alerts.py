@@ -77,6 +77,7 @@ for alert in alerts["alerts"]:
                 ),
                 pred_price_diff=lambda _df: _df.pred_price - _df.price,
             )
+            .query("datetime_scraped > @last_check_dt")
             .sort_values(["price_change", "price"], ascending=[False, True])[email_cols]
             .fillna("0")
         )
