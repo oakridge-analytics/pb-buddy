@@ -68,6 +68,7 @@ for alert in alerts["alerts"]:
                     x.datetime_scraped, utc=True
                 ).dt.tz_convert("US/Mountain")
             )
+            .query("datetime_scraped > @last_check_dt")
             .assign(
                 pred_price=lambda _df: requests.post(
                     api_url, json=_df[api_cols].to_dict(orient="records")
@@ -77,7 +78,6 @@ for alert in alerts["alerts"]:
                 ),
                 pred_price_diff=lambda _df: _df.pred_price - _df.price,
             )
-            .query("datetime_scraped > @last_check_dt")
             .sort_values(["price_change", "price"], ascending=[False, True])[email_cols]
             .fillna("0")
         )
