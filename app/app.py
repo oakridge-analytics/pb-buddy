@@ -1,4 +1,5 @@
 import re
+import os
 
 import dash
 import pandas as pd
@@ -14,6 +15,10 @@ from parser import parse_buysell_ad
 
 # constants
 current_year = pd.Timestamp.now().year
+if os.environ.get("API_URL") is None:
+    API_URL = "https://bikebuddy-api.azurewebsites.net/text-predict"
+else:
+    API_URL = os.environ["API_URL"]
 
 dash_app = dash.Dash(__name__, external_stylesheets=[dbc.themes.SLATE])
 app = dash_app.server
@@ -184,9 +189,7 @@ def update_output(n_clicks, model_year, ad_title, ad_description, country, post_
         }
     ]
 
-    api_url = "https://bikebuddy-api.azurewebsites.net/text-predict"
-
-    response = requests.post(api_url, json=data)
+    response = requests.post(API_URL, json=data)
     response_data = response.json()
     kpi_value = response_data["predictions"][0]
     kpi_element = html.H3(
