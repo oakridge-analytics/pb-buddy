@@ -35,7 +35,7 @@ from catboost import CatBoostRegressor, Pool
 from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.dummy import DummyRegressor
 from sklearn.svm import LinearSVR
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error
 
 from sklearn.model_selection import (
     train_test_split,
@@ -322,8 +322,6 @@ pd.DataFrame(base_grid_search.cv_results_)
 # Stronger Baseline
 
 ```python
-
-
 def predefined_grid_search(X_train_valid: pd.DataFrame, y_train_valid: pd.DataFrame, pipeline: Pipeline, hyperparams: dict, cv: PredefinedSplit, **kwargs):
     """
     Helper func for modelling with predefined split, getting valid results, and refitting just on train set:
@@ -395,10 +393,10 @@ catboost_pipe = Pipeline(
 )
 
 hparams ={
-    "transform__preprocess__title_text__tfidf__max_features" : [10000, 20000],
+    "transform__preprocess__title_text__tfidf__max_features" : [10000],
     "transform__preprocess__title_text__tfidf__ngram_range": [(1,3),],
     # "transform__preprocess__title_text__tfidf__max_df": [0.6,0.7],
-    "transform__preprocess__description_text__tfidf__max_features" : [10000,20000],
+    "transform__preprocess__description_text__tfidf__max_features" : [10000],
     "transform__preprocess__description_text__tfidf__ngram_range": [(1,3),],
     # "transform__preprocess__description_text__tfidf__max_df": [0.6,0.7],
     # "model__C": [30]
@@ -559,17 +557,18 @@ sample_data.assign(
 ```
 
 ```python
+sample_data = df_valid.sample(1)
 year_sweep = pd.DataFrame()
-for year in range(2010,2023):
+for year in range(2010,2030):
     new_result = (
         sample_data
         .assign(
-            # original_post_date = pd.to_datetime(f"{year}-01-01"),
-            bike_model_year = lambda _df: pd.to_datetime(f"{year}-01-01"),
-            ad_title = lambda _df: _df.ad_title.str.replace("\d{4}",str(year), regex=True),
+            original_post_date = pd.to_datetime(f"{year}-01-01"),
+            # bike_model_year = lambda _df: pd.to_datetime(f"{year}-01-01"),
+            # ad_title = lambda _df: _df.ad_title.str.replace("\d{4}",str(year), regex=True),
             pred = lambda _df : catboost_estimator.predict(_df),
         )
-        [["original_post_date","bike_model_year","ad_title","pred"]]
+        [["original_post_date","ad_title","pred"]]
     )
     year_sweep = pd.concat([
         year_sweep,
@@ -577,10 +576,11 @@ for year in range(2010,2023):
         ]
     )
 
-year_sweep.plot(x="bike_model_year", y="pred")
+year_sweep.plot(x="original_post_date", y="pred", marker='o', title=sample_data.ad_title.iloc[0]);
 ```
 
 ```python
+sample_data = df_valid.sample(1)
 month_sweep = pd.DataFrame()
 for month in range(1,13):
     new_result = (
@@ -598,11 +598,7 @@ for month in range(1,13):
         ]
     )
 
-month_sweep.plot(x="month_of_sale", y="pred", marker='o')
-```
-
-```python
-X_valid.columns
+month_sweep.plot(x="month_of_sale", y="pred", marker='o', title=sample_data.ad_title.iloc[0]);
 ```
 
 ```python
@@ -751,22 +747,24 @@ gluon_transformer = Pipeline(steps=[
                 ("add_covid_flag", add_covid_transformer,["original_post_date"]),
                  (
                     "title_text", 
-                    Pipeline(
-                        steps=[
-                            # Remove mentions of year so model doesn't learn to predict based on that year's prices
-                            ('remove_year', remove_year_transformer),
-                        ]
-                    ), 
+                    "passthrough",
+                    # Pipeline(
+                    #     steps=[
+                    #         # Remove mentions of year so model doesn't learn to predict based on that year's prices
+                    #         ('remove_year', remove_year_transformer),
+                    #     ]
+                    # ), 
                     ["ad_title"]
                 ),
                 (
                     "description_text", 
-                    Pipeline(
-                        steps=[
-                            # Remove mentions of year so model doesn't learn to predict based on that year's prices
-                            ('remove_year', remove_year_transformer), 
-                        ]
-                    ), 
+                    "passthrough",
+                    # Pipeline(
+                    #     steps=[
+                    #         # Remove mentions of year so model doesn't learn to predict based on that year's prices
+                    #         ('remove_year', remove_year_transformer), 
+                    #     ]
+                    # ), 
                     ["description"]
                 ),
             ],
@@ -781,18 +779,18 @@ gluon_transformer
 
 ```python
 gluon_transformer.fit(df_train)
-df_train_gluon = pd.DataFrame(data=gluon_transformer.transform(df_train), columns=gluon_transformer.get_feature_names_out())
-df_valid_gluon = pd.DataFrame(data=gluon_transformer.transform(df_valid), columns=gluon_transformer.get_feature_names_out())
+df_train_gluon = pd.DataFrame(data=gluon_transformer.transform(df_train), columns=gluon_transformer.get_feature_names_out()).astype({"add_age__age_at_post":int})
+df_valid_gluon = pd.DataFrame(data=gluon_transformer.transform(df_valid), columns=gluon_transformer.get_feature_names_out()).astype({"add_age__age_at_post":int})
+```
+
+```python
+df_valid_gluon.head()
 ```
 
 ```python
 # Save transformation pipeline from raw ad data
 run_uuid = uuid.uuid4().hex
 dump(gluon_transformer, f"./tmp/{run_uuid}-transformer-auto_mm_bikes")
-```
-
-```python
-df_train_gluon.head()
 ```
 
 ## Model Fitting
@@ -815,19 +813,20 @@ predictor.fit(
         hyperparameters={
                 # "optimization.learning_rate": tune.uniform(0.00001, 0.00006),
                 # "optimization.optim_type": tune.choice(["adamw"]),
-                "optimization.max_epochs": 8,
+                "model.names": ["hf_text", "timm_image", "clip", "categorical_mlp", "numerical_mlp", "fusion_mlp"],
+                "optimization.max_epochs": 10,
                 "optimization.patience": 6, # Num checks without valid improvement, every 0.5 epoch by default
-                "env.per_gpu_batch_size": 12,
-                "env.num_workers": 10,
-                "env.num_workers_evaluation": 10,
+                "env.per_gpu_batch_size": 16,
+                "env.num_workers": 20,
+                "env.num_workers_evaluation": 20,
                 # "model.hf_text.checkpoint_name": tune.choice(["google/electra-base-discriminator", 'roberta-base','roberta-large']),
-                "model.hf_text.checkpoint_name": 'roberta-large',
+                # "model.hf_text.checkpoint_name": 'roberta-large',
                 # "model.hf_text.text_trivial_aug_maxscale": tune.choice(["0.0","0.10","0.15","0.2"])
         },
         # hyperparameter_tune_kwargs = {
         #         "searcher": "bayes",
         #         "scheduler": "ASHA",
-        #         "num_trials": 15,
+        #         "num_trials": 5,
         # }
 )
 ```
@@ -839,21 +838,17 @@ predictor.fit_summary()
 ## Model Load and Results Inspection
 
 ```python
-predictor = MultiModalPredictor.load("tmp/60ea93d73097408eb83209866febf831-auto_mm_bikes")
+predictor = MultiModalPredictor.load("tmp/6c2a7bf3c0944248b56d34ed26c48df9-auto_mm_bikes")
 ```
 
 ```python
 df_gluon_inspection = pd.DataFrame(
     data=gluon_transformer.transform(
-        pd.concat([df_valid.assign(split="valid"), df_train.assign(split="train")])
+        pd.concat([df_valid, df_train])
     ),
-    columns=gluon_transformer.fit(df_valid).get_feature_names_out(),
+    columns= gluon_transformer.fit(df_valid).get_feature_names_out().tolist(),
 ).assign(pred=lambda _df: predictor.predict(_df))
 
-```
-
-```python
-print(predictor.predict(df_valid_gluon.head()))
 ```
 
 ```python
@@ -867,6 +862,72 @@ df_gluon_inspection = pd.concat([
 axis=1
 )
 
+```
+
+```python
+print(f"""Mean absolute percentage error on selected model: {mean_absolute_percentage_error(df_gluon_inspection.query("split=='valid'").price__price_cpi_adjusted_CAD, df_gluon_inspection.query("split=='valid'").pred):.2%}""")
+```
+
+## Sweep Over Features
+
+```python
+initial_df = df_valid_gluon.sample(1)
+sample_df = pd.concat(
+    [
+        initial_df.assign(
+            add_covid_flag__covid_flag=0,
+            add_age__age_at_post = str(x)
+        )
+        for x in range(100,3000,100)
+    ]
+).assign(pred=lambda _df: predictor.predict(_df))
+sample_df.plot(x="add_age__age_at_post", y="pred",
+            #    title=sample_df["title_text__ad_title"].iloc[0],
+               marker='o');
+# sample_df
+initial_df.head(1)
+```
+
+```python
+initial_df = df_valid_gluon.sample(1)
+sample_df = pd.concat(
+    [
+        initial_df.assign(
+            add_covid_flag__covid_flag=0,
+            title_text__ad_title = lambda _df: str(x) + _df.title_text__ad_title.str.replace(r'((?:19|20)\d{2})', '', regex=True).iloc[0],
+            model_year = x
+        )
+        for x in range(2010,2030)
+    ]
+).assign(pred=lambda _df: predictor.predict(_df))
+sample_df
+sample_df.plot(x="model_year", y="pred",
+               title=sample_df["title_text__ad_title"].iloc[0],
+               marker='o');
+initial_df
+```
+
+```python
+df_habits = df_gluon_inspection.query("title_text__ad_title.str.contains('Habit[\w\W+]Carbon[\w\W+]')")#.query("title_text__ad_title.isin(@df_valid_gluon.title_text__ad_title)")
+df_habits.plot(kind="scatter",x="add_age__age_at_post",y="resid")
+```
+
+```python
+initial_df = df_valid_gluon.sample(1)
+sample_df = pd.concat(
+    [
+        initial_df.assign(
+            add_covid_flag__covid_flag=0,
+            add_post_month__original_post_date=x,
+        )
+        for x in pd.date_range("01-JAN-2022", "31-DEC-2022", freq="M").strftime("%B")
+    ]
+).assign(pred=lambda _df: predictor.predict(_df))
+sample_df
+sample_df.plot(x="add_post_month__original_post_date", y="pred",
+               title=sample_df["title_text__ad_title"].iloc[0],
+               marker='o');
+# initial_df.head(1)
 ```
 
 ```python
@@ -911,6 +972,18 @@ g= (
     .pipe((sns.jointplot, "data"),kind="reg", y="pred", x="price__price_cpi_adjusted_CAD", joint_kws={"scatter_kws": {"alpha":0.1}}, height=10)
 )
 g.fig.suptitle("Predicted vs. Actual")
+```
+
+```python
+g= (
+    df_valid_gluon.astype({"price__price_cpi_adjusted_CAD":float})
+    .assign(
+        years_old = lambda _df: _df.add_age__age_at_post/365
+    )
+    .sample(1000)
+    .pipe((sns.jointplot, "data"),x="years_old", y="price__price_cpi_adjusted_CAD", height=10)
+)
+g.fig.suptitle("Price vs. Age of Ad")
 ```
 
 ## Embeddings Exploration
