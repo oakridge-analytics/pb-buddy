@@ -2,7 +2,7 @@
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 # More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
 
-name: Build and deploy Python app to Azure Web App - bike-buddy-app
+name: Deploy Bike Buddy App
 
 on:
   push:
@@ -18,10 +18,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Set up Python version
-        uses: actions/setup-python@v1
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v2
         with:
-          python-version: '3.9'
+          python-version: 3.9
 
       - name: Create and start virtual environment
         run: |
@@ -47,7 +47,7 @@ jobs:
             !app/venv/
 
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: build
     environment:
       name: 'Production'
