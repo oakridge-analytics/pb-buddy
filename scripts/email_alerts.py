@@ -70,15 +70,22 @@ for alert in alerts["alerts"]:
             )
             .query("datetime_scraped > @last_check_dt")
             .assign(
-                pred_price=lambda _df: requests.post(
-                    api_url, json=_df[api_cols].to_dict(orient="records")
-                ).json()["predictions"],
+                # TODO: implement batched requests. For now, do single ad at time
+                pred_price=lambda _df: [
+                    requests.post(api_url, json=[row]).json()["predictions"][0]
+                    for row in _df[api_cols].to_dict(orient="records")
+                ],
                 price=lambda _df: _df.apply(
                     lambda x: ut.convert_to_cad(x.price, x.currency), axis=1
                 ),
                 pred_price_diff=lambda _df: _df.pred_price - _df.price,
             )
             .sort_values(["price_change", "price"], ascending=[False, True])[email_cols]
+            .query(
+                alert["price_search_string"]
+                if alert.get("price_search_string") is not None
+                else "price > 0"
+            )
             .fillna("0")
         )
         error_message = None
