@@ -8,8 +8,8 @@
 - Setup environment with from within `api` folder:
 
 ```
-conda create --name pb-buddy-api python=3.9
-conda activate pb-buddy-api
+conda create --name bike-buddy-api python=3.9 -y
+conda activate bike-buddy-api
 pip install -r requirements.txt
 cd .. && pip install -e .
 ```
