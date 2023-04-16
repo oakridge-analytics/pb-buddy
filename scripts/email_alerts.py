@@ -59,35 +59,41 @@ for alert in alerts["alerts"]:
     # Handle query errors and provide some sort of feedback in email.
     try:
         filtered_df = df.query(alert["search_string"])
-        filtered_df = pd.merge(
-            filtered_df, price_changes, left_on="url", right_on="url", how="left"
-        )
         filtered_df = (
-            filtered_df.assign(
+            pd.merge(
+                filtered_df, price_changes, left_on="url", right_on="url", how="left"
+            )
+            .assign(
                 datetime_scraped=lambda x: pd.to_datetime(
                     x.datetime_scraped, utc=True
                 ).dt.tz_convert("US/Mountain")
             )
             .query("datetime_scraped > @last_check_dt")
-            .assign(
-                # TODO: implement batched requests. For now, do single ad at time
-                pred_price=lambda _df: [
-                    requests.post(api_url, json=[row]).json()["predictions"][0]
-                    for row in _df[api_cols].to_dict(orient="records")
-                ],
-                price=lambda _df: _df.apply(
-                    lambda x: ut.convert_to_cad(x.price, x.currency), axis=1
-                ),
-                pred_price_diff=lambda _df: _df.pred_price - _df.price,
-            )
-            .sort_values(["price_change", "price"], ascending=[False, True])[email_cols]
-            .query(
-                alert["price_search_string"]
-                if alert.get("price_search_string") is not None
-                else "price > 0"
-            )
-            .fillna("0")
         )
+
+        if len(filtered_df) > 0:
+            filtered_df = (
+                filtered_df.assign(
+                    # TODO: implement batched requests. For now, do single ad at time
+                    pred_price=lambda _df: [
+                        requests.post(api_url, json=[row]).json()["predictions"][0]
+                        for row in _df[api_cols].to_dict(orient="records")
+                    ],
+                    price=lambda _df: _df.apply(
+                        lambda x: ut.convert_to_cad(x.price, x.currency), axis=1
+                    ),
+                    pred_price_diff=lambda _df: _df.pred_price - _df.price,
+                )
+                .sort_values(["price_change", "price"], ascending=[False, True])[
+                    email_cols
+                ]
+                .query(
+                    alert["price_search_string"]
+                    if alert.get("price_search_string") is not None
+                    else "price > 0"
+                )
+                .fillna("0")
+            )
         error_message = None
     except pd.core.computation.ops.UndefinedVariableError:
         error_message = "Check all columns in alert are spelled correctly!"
