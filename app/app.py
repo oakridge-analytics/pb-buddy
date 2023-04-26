@@ -30,7 +30,13 @@ dash_app.layout = dbc.Container(
             [
                 dbc.Col(
                     [
-                        html.H2("Enter Pinkbike URL:"),
+                        html.A(
+                            children=[
+                                html.H3("Enter Pinkbike Buy Sell Ad URL:"),
+                            ],
+                            href="https://www.pinkbike.com/buysell/",
+                            target="_blank",
+                        ),
                         html.Br(),
                         dcc.Input(id="ad-url", placeholder="Enter Pinkbike Buy Sell URL"),
                         html.Br(),
