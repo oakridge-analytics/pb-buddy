@@ -24,7 +24,7 @@ def get_buysell_ads(url: str, delay_s: int = 1) -> List[str]:
     headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"
     }
-    search_results = requests.get(url, headers=headers, timeout=20)
+    search_results = requests.get(url, headers=headers, timeout=200)
     if search_results.status_code > 200:
         print(search_results.content)
         print(search_results.status_code)
@@ -58,7 +58,7 @@ def get_total_pages(category_num: str, region: int = 3) -> int:
     """
     # Get total number of pages-----------------------------------------------
     base_url = f"https://www.pinkbike.com/buysell/list/?region={region}&page=1&category={category_num}"
-    search_results = requests.get(base_url).content
+    search_results = requests.get(base_url, timeout=200).content
     soup = BeautifulSoup(search_results, features="html.parser")
 
     largest_page_num = 0
@@ -90,7 +90,7 @@ def parse_buysell_ad(buysell_url: str, delay_s: int) -> dict:
     }
 
     try:
-        page_request = requests.get(buysell_url, headers=headers, timeout=20)
+        page_request = requests.get(buysell_url, headers=headers, timeout=200)
     except TimeoutError as e:
         print(e)
         return {}
