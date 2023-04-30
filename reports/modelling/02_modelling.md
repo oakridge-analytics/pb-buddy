@@ -34,6 +34,7 @@ from catboost import CatBoostRegressor, Pool
 # Sklearn helpers ------------------------------
 from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.dummy import DummyRegressor
+from sklearn.ensemble import IsolationForest
 from sklearn.svm import LinearSVR
 from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error
 
@@ -199,9 +200,7 @@ import torch
 torch.cuda.is_available()
 ```
 
-# Baseline
-
-We'll first do some baselines - first a simple bag of words, with dummy regressor (predict the mean) and with a linear regression
+# Pipeline Definition
 
 ```python
 # Allow periods only inside numbers for model names,
@@ -276,6 +275,51 @@ transformer = Pipeline(steps=[
 
 transformer
 ```
+
+# Outlier Detection
+
+To help remove ads that are likely erroneous - we'll first check for data points that are suspicious before modelling.
+
+```python
+isolation_pipe = Pipeline(steps=[
+    ("preprocess", transformer),
+    ("isoforest", IsolationForest(n_estimators=300, max_samples=50000, n_jobs=30, contamination=0.05))
+])
+
+isolation_pipe.fit(X_train)
+```
+
+```python
+X_train_outlier_scored = (
+    X_train
+    .assign(
+        outlier_flag = lambda _df : isolation_pipe.predict(_df),
+        outlier_score = lambda _df : isolation_pipe.score_samples(_df)
+    )
+)
+```
+
+```python
+(
+    X_train_outlier_scored
+    .assign(
+        price_cpi_adjusted_CAD = y_train
+    )
+    .query("outlier_flag == -1")
+    .sort_values("outlier_score", ascending=True)
+    .head(20)
+    [["price", "url","price_cpi_adjusted_CAD","ad_title", "original_post_date","description", "outlier_score"]]
+    .assign(
+        url = lambda _df : _df.url.apply(make_clickable)
+    )
+    .style
+)
+    
+```
+
+# Baseline
+
+We'll first do some baselines - first a simple bag of words, with dummy regressor (predict the mean) and with a linear regression
 
 ```python
 # transform Check ---------------------------------
@@ -744,27 +788,28 @@ gluon_transformer = Pipeline(steps=[
                     ),
                     ['location']
                 ),
+                ("location", "passthrough",["location"]),
                 ("add_covid_flag", add_covid_transformer,["original_post_date"]),
                  (
                     "title_text", 
-                    "passthrough",
-                    # Pipeline(
-                    #     steps=[
-                    #         # Remove mentions of year so model doesn't learn to predict based on that year's prices
-                    #         ('remove_year', remove_year_transformer),
-                    #     ]
-                    # ), 
+                    # "passthrough",
+                    Pipeline(
+                        steps=[
+                            # Remove mentions of year so model doesn't learn to predict based on that year's prices
+                            ('remove_year', remove_year_transformer),
+                        ]
+                    ), 
                     ["ad_title"]
                 ),
                 (
                     "description_text", 
-                    "passthrough",
-                    # Pipeline(
-                    #     steps=[
-                    #         # Remove mentions of year so model doesn't learn to predict based on that year's prices
-                    #         ('remove_year', remove_year_transformer), 
-                    #     ]
-                    # ), 
+                    # "passthrough",
+                    Pipeline(
+                        steps=[
+                            # Remove mentions of year so model doesn't learn to predict based on that year's prices
+                            ('remove_year', remove_year_transformer), 
+                        ]
+                    ), 
                     ["description"]
                 ),
             ],
@@ -790,6 +835,7 @@ df_valid_gluon.head()
 ```python
 # Save transformation pipeline from raw ad data
 run_uuid = uuid.uuid4().hex
+os.makedirs(os.path.join(os.getcwd(),"tmp"), exist_ok=True)
 dump(gluon_transformer, f"./tmp/{run_uuid}-transformer-auto_mm_bikes")
 ```
 
