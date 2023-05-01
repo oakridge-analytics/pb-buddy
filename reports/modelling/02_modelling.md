@@ -281,22 +281,107 @@ transformer
 To help remove ads that are likely erroneous - we'll first check for data points that are suspicious before modelling.
 
 ```python
+# Add in price to detect outliers on pricing as well as inputs
+token_pattern = "[a-zA-Z0-9$&+,:;=?@#|<>^%!]+|[0-9$&+,.:;=?@#|<>^%!]+"
+
+outlier_transformer = Pipeline(steps=[
+    ('preprocess',
+        ColumnTransformer(
+            transformers = [
+                (
+                "price",
+                "passthrough",
+                ["price_cpi_adjusted_CAD"]
+                ),
+                ("add_age", add_age_transformer, ["ad_title","original_post_date"]),
+                (
+                    "add_post_month",
+                    Pipeline(
+                        steps=[
+                            ("get_post_month",get_post_month_transformer),
+                            ("one_hot", OneHotEncoder(handle_unknown="infrequent_if_exist"))
+                        ]
+                    ),
+                    ['original_post_date']
+                ),
+                (
+                    "add_country",
+                    Pipeline(
+                        steps=[
+                            ("get_country",add_country_transformer),
+                            ("one_hot", OneHotEncoder(handle_unknown="infrequent_if_exist"))
+                        ]
+                    ),
+                    ['location']
+                ),
+                ("add_covid_flag", add_covid_transformer,["original_post_date"]),
+                (
+                    "title_text", 
+                    Pipeline(
+                        steps=[
+                            # Remove mentions of year so model doesn't learn to predict based on that year's prices
+                            ('remove_year', remove_year_transformer),
+                            ('tfidf',
+                                TfidfVectorizer(
+                                        token_pattern = token_pattern 
+                                )
+                            ),
+                        ]
+                    ), 
+                    "ad_title"
+                ),
+                (
+                    "description_text", 
+                    Pipeline(
+                        steps=[
+                            # Remove mentions of year so model doesn't learn to predict based on that year's prices
+                            ('remove_year', remove_year_transformer), 
+                            ('tfidf',
+                                TfidfVectorizer(
+                                        # Allow periods only inside numbers for model names etc. 
+                                        token_pattern = token_pattern
+                                )
+                            ),
+                        ]
+                    ), 
+                    "description"
+                ),
+            ],
+        remainder="drop"
+    )),
+    ('scale', MaxAbsScaler()) # Maintains sparsity!
+]
+)
+
+
 isolation_pipe = Pipeline(steps=[
-    ("preprocess", transformer),
-    ("isoforest", IsolationForest(n_estimators=300, max_samples=50000, n_jobs=30, contamination=0.05))
+    ("preprocess", outlier_transformer),
+    ("isoforest", IsolationForest(n_estimators=1000, max_samples=10000, n_jobs=30, contamination=0.01))
 ])
 
-isolation_pipe.fit(X_train)
+isolation_pipe.fit(df_modelling)
 ```
 
 ```python
 X_train_outlier_scored = (
-    X_train
+    df_modelling
     .assign(
         outlier_flag = lambda _df : isolation_pipe.predict(_df),
         outlier_score = lambda _df : isolation_pipe.score_samples(_df)
     )
 )
+```
+
+```python
+(
+    X_train_outlier_scored
+    .outlier_flag
+    .value_counts()
+)
+```
+
+```python
+X_train_outlier_scored.query("outlier_flag==-1").outlier_score.hist(bins=100)
 ```
 
 ```python
