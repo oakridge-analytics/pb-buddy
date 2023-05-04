@@ -123,6 +123,10 @@ else:
 ```
 
 ```python
+df_modelling.to_csv(local_cache_file_path, index=None)
+```
+
+```python
 # Do general pre processing of dataset
 # Notes:
 # - Cast date columns to correct datetime type
@@ -330,22 +334,22 @@ outlier_transformer = Pipeline(steps=[
                     ), 
                     "ad_title"
                 ),
-                (
-                    "description_text", 
-                    Pipeline(
-                        steps=[
-                            # Remove mentions of year so model doesn't learn to predict based on that year's prices
-                            ('remove_year', remove_year_transformer), 
-                            ('tfidf',
-                                TfidfVectorizer(
-                                        # Allow periods only inside numbers for model names etc. 
-                                        token_pattern = token_pattern
-                                )
-                            ),
-                        ]
-                    ), 
-                    "description"
-                ),
+                # (
+                #     "description_text", 
+                #     Pipeline(
+                #         steps=[
+                #             # Remove mentions of year so model doesn't learn to predict based on that year's prices
+                #             ('remove_year', remove_year_transformer), 
+                #             ('tfidf',
+                #                 TfidfVectorizer(
+                #                         # Allow periods only inside numbers for model names etc. 
+                #                         token_pattern = token_pattern
+                #                 )
+                #             ),
+                #         ]
+                #     ), 
+                #     "description"
+                # ),
             ],
         remainder="drop"
     )),
