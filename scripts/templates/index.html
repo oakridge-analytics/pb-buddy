@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Image Downloader Progress</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+      body {
+        background-color: #A3E7FC;
+        font-family: 'Pacifico', cursive;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        overflow: hidden;
+      }
+
+      .progress-container {
+        position: relative;
+        width: 200px;
+        height: 200px;
+      }
+
+      .progress-circle {
+        width: 100%;
+        height: 100%;
+        border: 5px solid transparent;
+        border-radius: 50%;
+        position: absolute;
+      }
+
+      .progress-circle:before {
+        content: "";
+        width: 100%;
+        height: 100%;
+        border: 5px solid #FED766;
+        border-radius: 50%;
+        position: absolute;
+        clip: rect(0px, 100px, 200px, 0px);
+      }
+
+      .progress-circle .progress-text {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 24px;
+        color: #DA22FF;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="progress-container">
+      <div class="progress-circle" id="progressCircle">
+        <div class="progress-text" id="progressText">0%</div>
+      </div>
+    </div>
+
+    <script>
+      function updateProgress() {
+        $.getJSON("/progress", function(data) {
+          const progress = data.progress;
+          const angle = (progress / 100) * 360;
+          const progressCircle = $("#progressCircle");
+
+          if (angle <= 180) {
+            progressCircle.css("border", "5px solid transparent");
+            progressCircle.css("transform", "rotate(" + angle + "deg)");
+          } else {
+            progressCircle.css("border", "5px solid #FED766");
+            progressCircle.css("transform", "rotate(180deg)");
+            progressCircle.find(">:first-child").css("clip", "rect(0px, 100px, 200px, 0px)");
+            progressCircle.find(">:first-child").css("transform", "rotate(" + (angle - 180) + "deg)");
+          }
+
+          $("#progressText").text(progress.toFixed(2) + "%");
+
+          if (progress < 100) {
+            setTimeout(updateProgress, 1000);
+          }
+        });
+      }
+
+      updateProgress();
+    </script>
+  </body>
+</html>
