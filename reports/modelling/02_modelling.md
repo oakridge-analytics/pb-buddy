@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.14.5
+      jupytext_version: 1.14.4
   kernelspec:
     display_name: pb-buddy
     language: python
@@ -193,7 +193,7 @@ sns.set_theme()
 ```python
 fig,ax = plt.subplots()
 for _df in [df_train,df_valid,df_test]:
-    sns.kdeplot(data=_df, x="price_cpi_adjusted_CAD", ax=ax)
+    sns.kdeplot(data=_df, x="price_cpi_adjusted_CAD", bw_adjust=0.5, ax=ax)
 ax.set_title("Train/Valid/Test Price Distributions")
 ```
 
@@ -877,7 +877,7 @@ gluon_transformer = Pipeline(steps=[
                     ),
                     ['location']
                 ),
-                ("location", "passthrough",["location"]),
+                ("image", "passthrough",["image"]),
                 ("add_covid_flag", add_covid_transformer,["original_post_date"]),
                  (
                     "title_text", 
@@ -909,6 +909,32 @@ gluon_transformer = Pipeline(steps=[
 )
 gluon_transformer
 
+```
+
+### Augment with image paths for multimodal modelling
+
+```python
+# All images are indexed by their ad id, within a base image folder. Need to pass file paths for autogluon multimodal
+images_base_path = '/mnt/h/pb-buddy-images/'
+df_images = (
+    pd.DataFrame(data={"filename":os.listdir(images_base_path)})
+    .assign(
+        image = lambda _df: f"{images_base_path}" + _df.filename,
+        url = lambda _df: "https://www.pinkbike.com/buysell/" + _df.filename.str.extract(r'([0-9]{7})') + "/"
+    )
+)
+
+
+df_train = (
+    df_train
+    .merge(df_images, left_on="url", right_on="url")
+    .dropna(subset=["image"])
+)
+df_valid = (
+    df_valid
+    .merge(df_images, left_on="url", right_on="url")
+    .dropna(subset=["image"])
+)
 ```
 
 ```python
@@ -948,7 +974,7 @@ predictor.fit(
         hyperparameters={
                 # "optimization.learning_rate": tune.uniform(0.00001, 0.00006),
                 # "optimization.optim_type": tune.choice(["adamw"]),
-                "model.names": ["hf_text", "timm_image", "clip", "categorical_mlp", "numerical_mlp", "fusion_mlp"],
+                # "model.names": ["hf_text", "timm_image", "clip", "categorical_mlp", "numerical_mlp", "fusion_mlp"],
                 "optimization.max_epochs": 10,
                 "optimization.patience": 6, # Num checks without valid improvement, every 0.5 epoch by default
                 "env.per_gpu_batch_size": 16,
