@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.14.5
+      jupytext_version: 1.14.4
   kernelspec:
     display_name: pb-buddy
     language: python
@@ -858,49 +858,49 @@ gluon_transformer = Pipeline(steps=[
         ColumnTransformer(
             transformers = [
                 ("price", "passthrough", ["price_cpi_adjusted_CAD"] ),
-                # ("add_age", add_age_transformer, ["ad_title","original_post_date"]),
-                # (
-                #     "add_post_month",
-                #     Pipeline(
-                #         steps=[
-                #             ("get_post_month",get_post_month_transformer),
-                #         ]
-                #     ),
-                #     ['original_post_date']
-                # ),
-                # (
-                #     "add_country",
-                #     Pipeline(
-                #         steps=[
-                #             ("get_country",add_country_transformer),
-                #         ]
-                #     ),
-                #     ['location']
-                # ),
+                ("add_age", add_age_transformer, ["ad_title","original_post_date"]),
+                (
+                    "add_post_month",
+                    Pipeline(
+                        steps=[
+                            ("get_post_month",get_post_month_transformer),
+                        ]
+                    ),
+                    ['original_post_date']
+                ),
+                (
+                    "add_country",
+                    Pipeline(
+                        steps=[
+                            ("get_country",add_country_transformer),
+                        ]
+                    ),
+                    ['location']
+                ),
                 ("image", "passthrough",["image"]),
-                # ("add_covid_flag", add_covid_transformer,["original_post_date"]),
-                #  (
-                #     "title_text", 
-                #     # "passthrough",
-                #     Pipeline(
-                #         steps=[
-                #             # Remove mentions of year so model doesn't learn to predict based on that year's prices
-                #             ('remove_year', remove_year_transformer),
-                #         ]
-                #     ), 
-                #     ["ad_title"]
-                # ),
-                # (
-                #     "description_text", 
-                #     # "passthrough",
-                #     Pipeline(
-                #         steps=[
-                #             # Remove mentions of year so model doesn't learn to predict based on that year's prices
-                #             ('remove_year', remove_year_transformer), 
-                #         ]
-                #     ), 
-                #     ["description"]
-                # ),
+                ("add_covid_flag", add_covid_transformer,["original_post_date"]),
+                 (
+                    "title_text", 
+                    # "passthrough",
+                    Pipeline(
+                        steps=[
+                            # Remove mentions of year so model doesn't learn to predict based on that year's prices
+                            ('remove_year', remove_year_transformer),
+                        ]
+                    ), 
+                    ["ad_title"]
+                ),
+                (
+                    "description_text", 
+                    # "passthrough",
+                    Pipeline(
+                        steps=[
+                            # Remove mentions of year so model doesn't learn to predict based on that year's prices
+                            ('remove_year', remove_year_transformer), 
+                        ]
+                    ), 
+                    ["description"]
+                ),
             ],
         remainder="drop"
     )
@@ -923,9 +923,7 @@ df_images = (
         url = lambda _df: "https://www.pinkbike.com/buysell/" + _df.filename.str.extract(r'([0-9]{7})') + "/"
     )
 )
-```
 
-```python
 
 df_train = (
     df_train
