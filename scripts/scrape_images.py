@@ -17,10 +17,12 @@ counter = Value("i", 0)
 total = 0
 
 
-def download_image(url, save_dir, delay, max_retries, backoff_factor):
+def download_image(url, save_dir, delay, max_retries, backoff_factor, error_folder):
     global counter
 
     retries = 0
+    file_stem = url.split("/")[-2] + ".jpg"
+    filename = os.path.join(save_dir, file_stem)
     while retries <= max_retries:
         try:
             time.sleep(delay)
@@ -30,7 +32,6 @@ def download_image(url, save_dir, delay, max_retries, backoff_factor):
                 image = soup.find("div", {"id": "buysell-image", "class": "selectable"})
                 if image:
                     image_url = image["data-fullimageurl"]
-                    filename = os.path.join(save_dir, url.split("/")[-2] + ".jpg")
                     with open(filename, "wb") as file:
                         for chunk in requests.get(image_url).iter_content(
                             chunk_size=8192
@@ -45,9 +46,13 @@ def download_image(url, save_dir, delay, max_retries, backoff_factor):
                     return
                 else:
                     print(f"No image found to download for: {url}")
+                    with open(os.path.join(error_folder, file_stem), "w") as file:
+                        file.write("error")
                     return
             else:
                 print(f"Failed to download: {url}")
+                with open(os.path.join(error_folder, file_stem), "w") as file:
+                    file.write("error")
                 return
 
         except Exception as e:
@@ -60,14 +65,22 @@ def download_image(url, save_dir, delay, max_retries, backoff_factor):
     print(f"Failed to download (max retries): {url}")
 
 
-def download_images(urls, save_dir, num_processes, delay, max_retries, backoff_factor):
+def download_images(
+    urls, save_dir, num_processes, delay, max_retries, backoff_factor, error_folder
+):
     global counter
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
     # Remove URLs of already downloaded images, update progress bar
     existing_files = os.listdir(save_dir)
-    urls = [url for url in urls if url.split("/")[-2] not in existing_files]
+    error_files = os.listdir(error_folder)
+    urls = [
+        url
+        for url in urls
+        if f"{url.split('/')[-2]}.jpg" not in existing_files
+        and f"{url.split('/')[-2]}.jpg" not in error_files
+    ]
 
     with Pool(num_processes) as pool:
         pool.map(
@@ -77,6 +90,7 @@ def download_images(urls, save_dir, num_processes, delay, max_retries, backoff_f
                 delay=delay,
                 max_retries=max_retries,
                 backoff_factor=backoff_factor,
+                error_folder=error_folder,
             ),
             urls,
         )
@@ -104,12 +118,13 @@ if __name__ == "__main__":
 
     # ----------------------settings----------------------------------
     urls = pd.read_csv(
-        "/home/drumm/projects/pb-buddy/data/2022-05-20_05_00_04__adjusted_bike_ads.csv",
+        "../data/2022-05-20_05_00_04__adjusted_bike_ads.csv",
         index_col=False,
     ).url.to_list()
     total = len(urls)
 
     save_dir = "../data/images/"
+    error_dir = "../data/error/"
     num_processes = 4
     delay = 1
     max_retries = 12
@@ -121,6 +136,14 @@ if __name__ == "__main__":
 
     download_images_thread = Thread(
         target=download_images,
-        args=(urls, save_dir, num_processes, delay, max_retries, backoff_factor),
+        args=(
+            urls,
+            save_dir,
+            num_processes,
+            delay,
+            max_retries,
+            backoff_factor,
+            error_dir,
+        ),
     )
     download_images_thread.start()
