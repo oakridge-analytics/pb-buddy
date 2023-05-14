@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.14.4
+      jupytext_version: 1.14.5
   kernelspec:
     display_name: pb-buddy
     language: python
@@ -858,49 +858,49 @@ gluon_transformer = Pipeline(steps=[
         ColumnTransformer(
             transformers = [
                 ("price", "passthrough", ["price_cpi_adjusted_CAD"] ),
-                ("add_age", add_age_transformer, ["ad_title","original_post_date"]),
-                (
-                    "add_post_month",
-                    Pipeline(
-                        steps=[
-                            ("get_post_month",get_post_month_transformer),
-                        ]
-                    ),
-                    ['original_post_date']
-                ),
-                (
-                    "add_country",
-                    Pipeline(
-                        steps=[
-                            ("get_country",add_country_transformer),
-                        ]
-                    ),
-                    ['location']
-                ),
+                # ("add_age", add_age_transformer, ["ad_title","original_post_date"]),
+                # (
+                #     "add_post_month",
+                #     Pipeline(
+                #         steps=[
+                #             ("get_post_month",get_post_month_transformer),
+                #         ]
+                #     ),
+                #     ['original_post_date']
+                # ),
+                # (
+                #     "add_country",
+                #     Pipeline(
+                #         steps=[
+                #             ("get_country",add_country_transformer),
+                #         ]
+                #     ),
+                #     ['location']
+                # ),
                 ("image", "passthrough",["image"]),
-                ("add_covid_flag", add_covid_transformer,["original_post_date"]),
-                 (
-                    "title_text", 
-                    # "passthrough",
-                    Pipeline(
-                        steps=[
-                            # Remove mentions of year so model doesn't learn to predict based on that year's prices
-                            ('remove_year', remove_year_transformer),
-                        ]
-                    ), 
-                    ["ad_title"]
-                ),
-                (
-                    "description_text", 
-                    # "passthrough",
-                    Pipeline(
-                        steps=[
-                            # Remove mentions of year so model doesn't learn to predict based on that year's prices
-                            ('remove_year', remove_year_transformer), 
-                        ]
-                    ), 
-                    ["description"]
-                ),
+                # ("add_covid_flag", add_covid_transformer,["original_post_date"]),
+                #  (
+                #     "title_text", 
+                #     # "passthrough",
+                #     Pipeline(
+                #         steps=[
+                #             # Remove mentions of year so model doesn't learn to predict based on that year's prices
+                #             ('remove_year', remove_year_transformer),
+                #         ]
+                #     ), 
+                #     ["ad_title"]
+                # ),
+                # (
+                #     "description_text", 
+                #     # "passthrough",
+                #     Pipeline(
+                #         steps=[
+                #             # Remove mentions of year so model doesn't learn to predict based on that year's prices
+                #             ('remove_year', remove_year_transformer), 
+                #         ]
+                #     ), 
+                #     ["description"]
+                # ),
             ],
         remainder="drop"
     )
@@ -923,7 +923,9 @@ df_images = (
         url = lambda _df: "https://www.pinkbike.com/buysell/" + _df.filename.str.extract(r'([0-9]{7})') + "/"
     )
 )
+```
 
+```python
 
 df_train = (
     df_train
@@ -939,8 +941,8 @@ df_valid = (
 
 ```python
 gluon_transformer.fit(df_train)
-df_train_gluon = pd.DataFrame(data=gluon_transformer.transform(df_train), columns=gluon_transformer.get_feature_names_out()).astype({"add_age__age_at_post":int})
-df_valid_gluon = pd.DataFrame(data=gluon_transformer.transform(df_valid), columns=gluon_transformer.get_feature_names_out()).astype({"add_age__age_at_post":int})
+df_train_gluon = pd.DataFrame(data=gluon_transformer.transform(df_train), columns=gluon_transformer.get_feature_names_out())#.astype({"add_age__age_at_post":int})
+df_valid_gluon = pd.DataFrame(data=gluon_transformer.transform(df_valid), columns=gluon_transformer.get_feature_names_out())#.astype({"add_age__age_at_post":int})
 ```
 
 ```python
@@ -977,7 +979,7 @@ predictor.fit(
                 # "model.names": ["hf_text", "timm_image", "clip", "categorical_mlp", "numerical_mlp", "fusion_mlp"],
                 "optimization.max_epochs": 10,
                 "optimization.patience": 6, # Num checks without valid improvement, every 0.5 epoch by default
-                "env.per_gpu_batch_size": 16,
+                "env.per_gpu_batch_size": 18,
                 "env.num_workers": 20,
                 "env.num_workers_evaluation": 20,
                 # "model.hf_text.checkpoint_name": tune.choice(["google/electra-base-discriminator", 'roberta-base','roberta-large']),
@@ -1061,7 +1063,6 @@ sample_df = pd.concat(
         for x in range(2010,2030)
     ]
 ).assign(pred=lambda _df: predictor.predict(_df))
-sample_df
 sample_df.plot(x="model_year", y="pred",
                title=sample_df["title_text__ad_title"].iloc[0],
                marker='o');
@@ -1092,6 +1093,24 @@ sample_df.plot(x="add_post_month__original_post_date", y="pred",
 ```
 
 ```python
+initial_df = df_valid_gluon.sample(1)
+sample_df = pd.concat(
+    [
+        initial_df.assign(
+            add_covid_flag__covid_flag=0,
+            image__image=x,
+        )
+        for x in df_valid_gluon["image__image"].sample(10)
+    ]
+).assign(pred=lambda _df: predictor.predict(_df))
+sample_df
+sample_df.plot(x="image__image", y="pred",
+               title=f"{sample_df['title_text__ad_title'].iloc[0]} - with random images",
+               marker='o');
+plt.xticks(rotation=90);
+```
+
+```python
 pd.set_option('display.max_colwidth', 0)
 
 def make_clickable(val):
@@ -1102,7 +1121,7 @@ def make_clickable(val):
     .assign(
         abs_resid = lambda _df: np.abs(_df.resid)
     )
-    [["url","add_age__age_at_post","original_post_date", "resid", "abs_resid","pred","price_cpi_adjusted_CAD", "ad_title", "description"]]
+    [["url","add_age__age_at_post","original_post_date","image__image", "resid", "abs_resid","pred","price_cpi_adjusted_CAD", "ad_title", "description"]]
     .sort_values("abs_resid", ascending=False)
     .head(20)
     .assign(
@@ -1112,6 +1131,11 @@ def make_clickable(val):
     .background_gradient(subset="resid", cmap="RdBu")
     .set_caption("Largest Absolute Residuals")
 )
+```
+
+```python
+for item in predictor._model.named_children():
+    print(item)
 ```
 
 ```python
