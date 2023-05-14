@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.14.4
+      jupytext_version: 1.14.5
   kernelspec:
     display_name: pb-buddy
     language: python
@@ -110,7 +110,7 @@ from pb_buddy.modelling.skhelpers import (
 ```python
 # Where set processed data path in Azure Blob storage
 input_container_name = 'pb-buddy-historical'
-input_blob_name =  '2022-05-20_05_00_04__adjusted_bike_ads.parquet.gzip'
+input_blob_name =  '2023-05-13_22_14_08__adjusted_bike_ads.parquet.gzip'
 ```
 
 ```python
@@ -858,49 +858,49 @@ gluon_transformer = Pipeline(steps=[
         ColumnTransformer(
             transformers = [
                 ("price", "passthrough", ["price_cpi_adjusted_CAD"] ),
-                # ("add_age", add_age_transformer, ["ad_title","original_post_date"]),
-                # (
-                #     "add_post_month",
-                #     Pipeline(
-                #         steps=[
-                #             ("get_post_month",get_post_month_transformer),
-                #         ]
-                #     ),
-                #     ['original_post_date']
-                # ),
-                # (
-                #     "add_country",
-                #     Pipeline(
-                #         steps=[
-                #             ("get_country",add_country_transformer),
-                #         ]
-                #     ),
-                #     ['location']
-                # ),
-                ("image", "passthrough",["image"]),
-                # ("add_covid_flag", add_covid_transformer,["original_post_date"]),
-                #  (
-                #     "title_text", 
-                #     # "passthrough",
-                #     Pipeline(
-                #         steps=[
-                #             # Remove mentions of year so model doesn't learn to predict based on that year's prices
-                #             ('remove_year', remove_year_transformer),
-                #         ]
-                #     ), 
-                #     ["ad_title"]
-                # ),
-                # (
-                #     "description_text", 
-                #     # "passthrough",
-                #     Pipeline(
-                #         steps=[
-                #             # Remove mentions of year so model doesn't learn to predict based on that year's prices
-                #             ('remove_year', remove_year_transformer), 
-                #         ]
-                #     ), 
-                #     ["description"]
-                # ),
+                ("add_age", add_age_transformer, ["ad_title","original_post_date"]),
+                (
+                    "add_post_month",
+                    Pipeline(
+                        steps=[
+                            ("get_post_month",get_post_month_transformer),
+                        ]
+                    ),
+                    ['original_post_date']
+                ),
+                (
+                    "add_country",
+                    Pipeline(
+                        steps=[
+                            ("get_country",add_country_transformer),
+                        ]
+                    ),
+                    ['location']
+                ),
+                # ("image", "passthrough",["image"]),
+                ("add_covid_flag", add_covid_transformer,["original_post_date"]),
+                 (
+                    "title_text", 
+                    # "passthrough",
+                    Pipeline(
+                        steps=[
+                            # Remove mentions of year so model doesn't learn to predict based on that year's prices
+                            ('remove_year', remove_year_transformer),
+                        ]
+                    ), 
+                    ["ad_title"]
+                ),
+                (
+                    "description_text", 
+                    # "passthrough",
+                    Pipeline(
+                        steps=[
+                            # Remove mentions of year so model doesn't learn to predict based on that year's prices
+                            ('remove_year', remove_year_transformer), 
+                        ]
+                    ), 
+                    ["description"]
+                ),
             ],
         remainder="drop"
     )
@@ -914,29 +914,26 @@ gluon_transformer
 ### Augment with image paths for multimodal modelling
 
 ```python
-# All images are indexed by their ad id, within a base image folder. Need to pass file paths for autogluon multimodal
-images_base_path = '/mnt/h/pb-buddy-images/'
-df_images = (
-    pd.DataFrame(data={"filename":os.listdir(images_base_path)})
-    .assign(
-        image = lambda _df: f"{images_base_path}" + _df.filename,
-        url = lambda _df: "https://www.pinkbike.com/buysell/" + _df.filename.str.extract(r'([0-9]{7})') + "/"
-    )
-)
-```
+# # All images are indexed by their ad id, within a base image folder. Need to pass file paths for autogluon multimodal
+# images_base_path = '/mnt/h/pb-buddy-images/'
+# df_images = (
+#     pd.DataFrame(data={"filename":os.listdir(images_base_path)})
+#     .assign(
+#         image = lambda _df: f"{images_base_path}" + _df.filename,
+#         url = lambda _df: "https://www.pinkbike.com/buysell/" + _df.filename.str.extract(r'([0-9]{7})') + "/"
+#     )
+# )
 
-```python
-
-df_train = (
-    df_train
-    .merge(df_images, left_on="url", right_on="url")
-    .dropna(subset=["image"])
-)
-df_valid = (
-    df_valid
-    .merge(df_images, left_on="url", right_on="url")
-    .dropna(subset=["image"])
-)
+# df_train = (
+#     df_train
+#     .merge(df_images, left_on="url", right_on="url")
+#     .dropna(subset=["image"])
+# )
+# df_valid = (
+#     df_valid
+#     .merge(df_images, left_on="url", right_on="url")
+#     .dropna(subset=["image"])
+# )
 ```
 
 ```python
@@ -1093,21 +1090,21 @@ sample_df.plot(x="add_post_month__original_post_date", y="pred",
 ```
 
 ```python
-initial_df = df_valid_gluon.sample(1)
-sample_df = pd.concat(
-    [
-        initial_df.assign(
-            add_covid_flag__covid_flag=0,
-            image__image=x,
-        )
-        for x in df_valid_gluon["image__image"].sample(10)
-    ]
-).assign(pred=lambda _df: predictor.predict(_df))
-sample_df
-sample_df.plot(x="image__image", y="pred",
-               title=f"{sample_df['title_text__ad_title'].iloc[0]} - with random images",
-               marker='o');
-plt.xticks(rotation=90);
+# initial_df = df_valid_gluon.sample(1)
+# sample_df = pd.concat(
+#     [
+#         initial_df.assign(
+#             add_covid_flag__covid_flag=0,
+#             image__image=x,
+#         )
+#         for x in df_valid_gluon["image__image"].sample(10)
+#     ]
+# ).assign(pred=lambda _df: predictor.predict(_df))
+# sample_df
+# sample_df.plot(x="image__image", y="pred",
+#                title=f"{sample_df['title_text__ad_title'].iloc[0]} - with random images",
+#                marker='o');
+# plt.xticks(rotation=90);
 ```
 
 ```python

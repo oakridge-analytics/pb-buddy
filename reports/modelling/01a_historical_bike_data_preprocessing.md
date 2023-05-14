@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.14.4
+      jupytext_version: 1.14.5
   kernelspec:
     display_name: Python 3.9.2 ('pb-buddy-BzHdUS67-py3.9')
     language: python
@@ -417,6 +417,17 @@ g = (
 )
 g.fig.subplots_adjust(top=0.95)
 g.fig.suptitle("Average Adjusted Price by Year - 95% CI Denoted");
+```
+
+```python
+sns.lineplot(
+    data=df_sold_bikes_model_adjusted_CAD.assign(
+        original_post_month = lambda _df: _df.original_post_date.dt.to_period('M').dt.to_timestamp()
+    ),
+    x="original_post_month",
+    y="price_cpi_adjusted_CAD",
+    estimator="mean"
+)
 ```
 
 ```python
