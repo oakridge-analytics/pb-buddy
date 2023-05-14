@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.14.4
+      jupytext_version: 1.14.5
   kernelspec:
     display_name: pb-buddy
     language: python
@@ -110,7 +110,7 @@ from pb_buddy.modelling.skhelpers import (
 ```python
 # Where set processed data path in Azure Blob storage
 input_container_name = 'pb-buddy-historical'
-input_blob_name =  '2022-05-20_05_00_04__adjusted_bike_ads.parquet.gzip'
+input_blob_name =  '2023-05-13_22_14_08__adjusted_bike_ads.parquet.gzip'
 ```
 
 ```python
@@ -334,22 +334,22 @@ outlier_transformer = Pipeline(steps=[
                     ), 
                     "ad_title"
                 ),
-                # (
-                #     "description_text", 
-                #     Pipeline(
-                #         steps=[
-                #             # Remove mentions of year so model doesn't learn to predict based on that year's prices
-                #             ('remove_year', remove_year_transformer), 
-                #             ('tfidf',
-                #                 TfidfVectorizer(
-                #                         # Allow periods only inside numbers for model names etc. 
-                #                         token_pattern = token_pattern
-                #                 )
-                #             ),
-                #         ]
-                #     ), 
-                #     "description"
-                # ),
+                (
+                    "description_text", 
+                    Pipeline(
+                        steps=[
+                            # Remove mentions of year so model doesn't learn to predict based on that year's prices
+                            ('remove_year', remove_year_transformer), 
+                            ('tfidf',
+                                TfidfVectorizer(
+                                        # Allow periods only inside numbers for model names etc. 
+                                        token_pattern = token_pattern
+                                )
+                            ),
+                        ]
+                    ), 
+                    "description"
+                ),
             ],
         remainder="drop"
     )),
@@ -392,7 +392,7 @@ X_train_outlier_scored.query("outlier_flag==-1").outlier_score.hist(bins=100)
 (
     X_train_outlier_scored
     .assign(
-        price_cpi_adjusted_CAD = y_train
+        price_cpi_adjusted_CAD = df_modelling.price_cpi_adjusted_CAD
     )
     .query("outlier_flag == -1")
     .sort_values("outlier_score", ascending=True)
@@ -877,7 +877,7 @@ gluon_transformer = Pipeline(steps=[
                     ),
                     ['location']
                 ),
-                ("image", "passthrough",["image"]),
+                # ("image", "passthrough",["image"]),
                 ("add_covid_flag", add_covid_transformer,["original_post_date"]),
                  (
                     "title_text", 
@@ -914,27 +914,26 @@ gluon_transformer
 ### Augment with image paths for multimodal modelling
 
 ```python
-# All images are indexed by their ad id, within a base image folder. Need to pass file paths for autogluon multimodal
-images_base_path = '/mnt/h/pb-buddy-images/'
-df_images = (
-    pd.DataFrame(data={"filename":os.listdir(images_base_path)})
-    .assign(
-        image = lambda _df: f"{images_base_path}" + _df.filename,
-        url = lambda _df: "https://www.pinkbike.com/buysell/" + _df.filename.str.extract(r'([0-9]{7})') + "/"
-    )
-)
+# # All images are indexed by their ad id, within a base image folder. Need to pass file paths for autogluon multimodal
+# images_base_path = '/mnt/h/pb-buddy-images/'
+# df_images = (
+#     pd.DataFrame(data={"filename":os.listdir(images_base_path)})
+#     .assign(
+#         image = lambda _df: f"{images_base_path}" + _df.filename,
+#         url = lambda _df: "https://www.pinkbike.com/buysell/" + _df.filename.str.extract(r'([0-9]{7})') + "/"
+#     )
+# )
 
-
-df_train = (
-    df_train
-    .merge(df_images, left_on="url", right_on="url")
-    .dropna(subset=["image"])
-)
-df_valid = (
-    df_valid
-    .merge(df_images, left_on="url", right_on="url")
-    .dropna(subset=["image"])
-)
+# df_train = (
+#     df_train
+#     .merge(df_images, left_on="url", right_on="url")
+#     .dropna(subset=["image"])
+# )
+# df_valid = (
+#     df_valid
+#     .merge(df_images, left_on="url", right_on="url")
+#     .dropna(subset=["image"])
+# )
 ```
 
 ```python
@@ -999,7 +998,7 @@ predictor.fit_summary()
 ## Model Load and Results Inspection
 
 ```python
-predictor = MultiModalPredictor.load("tmp/6c2a7bf3c0944248b56d34ed26c48df9-auto_mm_bikes")
+# predictor = MultiModalPredictor.load("tmp/6c2a7bf3c0944248b56d34ed26c48df9-auto_mm_bikes")
 ```
 
 ```python
@@ -1091,21 +1090,21 @@ sample_df.plot(x="add_post_month__original_post_date", y="pred",
 ```
 
 ```python
-initial_df = df_valid_gluon.sample(1)
-sample_df = pd.concat(
-    [
-        initial_df.assign(
-            add_covid_flag__covid_flag=0,
-            image__image=x,
-        )
-        for x in df_valid_gluon["image__image"].sample(10)
-    ]
-).assign(pred=lambda _df: predictor.predict(_df))
-sample_df
-sample_df.plot(x="image__image", y="pred",
-               title=f"{sample_df['title_text__ad_title'].iloc[0]} - with random images",
-               marker='o');
-plt.xticks(rotation=90);
+# initial_df = df_valid_gluon.sample(1)
+# sample_df = pd.concat(
+#     [
+#         initial_df.assign(
+#             add_covid_flag__covid_flag=0,
+#             image__image=x,
+#         )
+#         for x in df_valid_gluon["image__image"].sample(10)
+#     ]
+# ).assign(pred=lambda _df: predictor.predict(_df))
+# sample_df
+# sample_df.plot(x="image__image", y="pred",
+#                title=f"{sample_df['title_text__ad_title'].iloc[0]} - with random images",
+#                marker='o');
+# plt.xticks(rotation=90);
 ```
 
 ```python
@@ -1119,7 +1118,7 @@ def make_clickable(val):
     .assign(
         abs_resid = lambda _df: np.abs(_df.resid)
     )
-    [["url","add_age__age_at_post","original_post_date","image__image", "resid", "abs_resid","pred","price_cpi_adjusted_CAD", "ad_title", "description"]]
+    [["url","add_age__age_at_post","original_post_date", "resid", "abs_resid","pred","price_cpi_adjusted_CAD", "ad_title", "description"]]
     .sort_values("abs_resid", ascending=False)
     .head(20)
     .assign(
@@ -1129,11 +1128,6 @@ def make_clickable(val):
     .background_gradient(subset="resid", cmap="RdBu")
     .set_caption("Largest Absolute Residuals")
 )
-```
-
-```python
-for item in predictor._model.named_children():
-    print(item)
 ```
 
 ```python
@@ -1163,7 +1157,7 @@ g= (
     .assign(
         years_old = lambda _df: _df.add_age__age_at_post/365
     )
-    .sample(1000)
+    .sample(10000)
     .pipe((sns.jointplot, "data"),x="years_old", y="price__price_cpi_adjusted_CAD", height=10)
 )
 g.fig.suptitle("Price vs. Age of Ad")

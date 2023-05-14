@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.14.4
+      jupytext_version: 1.14.5
   kernelspec:
     display_name: Python 3.9.2 ('pb-buddy-BzHdUS67-py3.9')
     language: python
@@ -420,6 +420,17 @@ g.fig.suptitle("Average Adjusted Price by Year - 95% CI Denoted");
 ```
 
 ```python
+sns.lineplot(
+    data=df_sold_bikes_model_adjusted_CAD.assign(
+        original_post_month = lambda _df: _df.original_post_date.dt.to_period('M').dt.to_timestamp()
+    ),
+    x="original_post_month",
+    y="price_cpi_adjusted_CAD",
+    estimator="mean"
+)
+```
+
+```python
 (
     df_sold_bikes_model_adjusted_CAD
     .assign(
@@ -480,5 +491,9 @@ dt.stream_parquet_to_blob(df_sold_bikes_model_adjusted_CAD, blob_name = filename
 ```
 
 ```python
-Markdown(f"The processed and adjusted data has been written to container: { container_to_write_to } with filename: {filename}")
+Markdown(f"The processed and ad~~justed data has been written to container: { container_to_write_to } with filename: {filename}")
+```
+
+```python
+
 ```

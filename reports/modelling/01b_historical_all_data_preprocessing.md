@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.14.4
+      jupytext_version: 1.14.5
   kernelspec:
     display_name: Python 3.9.2 ('pb-buddy-BzHdUS67-py3.9')
     language: python
@@ -99,7 +99,7 @@ Next, we check the quality of key columns for outliers. Here's the findings:
 
 Price - Outliers Removed:
 - Numerous ads put at fake high prices ( > 1 Mill.). From looking through ads, $20000 raw price was decided as a threshold. 
-- Ads put < $100, asking "Make me an offer" or similar. We don't want to model cheap bikes!
+- Ads put < $100, asking "Make me an offer" or similar. We don't want to model cheap bikes or similar.
 - Ads mention "Stolen" or similar.
 - People price ads with $1234 etc. These ads are all removed.
 
@@ -172,18 +172,13 @@ g.fig.suptitle("Count of Sold Ads Over Time")
 
 
 
-<!-- #region -->
-We can see a few interesting trends here:
-- All Mountain bikes have a more major bump in volume in the spring, and in the fall.
-- All Mountain bikes have increased significantly over the period of the dataset. In 2021, certain months had > 3000 ads that were marked as sold.
-- Gravel bikes have increased significantly in the last 2 years going from < 100 ads per month, to over 300 ads per month in 2021.
 
 
 ## Preprocessing
 
 To enable consistent pricing for modelling - we need to adjust for the USD -> CAD conversion, and the inflation over time.
 
-<!-- #endregion -->
+
 
 ### Adjusting for Inflation
 
@@ -191,8 +186,8 @@ As a first attempt - we'll look at "All Items" level inflation to adjust our pri
 
 ```python
 # Canada data
-start_year = str(df_sold_bikes_model.last_repost_year.min())
-end_year = str(df_sold_bikes_model.last_repost_year.max())
+start_year = str(df_sold_ads.last_repost_year.min())
+end_year = str(df_sold_ads.last_repost_year.max())
 df_can_cpi_data = pd.read_csv(f"https://www150.statcan.gc.ca/t1/tbl1/en/dtl!downloadDbLoadingData-nonTraduit.action?pid=1810000501&latestN=0&startDate={start_year}0101&endDate={end_year}0101&csvLocale=en&selectedMembers=%5B%5B2%5D%2C%5B2%2C3%2C79%2C96%2C139%2C176%2C184%2C201%2C219%2C256%2C274%2C282%2C285%2C287%2C288%5D%5D&checkedLevels=")
 
 df_can_cpi_data = (
@@ -247,7 +242,7 @@ canadian_current_cpi = df_can_cpi_data.most_recent_cpi.iloc[-1]
 us_current_cpi = df_us_cpi_data.most_recent_cpi.iloc[-1]
 current_year_cpi = pd.DataFrame(
     data={
-        "year" : [df_sold_bikes_model.last_repost_year.max()] * 2,
+        "year" : [df_sold_ads.last_repost_year.max()] * 2,
         "cpi" : [canadian_current_cpi, us_current_cpi],
         "most_recent_cpi" : [canadian_current_cpi, us_current_cpi],
         "currency":["CAD","USD"]
@@ -259,8 +254,8 @@ current_year_cpi = pd.DataFrame(
 # Join on all CPI data per currency and adjust historical dollars to most recent year
 df_cpi_data_combined = pd.concat([df_us_cpi_data, df_can_cpi_data, current_year_cpi]).drop_duplicates(subset=["year","currency"])
 
-df_sold_bikes_model_adjusted = (
-    df_sold_bikes_model
+df_sold_ads_adjusted = (
+    df_sold_ads
     .merge(df_cpi_data_combined,how="left",left_on=["last_repost_year","currency"], right_on=["year", "currency"])
     .assign(
         price_cpi_adjusted = lambda x: (x.price * (x.most_recent_cpi/x.cpi))
@@ -270,7 +265,7 @@ df_sold_bikes_model_adjusted = (
 
 ```python
 (
-    df_sold_bikes_model_adjusted
+    df_sold_ads_adjusted
     .groupby(["last_repost_month"])
     .mean(numeric_only=True)
     [["price", "price_cpi_adjusted"]]
@@ -289,7 +284,7 @@ import numpy as np
 fx_reader = YahooFXReader(
     symbols=["CAD"],
     start='01-JAN-2010',
-    end=df_sold_bikes_model.last_repost_date.max(),
+    end=df_sold_ads.last_repost_date.max(),
     interval="mo"
 )
 
@@ -317,7 +312,7 @@ df_fx = (
         currency = "USD",
         fx_month = lambda x: x.fx_month.dt.date
     ) # Need to extend series to carry forward last fx rate.
-    .merge(df_sold_bikes_model['last_repost_month'].drop_duplicates(), how="right", left_on="fx_month", right_on="last_repost_month")
+    .merge(df_sold_ads['last_repost_month'].drop_duplicates(), how="right", left_on="fx_month", right_on="last_repost_month")
 
     .sort_values("last_repost_month")
     .assign(
@@ -332,8 +327,8 @@ df_fx = (
 
 ```python
 ## Add on currency converted column and a few helper columns
-df_sold_bikes_model_adjusted_CAD = (
-    df_sold_bikes_model_adjusted
+df_sold_ads_adjusted_CAD = (
+    df_sold_ads_adjusted
     .merge(df_fx, how="left", left_on=["last_repost_month","currency"], right_on=["fx_month", "currency"])
     .assign(
         fx_month = lambda x: x.fx_month.where(~x.fx_month.isna(), other=x.last_repost_month),
@@ -345,7 +340,7 @@ df_sold_bikes_model_adjusted_CAD = (
 
 ```python
 (
-    df_sold_bikes_model_adjusted_CAD
+    df_sold_ads_adjusted_CAD
     .groupby(["last_repost_month"])
     .mean(numeric_only=True)
     [["price", "price_cpi_adjusted", "price_cpi_adjusted_CAD"]]
@@ -357,7 +352,7 @@ df_sold_bikes_model_adjusted_CAD = (
 ```python
 # Count of Ads 
 g = (
-    df_sold_bikes_model_adjusted_CAD
+    df_sold_ads_adjusted_CAD
     .assign(
         last_repost_month = lambda x: x.last_repost_date.dt.month,
         last_repost_year = lambda x: x.last_repost_date.dt.year,
@@ -381,7 +376,7 @@ g.fig.suptitle("Average Adjusted Price by Year - 95% CI Denoted");
 
 ```python
 (
-    df_sold_bikes_model_adjusted_CAD
+    df_sold_ads_adjusted_CAD
     .assign(
         last_repost_month = lambda x: pd.to_datetime(x.last_repost_month)
     )
@@ -402,8 +397,8 @@ g.fig.suptitle("Average Adjusted Price by Year - 95% CI Denoted");
 Due to people appearing to mark an ad as "Sold" and then reopening it later at a lower price and reselling - we have duplicates on URL to ads in our dataset. To deal with this - we'll take the latest by last repost date.
 
 ```python
-df_sold_bikes_model_adjusted_CAD = (
-    df_sold_bikes_model_adjusted_CAD
+df_sold_ads_adjusted_CAD = (
+    df_sold_ads_adjusted_CAD
     .assign(
         last_repost_date = lambda x: pd.to_datetime(x.last_repost_date),
         datetime_scraped = lambda x: pd.to_datetime(x.datetime_scraped, utc=True),
@@ -415,8 +410,8 @@ df_sold_bikes_model_adjusted_CAD = (
 ```
 
 ```python
-df_sold_bikes_model_adjusted_CAD = (
-    df_sold_bikes_model_adjusted_CAD
+df_sold_ads_adjusted_CAD = (
+    df_sold_ads_adjusted_CAD
     .pipe(ut.convert_to_float, colnames=["view_count","watch_count"])
     .pipe(ut.cast_obj_to_string)
 )
@@ -424,19 +419,19 @@ df_sold_bikes_model_adjusted_CAD = (
 
 ```python
 # Checks!
-assert len(df_sold_bikes_model_adjusted_CAD) == len(df_sold_bikes_model_adjusted_CAD.drop_duplicates(subset=["url"])), "Duplicates found on URL!"
+assert len(df_sold_ads_adjusted_CAD) == len(df_sold_ads_adjusted_CAD.drop_duplicates(subset=["url"])), "Duplicates found on URL!"
 ```
 
 ```python
-Markdown(f"Shape of modelling dataset for complete bikes, in North America: {len(df_sold_bikes_model_adjusted_CAD)} rows, \n"
-f"{df_sold_bikes_model_adjusted_CAD.shape[1]} columns.")
+Markdown(f"Shape of modelling dataset for complete bikes, in North America: {len(df_sold_ads_adjusted_CAD)} rows, \n"
+f"{df_sold_ads_adjusted_CAD.shape[1]} columns.")
 ```
 
 ```python
 # Save out versioned file for modelling
 timestamp = pd.Timestamp.now().strftime('%Y-%m-%d_%H_%M_%S')
 filename = f"{timestamp}_{file_stub}.parquet.gzip"
-dt.stream_parquet_to_blob(df_sold_bikes_model_adjusted_CAD, blob_name = filename, blob_container=container_to_write_to )
+dt.stream_parquet_to_blob(df_sold_ads_adjusted_CAD, blob_name = filename, blob_container=container_to_write_to )
 ```
 
 ```python
