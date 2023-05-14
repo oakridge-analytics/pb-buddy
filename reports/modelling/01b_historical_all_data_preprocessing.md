@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.14.4
+      jupytext_version: 1.14.5
   kernelspec:
     display_name: Python 3.9.2 ('pb-buddy-BzHdUS67-py3.9')
     language: python
@@ -209,6 +209,14 @@ df_can_cpi_data = (
 
 ```python
 # US Data
+headers = {
+"Host": "download.bls.gov",
+"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/113.0",
+"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+"Accept-Language": "en-CA,en-US;q=0.7,en;q=0.3",
+"Accept-Encoding": "gzip, deflate, br",
+"Referer": "https://download.bls.gov/pub/time.series/cu/",
+}
 # Based on links found here: https://github.com/palewire/cpi/blob/master/cpi/download.py
 df_us_cpi_data = (
     pd.read_csv(
@@ -216,15 +224,20 @@ df_us_cpi_data = (
     sep='\t',
     header=None,
     skiprows=1,
-    names=["series_id","year","period","cpi","footnote"]
+    names=["series_id","year","period","cpi","footnote"],
+    storage_options=headers
     )
-    .filter(["year","cpi"])
+    .assign(
+        series_id = lambda _df : _df.series_id.str.strip()
+    )
+    .filter(["year","cpi","series_id"])
+    .query("series_id == 'CUSR0000SA0'")
     .groupby("year", as_index=False)
     .mean()
     .assign(
         most_recent_cpi = lambda x: x.loc[x.year.idxmax(), "cpi"],
         currency="USD"
-        )
+    )
 )
 ```
 
