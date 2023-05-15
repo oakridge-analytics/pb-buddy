@@ -491,5 +491,9 @@ dt.stream_parquet_to_blob(df_sold_bikes_model_adjusted_CAD, blob_name = filename
 ```
 
 ```python
-Markdown(f"The processed and adjusted data has been written to container: { container_to_write_to } with filename: {filename}")
+Markdown(f"The processed and ad~~justed data has been written to container: { container_to_write_to } with filename: {filename}")
+```
+
+```python
+
 ```

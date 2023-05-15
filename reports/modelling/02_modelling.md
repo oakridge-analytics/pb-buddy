@@ -334,22 +334,22 @@ outlier_transformer = Pipeline(steps=[
                     ), 
                     "ad_title"
                 ),
-                # (
-                #     "description_text", 
-                #     Pipeline(
-                #         steps=[
-                #             # Remove mentions of year so model doesn't learn to predict based on that year's prices
-                #             ('remove_year', remove_year_transformer), 
-                #             ('tfidf',
-                #                 TfidfVectorizer(
-                #                         # Allow periods only inside numbers for model names etc. 
-                #                         token_pattern = token_pattern
-                #                 )
-                #             ),
-                #         ]
-                #     ), 
-                #     "description"
-                # ),
+                (
+                    "description_text", 
+                    Pipeline(
+                        steps=[
+                            # Remove mentions of year so model doesn't learn to predict based on that year's prices
+                            ('remove_year', remove_year_transformer), 
+                            ('tfidf',
+                                TfidfVectorizer(
+                                        # Allow periods only inside numbers for model names etc. 
+                                        token_pattern = token_pattern
+                                )
+                            ),
+                        ]
+                    ), 
+                    "description"
+                ),
             ],
         remainder="drop"
     )),
@@ -392,7 +392,7 @@ X_train_outlier_scored.query("outlier_flag==-1").outlier_score.hist(bins=100)
 (
     X_train_outlier_scored
     .assign(
-        price_cpi_adjusted_CAD = y_train
+        price_cpi_adjusted_CAD = df_modelling.price_cpi_adjusted_CAD
     )
     .query("outlier_flag == -1")
     .sort_values("outlier_score", ascending=True)
@@ -998,7 +998,7 @@ predictor.fit_summary()
 ## Model Load and Results Inspection
 
 ```python
-predictor = MultiModalPredictor.load("tmp/6c2a7bf3c0944248b56d34ed26c48df9-auto_mm_bikes")
+# predictor = MultiModalPredictor.load("tmp/6c2a7bf3c0944248b56d34ed26c48df9-auto_mm_bikes")
 ```
 
 ```python
@@ -1118,7 +1118,7 @@ def make_clickable(val):
     .assign(
         abs_resid = lambda _df: np.abs(_df.resid)
     )
-    [["url","add_age__age_at_post","original_post_date","image__image", "resid", "abs_resid","pred","price_cpi_adjusted_CAD", "ad_title", "description"]]
+    [["url","add_age__age_at_post","original_post_date", "resid", "abs_resid","pred","price_cpi_adjusted_CAD", "ad_title", "description"]]
     .sort_values("abs_resid", ascending=False)
     .head(20)
     .assign(
@@ -1128,11 +1128,6 @@ def make_clickable(val):
     .background_gradient(subset="resid", cmap="RdBu")
     .set_caption("Largest Absolute Residuals")
 )
-```
-
-```python
-for item in predictor._model.named_children():
-    print(item)
 ```
 
 ```python
@@ -1162,7 +1157,7 @@ g= (
     .assign(
         years_old = lambda _df: _df.add_age__age_at_post/365
     )
-    .sample(1000)
+    .sample(10000)
     .pipe((sns.jointplot, "data"),x="years_old", y="price__price_cpi_adjusted_CAD", height=10)
 )
 g.fig.suptitle("Price vs. Age of Ad")
