@@ -1,4 +1,5 @@
 name: Scrape
+concurrency: ${{ github.workflow }}
 
 on:
  schedule:
