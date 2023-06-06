@@ -6,7 +6,7 @@
             "search_string": "price > 3000 and price < 5000 and material.str.contains('Carbon') and location.str.contains('Canada') and (restrictions.str.contains('within') or restrictions.str.contains('globally')) and frame_size.str.contains('M') and (front_travel.str.contains('140') or front_travel.str.contains('130')) and (ad_title.str.contains('2019') or ad_title.str.contains('2020') or ad_title.str.contains('2021'))",
             "email_stem": "dustin.brown.andrews",
             "email_domain": "@gmail.com",
-            "last_checked": "2023-06-05 21:55:28.174444-06:00"
+            "last_checked": "2023-06-06 08:47:38.065029-06:00"
         },
         {
             "category_num": 2,
@@ -14,15 +14,15 @@
             "search_string": "price > 3000 and price < 5000 and material.str.contains('Carbon') and location.str.contains('Canada') and (restrictions.str.contains('within') or restrictions.str.contains('globally')) and frame_size.str.contains('M') and (front_travel.str.contains('140') or front_travel.str.contains('130')) and (ad_title.str.contains('2019') or ad_title.str.contains('2020') or ad_title.str.contains('2021'))",
             "email_stem": "dustin.brown.andrews",
             "email_domain": "@gmail.com",
-            "last_checked": "2023-06-05 21:55:33.263720-06:00"
+            "last_checked": "2023-06-06 08:47:45.482832-06:00"
         },
         {
             "category_num": 77,
             "alert_name": "Tim's Gravel Bikes",
-            "search_string": "(ad_title.str.contains('Rove') or ad_title.str.contains('Sutra')) and frame_size.str.contains('M')",
+            "search_string": "(ad_title.str.contains('Rove') or ad_title.str.contains('Sutra'))",
             "email_stem": "dustin.brown.andrews",
             "email_domain": "@gmail.com",
-            "last_checked": "2023-06-05 21:58:44.224254-06:00"
+            "last_checked": "2023-06-06 08:51:17.598753-06:00"
         },
         {
             "category_num": 2,
@@ -31,7 +31,7 @@
             "price_search_string": "pred_price_diff > 1500",
             "email_stem": "dustin.brown.andrews",
             "email_domain": "@gmail.com",
-            "last_checked": "2023-06-05 21:59:45.758005-06:00"
+            "last_checked": "2023-06-06 08:51:25.838862-06:00"
         }
     ]
 }
