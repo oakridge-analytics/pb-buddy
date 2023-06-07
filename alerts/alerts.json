@@ -19,8 +19,8 @@
         {
             "category_num": 77,
             "alert_name": "Tim's Gravel Bikes",
-            "search_string": "(ad_title.str.contains('Rove') or ad_title.str.contains('Sutra'))",
-            "email_stem": "dustin.brown.andrews",
+            "search_string": "(ad_title.str.contains('Rove ') or ad_title.str.contains('Sutra '))",
+            "email_stem": "tjvankle",
             "email_domain": "@gmail.com",
             "last_checked": "2023-06-07 09:44:51.278083-06:00"
         },
