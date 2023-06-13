@@ -24,5 +24,5 @@ add_modelling :
 	poetry install --with modelling; \
 	# Install torch + autogluon separate to get different indexes \
 	pip3 install torch==1.13.1+cu116 torchvision==0.14.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116; \
-	pip3 install autogluon; \
+	pip3 install autogluon==0.7.0; \
 	); # For some reason unknown symbol in installed environment, not needed explicitly
