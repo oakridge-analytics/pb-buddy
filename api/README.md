@@ -36,14 +36,20 @@ docker build -t bikebuddy-api -f api/Dockerfile .
 Then run the image locally using:
 
 ```
-docker run -p 80:80 -it bikebuddy-api
+docker run -p 8000:8000 -it bikebuddy-api
 ```
+
+And test with commands above.
 
 #### Azure Deployment Notes
 
 With existing `pbbuddy` Azure Container Registry:
 
 `az acr login --name pbbuddy`
+
+*Optional: Create a new version X.X.X tag (to be improved in a build system....):*
+
+`docker tag bikebuddy-api:latest bikebuddy-api:X.X.X`
 
 `docker tag bikebuddy-api:latest pbbuddy.azurecr.io/bikebuddy:latest`
 
