@@ -110,7 +110,7 @@ from pb_buddy.modelling.skhelpers import (
 ```python
 # Where set processed data path in Azure Blob storage
 input_container_name = 'pb-buddy-historical'
-input_blob_name =  '2022-05-20_05_00_04__adjusted_bike_ads.parquet.gzip'
+input_blob_name =  '2023-05-13_22_14_08__adjusted_bike_ads.parquet.gzip'
 ```
 
 ```python
@@ -193,7 +193,7 @@ sns.set_theme()
 ```python
 fig,ax = plt.subplots()
 for _df in [df_train,df_valid,df_test]:
-    sns.kdeplot(data=_df, x="price_cpi_adjusted_CAD", ax=ax)
+    sns.kdeplot(data=_df, x="price_cpi_adjusted_CAD", bw_adjust=0.5, ax=ax)
 ax.set_title("Train/Valid/Test Price Distributions")
 ```
 
@@ -334,22 +334,22 @@ outlier_transformer = Pipeline(steps=[
                     ), 
                     "ad_title"
                 ),
-                # (
-                #     "description_text", 
-                #     Pipeline(
-                #         steps=[
-                #             # Remove mentions of year so model doesn't learn to predict based on that year's prices
-                #             ('remove_year', remove_year_transformer), 
-                #             ('tfidf',
-                #                 TfidfVectorizer(
-                #                         # Allow periods only inside numbers for model names etc. 
-                #                         token_pattern = token_pattern
-                #                 )
-                #             ),
-                #         ]
-                #     ), 
-                #     "description"
-                # ),
+                (
+                    "description_text", 
+                    Pipeline(
+                        steps=[
+                            # Remove mentions of year so model doesn't learn to predict based on that year's prices
+                            ('remove_year', remove_year_transformer), 
+                            ('tfidf',
+                                TfidfVectorizer(
+                                        # Allow periods only inside numbers for model names etc. 
+                                        token_pattern = token_pattern
+                                )
+                            ),
+                        ]
+                    ), 
+                    "description"
+                ),
             ],
         remainder="drop"
     )),
@@ -392,7 +392,7 @@ X_train_outlier_scored.query("outlier_flag==-1").outlier_score.hist(bins=100)
 (
     X_train_outlier_scored
     .assign(
-        price_cpi_adjusted_CAD = y_train
+        price_cpi_adjusted_CAD = df_modelling.price_cpi_adjusted_CAD
     )
     .query("outlier_flag == -1")
     .sort_values("outlier_score", ascending=True)
@@ -877,7 +877,7 @@ gluon_transformer = Pipeline(steps=[
                     ),
                     ['location']
                 ),
-                ("location", "passthrough",["location"]),
+                # ("image", "passthrough",["image"]),
                 ("add_covid_flag", add_covid_transformer,["original_post_date"]),
                  (
                     "title_text", 
@@ -911,10 +911,35 @@ gluon_transformer
 
 ```
 
+### Augment with image paths for multimodal modelling
+
+```python
+# # All images are indexed by their ad id, within a base image folder. Need to pass file paths for autogluon multimodal
+# images_base_path = '/mnt/h/pb-buddy-images/'
+# df_images = (
+#     pd.DataFrame(data={"filename":os.listdir(images_base_path)})
+#     .assign(
+#         image = lambda _df: f"{images_base_path}" + _df.filename,
+#         url = lambda _df: "https://www.pinkbike.com/buysell/" + _df.filename.str.extract(r'([0-9]{7})') + "/"
+#     )
+# )
+
+# df_train = (
+#     df_train
+#     .merge(df_images, left_on="url", right_on="url")
+#     .dropna(subset=["image"])
+# )
+# df_valid = (
+#     df_valid
+#     .merge(df_images, left_on="url", right_on="url")
+#     .dropna(subset=["image"])
+# )
+```
+
 ```python
 gluon_transformer.fit(df_train)
-df_train_gluon = pd.DataFrame(data=gluon_transformer.transform(df_train), columns=gluon_transformer.get_feature_names_out()).astype({"add_age__age_at_post":int})
-df_valid_gluon = pd.DataFrame(data=gluon_transformer.transform(df_valid), columns=gluon_transformer.get_feature_names_out()).astype({"add_age__age_at_post":int})
+df_train_gluon = pd.DataFrame(data=gluon_transformer.transform(df_train), columns=gluon_transformer.get_feature_names_out())#.astype({"add_age__age_at_post":int})
+df_valid_gluon = pd.DataFrame(data=gluon_transformer.transform(df_valid), columns=gluon_transformer.get_feature_names_out())#.astype({"add_age__age_at_post":int})
 ```
 
 ```python
@@ -948,10 +973,10 @@ predictor.fit(
         hyperparameters={
                 # "optimization.learning_rate": tune.uniform(0.00001, 0.00006),
                 # "optimization.optim_type": tune.choice(["adamw"]),
-                "model.names": ["hf_text", "timm_image", "clip", "categorical_mlp", "numerical_mlp", "fusion_mlp"],
+                # "model.names": ["hf_text", "timm_image", "clip", "categorical_mlp", "numerical_mlp", "fusion_mlp"],
                 "optimization.max_epochs": 10,
                 "optimization.patience": 6, # Num checks without valid improvement, every 0.5 epoch by default
-                "env.per_gpu_batch_size": 16,
+                "env.per_gpu_batch_size": 18,
                 "env.num_workers": 20,
                 "env.num_workers_evaluation": 20,
                 # "model.hf_text.checkpoint_name": tune.choice(["google/electra-base-discriminator", 'roberta-base','roberta-large']),
@@ -973,7 +998,7 @@ predictor.fit_summary()
 ## Model Load and Results Inspection
 
 ```python
-predictor = MultiModalPredictor.load("tmp/6c2a7bf3c0944248b56d34ed26c48df9-auto_mm_bikes")
+# predictor = MultiModalPredictor.load("tmp/6c2a7bf3c0944248b56d34ed26c48df9-auto_mm_bikes")
 ```
 
 ```python
@@ -1035,7 +1060,6 @@ sample_df = pd.concat(
         for x in range(2010,2030)
     ]
 ).assign(pred=lambda _df: predictor.predict(_df))
-sample_df
 sample_df.plot(x="model_year", y="pred",
                title=sample_df["title_text__ad_title"].iloc[0],
                marker='o');
@@ -1063,6 +1087,24 @@ sample_df.plot(x="add_post_month__original_post_date", y="pred",
                title=sample_df["title_text__ad_title"].iloc[0],
                marker='o');
 # initial_df.head(1)
+```
+
+```python
+# initial_df = df_valid_gluon.sample(1)
+# sample_df = pd.concat(
+#     [
+#         initial_df.assign(
+#             add_covid_flag__covid_flag=0,
+#             image__image=x,
+#         )
+#         for x in df_valid_gluon["image__image"].sample(10)
+#     ]
+# ).assign(pred=lambda _df: predictor.predict(_df))
+# sample_df
+# sample_df.plot(x="image__image", y="pred",
+#                title=f"{sample_df['title_text__ad_title'].iloc[0]} - with random images",
+#                marker='o');
+# plt.xticks(rotation=90);
 ```
 
 ```python
@@ -1115,7 +1157,7 @@ g= (
     .assign(
         years_old = lambda _df: _df.add_age__age_at_post/365
     )
-    .sample(1000)
+    .sample(10000)
     .pipe((sns.jointplot, "data"),x="years_old", y="price__price_cpi_adjusted_CAD", height=10)
 )
 g.fig.suptitle("Price vs. Age of Ad")

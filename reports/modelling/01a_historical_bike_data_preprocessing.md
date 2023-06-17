@@ -16,7 +16,7 @@ jupyter:
 # Preprocssing of Historical PinkBike Ads - Bike Ads
 
 
-```python vscode={"languageId": "python"}
+```python
 import pandas as pd
 import matplotlib.pyplot as plt
 from IPython.display import Markdown
@@ -29,7 +29,7 @@ from pb_buddy.resources import get_category_list
 %autoreload 2
 ```
 
-```python vscode={"languageId": "python"}
+```python
 # ------------------- SETTINGS ----------------------
 # Where processed data will get written to
 container_to_write_to = 'pb-buddy-historical'
@@ -37,15 +37,15 @@ file_stub = '_adjusted_bike_ads'
 #----------------------------------------------------
 ```
 
-```python vscode={"languageId": "python"}
+```python
 df_historical_sold = dt.stream_parquet_to_dataframe("historical_data.parquet.gzip", "pb-buddy-historical")
 ```
 
-```python vscode={"languageId": "python"}
+```python
 df_current_sold = dt.get_dataset(-1, data_type="sold")
 ```
 
-```python vscode={"languageId": "python"}
+```python
 category_dict = get_category_list()
 bike_category_labels = [
     'DH Bikes',
@@ -76,7 +76,7 @@ bike_category_labels = [
  ]
 ```
 
-```python vscode={"languageId": "python"}
+```python
 # Add in category num for each category, and clean up datatypes.
 df_historical_sold_NA = (
     pd.concat([df_historical_sold,df_current_sold], sort=False)
@@ -97,7 +97,7 @@ df_historical_sold_NA = (
 
 We'll first check how many ads we have that can be used for modelling bike prices in general. We'll first check counts by type of bike, and then the metadata available for modelling (i.e frame material etc.).
 
-```python vscode={"languageId": "python"}
+```python
 # Check dataset size to model North American Pricing
 (
     df_historical_sold_NA
@@ -113,7 +113,7 @@ We'll first check how many ads we have that can be used for modelling bike price
 )
 ```
 
-```python vscode={"languageId": "python"}
+```python
 # for bikes ads - check how often each field is filled. This metadata couldn't have been entered all along
 (
     df_historical_sold_NA
@@ -128,7 +128,7 @@ We'll first check how many ads we have that can be used for modelling bike price
 
 It appears we have good data for the standard ad title, description, frame size and wheel size. Otherwise the other columns aren't fully in use otherwise we could use front travel, rear travel more heavily to model mountain bikes more accurately potentially. Material also isn't fully utilized - otherwise this would be another valuable indicator. Finally, condition also isn't fully utilized - this could have potential as another indicator but ~ < 1/3 have this filled out.
 
-```python vscode={"languageId": "python"}
+```python
 df_sold_bikes = (
     df_historical_sold_NA
     .query("category.isin(@bike_category_labels)")
@@ -143,7 +143,7 @@ Price - Outliers Removed:
 - Ads mention "Stolen" or similar.
 - People price ads with $1234 etc. These ads are all removed.
 
-```python vscode={"languageId": "python"}
+```python
 df_sold_bikes_model = (
     df_sold_bikes
     .query("price < 20000 and price > 100")
@@ -154,7 +154,7 @@ df_sold_bikes_model = (
 )
 ```
 
-```python vscode={"languageId": "python"}
+```python
 top_n = 5
 top_bike_categories = (df_sold_bikes_model.category.value_counts().index[0:top_n].tolist())
 (
@@ -177,7 +177,7 @@ top_bike_categories = (df_sold_bikes_model.category.value_counts().index[0:top_n
 );
 ```
 
-```python vscode={"languageId": "python"}
+```python
 # Count of Ads 
 g = (
     df_sold_bikes_model
@@ -229,7 +229,7 @@ To enable consistent pricing for modelling - we need to adjust for the USD -> CA
 
 As a first attempt - we'll look at "All Items" level inflation to adjust our prices. There is most likely a more relevant index that is available - but this will be good enough for now. We need to find Canadian data and US Data separately.
 
-```python vscode={"languageId": "python"}
+```python
 # Canada data
 start_year = str(df_sold_bikes_model.last_repost_year.min())
 end_year = str(df_sold_bikes_model.last_repost_year.max())
@@ -247,8 +247,16 @@ df_can_cpi_data = (
 )
 ```
 
-```python vscode={"languageId": "python"}
+```python
 # US Data
+headers = {
+"Host": "download.bls.gov",
+"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/113.0",
+"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+"Accept-Language": "en-CA,en-US;q=0.7,en;q=0.3",
+"Accept-Encoding": "gzip, deflate, br",
+"Referer": "https://download.bls.gov/pub/time.series/cu/",
+}
 # Based on links found here: https://github.com/palewire/cpi/blob/master/cpi/download.py
 df_us_cpi_data = (
     pd.read_csv(
@@ -256,19 +264,24 @@ df_us_cpi_data = (
     sep='\t',
     header=None,
     skiprows=1,
-    names=["series_id","year","period","cpi","footnote"]
+    names=["series_id","year","period","cpi","footnote"],
+    storage_options=headers
     )
-    .filter(["year","cpi"])
+    .assign(
+        series_id = lambda _df : _df.series_id.str.strip()
+    )
+    .filter(["year","cpi","series_id"])
+    .query("series_id == 'CUSR0000SA0'")
     .groupby("year", as_index=False)
     .mean()
     .assign(
         most_recent_cpi = lambda x: x.loc[x.year.idxmax(), "cpi"],
         currency="USD"
-        )
+    )
 )
 ```
 
-```python vscode={"languageId": "python"}
+```python
 # Add records for current year carrying forward prior year CPI values
 canadian_current_cpi = df_can_cpi_data.most_recent_cpi.iloc[-1]
 us_current_cpi = df_us_cpi_data.most_recent_cpi.iloc[-1]
@@ -282,7 +295,7 @@ current_year_cpi = pd.DataFrame(
 )
 ```
 
-```python vscode={"languageId": "python"}
+```python
 # Join on all CPI data per currency and adjust historical dollars to most recent year
 df_cpi_data_combined = pd.concat([df_us_cpi_data, df_can_cpi_data, current_year_cpi]).drop_duplicates(subset=["year","currency"])
 
@@ -295,7 +308,7 @@ df_sold_bikes_model_adjusted = (
 )
 ```
 
-```python vscode={"languageId": "python"}
+```python
 (
     df_sold_bikes_model_adjusted
     .groupby(["last_repost_month"])
@@ -308,7 +321,7 @@ df_sold_bikes_model_adjusted = (
 
 ### Exchange Rates - USD -> CAD
 
-```python vscode={"languageId": "python"}
+```python
 # Use Yahoo Finance API through pandas_datareader
 from pandas_datareader.yahoo.fx import YahooFXReader
 import numpy as np
@@ -357,7 +370,7 @@ df_fx = (
 
 ```
 
-```python vscode={"languageId": "python"}
+```python
 ## Add on currency converted column and a few helper columns
 df_sold_bikes_model_adjusted_CAD = (
     df_sold_bikes_model_adjusted
@@ -370,7 +383,7 @@ df_sold_bikes_model_adjusted_CAD = (
 )
 ```
 
-```python vscode={"languageId": "python"}
+```python
 (
     df_sold_bikes_model_adjusted_CAD
     .groupby(["last_repost_month"])
@@ -381,7 +394,7 @@ df_sold_bikes_model_adjusted_CAD = (
 );
 ```
 
-```python vscode={"languageId": "python"}
+```python
 # Count of Ads 
 g = (
     df_sold_bikes_model_adjusted_CAD
@@ -406,7 +419,18 @@ g.fig.subplots_adjust(top=0.95)
 g.fig.suptitle("Average Adjusted Price by Year - 95% CI Denoted");
 ```
 
-```python vscode={"languageId": "python"}
+```python
+sns.lineplot(
+    data=df_sold_bikes_model_adjusted_CAD.assign(
+        original_post_month = lambda _df: _df.original_post_date.dt.to_period('M').dt.to_timestamp()
+    ),
+    x="original_post_month",
+    y="price_cpi_adjusted_CAD",
+    estimator="mean"
+)
+```
+
+```python
 (
     df_sold_bikes_model_adjusted_CAD
     .assign(
@@ -428,7 +452,7 @@ g.fig.suptitle("Average Adjusted Price by Year - 95% CI Denoted");
 
 Due to people appearing to mark an ad as "Sold" and then reopening it later at a lower price and reselling - we have duplicates on URL to ads in our dataset. To deal with this - we'll take the latest by last repost date.
 
-```python vscode={"languageId": "python"}
+```python
 df_sold_bikes_model_adjusted_CAD = (
     df_sold_bikes_model_adjusted_CAD
     .assign(
@@ -441,7 +465,7 @@ df_sold_bikes_model_adjusted_CAD = (
 )
 ```
 
-```python vscode={"languageId": "python"}
+```python
 df_sold_bikes_model_adjusted_CAD = (
     df_sold_bikes_model_adjusted_CAD
     .pipe(ut.convert_to_float, colnames=["view_count","watch_count"])
@@ -449,23 +473,27 @@ df_sold_bikes_model_adjusted_CAD = (
 )
 ```
 
-```python vscode={"languageId": "python"}
+```python
 # Checks!
 assert len(df_sold_bikes_model_adjusted_CAD) == len(df_sold_bikes_model_adjusted_CAD.drop_duplicates(subset=["url"])), "Duplicates found on URL!"
 ```
 
-```python vscode={"languageId": "python"}
+```python
 Markdown(f"Shape of modelling dataset for complete bikes, in North America: {len(df_sold_bikes_model_adjusted_CAD)} rows, \n"
 f"{df_sold_bikes_model_adjusted_CAD.shape[1]} columns.")
 ```
 
-```python vscode={"languageId": "python"}
+```python
 # Save out versioned file for modelling
 timestamp = pd.Timestamp.now().strftime('%Y-%m-%d_%H_%M_%S')
 filename = f"{timestamp}_{file_stub}.parquet.gzip"
 dt.stream_parquet_to_blob(df_sold_bikes_model_adjusted_CAD, blob_name = filename, blob_container=container_to_write_to )
 ```
 
-```python vscode={"languageId": "python"}
-Markdown(f"The processed and adjusted data has been written to container: { container_to_write_to } with filename: {filename}")
+```python
+Markdown(f"The processed and ad~~justed data has been written to container: { container_to_write_to } with filename: {filename}")
+```
+
+```python
+
 ```
