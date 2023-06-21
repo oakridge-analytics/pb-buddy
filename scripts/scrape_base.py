@@ -19,13 +19,11 @@ from pb_buddy.resources import get_category_list
 
 
 def main(full_refresh=False, delay_s=1, num_jobs=4):
-
     # TODO: Fix how we handle poor formatted inputs when using
     # workflow_dispatch vs. cron scheduled runs
-    num_jobs=int(num_jobs) if num_jobs else 4 
+    num_jobs = int(num_jobs) if num_jobs else 4
     full_refresh = False if not full_refresh else full_refresh
-    
-    
+
     category_dict = get_category_list()
     # Settings -----------------------------------------------------------------
     start_category = min(category_dict.values())
@@ -97,8 +95,8 @@ def main(full_refresh=False, delay_s=1, num_jobs=4):
             delayed(scraper.get_buysell_ads)(x, delay_s=delay_s)
             for x in tqdm(page_urls, disable=(not show_progress))
         )
-        ad_urls = ut.flatten(ad_urls)
-        ad_urls = list(dict.fromkeys(ad_urls))
+        ad_urls = {key: value for d in ad_urls for key, value in d.items()}
+
         # Get new ad data ---------------------------------------------------------
         intermediate_ad_data = []
         intermediate_sold_ad_data = []
@@ -107,12 +105,14 @@ def main(full_refresh=False, delay_s=1, num_jobs=4):
         # Do sequentially and check datetime of last scrape
         # Only add new ads. Note Pinkbike doesn't note AM/PM so can't do by time.
         # Have to round to date and check anything >= last scrape date.
-        for url in tqdm(ad_urls, disable=(not show_progress)):
+        # Boosted ads are always at top of results, and may have older dates
+        for url, boosted_status in tqdm(ad_urls.items(), disable=(not show_progress)):
             single_ad_data = scraper.parse_buysell_ad(url, delay_s=0)
             if single_ad_data != {}:
                 if (
                     pd.to_datetime(single_ad_data["last_repost_date"]).date()
                     >= last_scrape_dt.date()
+                    or boosted_status == "boosted"
                 ):
                     # Sometimes sold ads kept in main results, ad for later
                     if (
@@ -219,7 +219,7 @@ def main(full_refresh=False, delay_s=1, num_jobs=4):
 
         # Get sold ad data ------------------------------------------------
         potentially_sold_urls = base_data.loc[
-            ~base_data.url.isin(ad_urls), "url"
+            ~base_data.url.isin(ad_urls.keys()), "url"
         ].dropna()
         # Rescrape sold ads to make sure, check for "SOLD"
         logging.info(

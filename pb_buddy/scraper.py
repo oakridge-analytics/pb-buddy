@@ -6,7 +6,7 @@ import pandas as pd
 import time
 
 
-def get_buysell_ads(url: str, delay_s: int = 1) -> List[str]:
+def get_buysell_ads(url: str, delay_s: int = 1) -> dict:
     """Grab all buysell URL's from a page of Pinkbike's buysell results
 
     Parameters
@@ -18,8 +18,8 @@ def get_buysell_ads(url: str, delay_s: int = 1) -> List[str]:
 
     Returns
     -------
-    List[str]
-        List of URL's to the buysell ads on that page
+    dict
+        Mapping of ad URL: "boosted" or "not boosted"
     """
     headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"
@@ -30,14 +30,28 @@ def get_buysell_ads(url: str, delay_s: int = 1) -> List[str]:
         print(search_results.status_code)
         raise requests.exceptions.RequestException("Buysell url status error")
     soup = BeautifulSoup(search_results.content, features="html.parser")
-    buysell_ads = []
+    buysell_ad_links = []
+
+    # Get all buysell ad links
     for link in soup.find_all("a"):
         if re.match("https://www.pinkbike.com/buysell/[0-9]{7}", link.get("href")):
-            buysell_ads.append(link.get("href"))
+            buysell_ad_links.append(link.get("href"))
+
+    # De-duplicate, order maintained
+    buysell_ad_links = list(dict.fromkeys(buysell_ad_links))
+
+    # Get if each ad is boosted or not
+    buysell_ad_status = {}
+    divs = soup.find_all("div", class_=["bsitem boosted", "bsitem"])
+    for i, div in enumerate(divs):
+        if "boosted" in div.get("class"):
+            buysell_ad_status[buysell_ad_links[i]] = "boosted"
+        else:
+            buysell_ad_status[buysell_ad_links[i]] = "not boosted"
 
     time.sleep(delay_s)
     # Return de duplicated, order maintained
-    return list(dict.fromkeys(buysell_ads))
+    return buysell_ad_status
 
 
 def get_total_pages(category_num: str, region: int = 3) -> int:
@@ -124,7 +138,6 @@ def parse_buysell_ad(buysell_url: str, delay_s: int) -> dict:
 
     # Get price
     for pricing in soup.find_all("div", class_="buysell-container buysell-price"):
-
         # Grab price and currency. In case of issue, store None and handle downstream
         price_search = re.search("([\d,]+)", pricing.text)
         if price_search is not None:
@@ -174,11 +187,12 @@ def parse_buysell_ad(buysell_url: str, delay_s: int) -> dict:
 
     return data_dict
 
+
 def retry(times, exceptions, time_delay=60):
     """
     Retries the wrapped function/method `times` times if the exceptions listed
     in `exceptions` are thrown
-    
+
     Params
     ------
     times : int
@@ -189,6 +203,7 @@ def retry(times, exceptions, time_delay=60):
     time_delay : int
         Number of seconds to sleep in between attempts
     """
+
     def decorator(func):
         def newfn(*args, **kwargs):
             attempt = 0
@@ -197,11 +212,13 @@ def retry(times, exceptions, time_delay=60):
                     return func(*args, **kwargs)
                 except exceptions:
                     print(
-                        'Exception thrown when attempting to run %s, attempt '
-                        '%d of %d' % (func, attempt, times)
+                        "Exception thrown when attempting to run %s, attempt "
+                        "%d of %d" % (func, attempt, times)
                     )
                     time.sleep(time_delay)
                     attempt += 1
             return func(*args, **kwargs)
+
         return newfn
+
     return decorator
