@@ -34,7 +34,7 @@ def get_buysell_ads(url: str, delay_s: int = 1) -> dict:
 
     # Get all buysell ad links
     for link in soup.find_all("a"):
-        if re.match("https://www.pinkbike.com/buysell/[0-9]{7}", link.get("href")):
+        if re.match("https://www.pinkbike.com/buysell/[0-9]{6,7}", link.get("href")):
             buysell_ad_links.append(link.get("href"))
 
     # De-duplicate, order maintained
