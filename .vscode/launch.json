@@ -9,6 +9,10 @@
             "type": "python",
             "request": "launch",
             "program": "${file}",
+            "args": [
+                "--num_jobs=8",
+                "--delay_s=0.5"
+            ],
             "console": "integratedTerminal",
             "justMyCode": true
         },
