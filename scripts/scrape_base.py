@@ -4,12 +4,12 @@ import logging
 import warnings
 import sys
 
-from matplotlib.pyplot import show
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
 from joblib import Parallel, delayed
 import fire
+from dotenv import load_dotenv
 
 # Custom code
 import pb_buddy.scraper as scraper
@@ -41,7 +41,6 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape=None):
         level=getattr(logging, log_level.upper(), None),
         format="%(asctime)s %(message)s",
     )
-    logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
     logging.info("######## Starting new scrape session #########")
     all_base_data = dt.get_dataset(category_num=-1, data_type="base")
@@ -253,7 +252,7 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape=None):
         logging.info(f"*************Finished Category {category_name}")
 
         num_categories_scraped += 1
-        print(
+        logging.info(
             f"Done Category {category_name} - Number: {category_to_scrape}. {num_categories_scraped} Categories Scraped So Far"
         )
 
@@ -261,4 +260,5 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape=None):
 
 
 if __name__ == "__main__":
+    load_dotenv("../.env")
     fire.Fire(main)
