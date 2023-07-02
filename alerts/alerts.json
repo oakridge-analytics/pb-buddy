@@ -17,14 +17,6 @@
             "last_checked": "2023-07-01 21:37:30.267110-06:00"
         },
         {
-            "category_num": 77,
-            "alert_name": "Tim's Gravel Bikes",
-            "search_string": "(ad_title.str.contains('Rove ') or ad_title.str.contains('Sutra '))",
-            "email_stem": "tjvankle",
-            "email_domain": "@gmail.com",
-            "last_checked": "2023-07-01 21:38:04.866970-06:00"
-        },
-        {
             "category_num": 2,
             "alert_name": "Enduro Bike Good Deals",
             "search_string": "material.str.contains('Carbon') and price > 3000 and price < 4000 and location.str.contains('Canada') and frame_size.str.contains('M') and (ad_title.str.contains('2019') or ad_title.str.contains('2020') or ad_title.str.contains('2021'))",
