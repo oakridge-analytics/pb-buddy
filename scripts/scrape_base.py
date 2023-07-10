@@ -18,7 +18,7 @@ import pb_buddy.data_processors as dt
 from pb_buddy.resources import get_category_list
 
 
-def main(full_refresh=False, delay_s=1, num_jobs=4):
+def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape=None):
     # TODO: Fix how we handle poor formatted inputs when using
     # workflow_dispatch vs. cron scheduled runs
     num_jobs = int(num_jobs) if num_jobs else 4
@@ -31,15 +31,18 @@ def main(full_refresh=False, delay_s=1, num_jobs=4):
     log_level = "INFO"
     show_progress = False if os.environ.get("PROGRESS", "0") == "0" else True
 
-    # Config main settings -----------------------------------------------
-    categories_to_scrape = range(start_category, end_category + 1)
+    # If categories to scrape not specified, scrape all
+    if categories_to_scrape is None:
+        categories_to_scrape = range(start_category, end_category + 1)
+    else:
+        categories_to_scrape = [int(x) for x in categories_to_scrape.split(",")]
+
     logging.basicConfig(
         level=getattr(logging, log_level.upper(), None),
         format="%(asctime)s %(message)s",
     )
     logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
-    # Setup ------------------------------------------------------------
     logging.info("######## Starting new scrape session #########")
     all_base_data = dt.get_dataset(category_num=-1, data_type="base")
     all_sold_data = dt.get_dataset(category_num=-1, data_type="sold")
@@ -127,29 +130,6 @@ def main(full_refresh=False, delay_s=1, num_jobs=4):
                         f"Checked up until ~ page: { (len(intermediate_ad_data)//20)+1} of ads"
                     )
                     break
-
-        # # Do the EXACT SAME LOGIC (TODO: FIX THIS), to check older URLS that have been missed for some reason
-        # # Don't do the comparison to last scrape date, these have all been missed already.
-        # already_collected_urls = [x["url"] for x in intermediate_ad_data] + \
-        #     [x["url"] for x in intermediate_sold_ad_data]
-        # missing_urls = [
-        #     x for x in ad_urls if x not in base_data.url.to_list()
-        #     and x not in already_collected_urls
-        # ]
-        # for url in tqdm(missing_urls, disable=(not show_progress)):
-        #     single_ad_data = scraper.parse_buysell_ad(url, delay_s=0)
-        #     if single_ad_data != {}:
-        #         # Sometimes sold ads kept in main results, ad for later
-        #         if (
-        #             "sold" in single_ad_data["still_for_sale"].lower()
-        #             and url not in sold_ad_data.url.values
-        #         ):
-        #             intermediate_sold_ad_data.append(single_ad_data)
-        #         else:
-        #             intermediate_ad_data.append(single_ad_data)
-        # logging.info(
-        #     f"Checked: { len(missing_urls)} new ads missed in previous scrapes"
-        # )
 
         logging.info(
             f"Found: {len(intermediate_sold_ad_data)} sold ads in buysell normal pages"

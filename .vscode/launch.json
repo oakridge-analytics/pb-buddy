@@ -10,7 +10,11 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "justMyCode": true
+            "justMyCode": true,
+            "args": [
+                "--num_jobs=20",
+                "--categories_to_scrape='10'"
+            ]
         },
         {
             "name": "Python: FastAPI",
