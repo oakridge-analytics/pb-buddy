@@ -207,6 +207,11 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape=None):
 
         # Do sequentially and check datetime of last scrape
         # Only add new ads. Removed ads won't return a usable page.
+        # Remove the sold urls from the potentially sold urls
+        potentially_sold_urls = [
+            url for url in potentially_sold_urls if url not in urls_to_remove
+        ]
+
         urls_to_remove = []
         for url in tqdm(potentially_sold_urls, disable=(not show_progress)):
             single_ad_data = scraper.parse_buysell_ad(url, delay_s=0)
