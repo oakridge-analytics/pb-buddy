@@ -13,7 +13,7 @@ BASE_URL = "https://99spokes.com"
 LANG_REGION = "en-CA"
 NO_BIKES_TEXT = "No bikes found :-("
 URL_MODIFIERS = "region=earth"
-START_YEAR = 2010
+START_YEAR = 2000
 
 logging.basicConfig(level=logging.INFO)
 
@@ -56,16 +56,23 @@ def run(playwright: Playwright) -> None:
 
 
 def scrape_manufacturer_specs(
-    manufacturer: str, links_path_out: str, base_url: str = BASE_URL, delay_s: int = 1
+    manufacturers_file: str,
+    links_path_out: str,
+    base_url: str = BASE_URL,
+    delay_s: int = 1,
 ) -> None:
-    with sync_playwright() as playwright:
-        get_manufacturer_data(
-            manufacturer,
-            links_path_out=links_path_out,
-            playwright_context=playwright,
-            base_url=base_url,
-            delay_s=delay_s,
-        )
+    manufacturer_list = pd.read_csv(manufacturers_file, header=None)[0].tolist()
+    # Update on progress
+    logging.info(f"Scraping manufacturers: {manufacturer_list}...")
+    for manufacturer in manufacturer_list:
+        with sync_playwright() as playwright:
+            get_manufacturer_data(
+                manufacturer,
+                links_path_out=links_path_out,
+                playwright_context=playwright,
+                base_url=base_url,
+                delay_s=delay_s,
+            )
 
 
 def get_manufacturer_data(
@@ -106,9 +113,14 @@ def get_manufacturer_data(
             time.sleep(delay_s)
             model_pattern = re.compile(rf"{year} {manufacturer}.*")
             model_links = get_pattern_links(page, model_pattern)
-            model_links_out.extend(model_links)
 
-    model_links_out = [f"{base_url}/{model_link}" for model_link in model_links_out]
+            # In certain cases, only one model in family, so no subpage
+            if model_links:
+                model_links_out.extend(model_links)
+            else:
+                model_links_out.append(model_family_link)
+
+    model_links_out = [f"{base_url}{model_link}" for model_link in model_links_out]
 
     logging.info(f"Writing links to {links_path_out}...")
     pd.DataFrame({"URL": model_links_out}).to_csv(
