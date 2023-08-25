@@ -26,12 +26,12 @@
             "last_checked": "2023-08-24 16:37:43.554137-06:00"
         },
         {
-            "category_num": 91,
-            "alert_name": "SRAM Cassettes",
-            "search_string": "location.str.contains('Calgary') and ad_title.str.contains('SRAM')",
-            "email_stem": "dustin.brown.andrews",
+            "category_num": 40,
+            "alert_name": "Ty's MTB Shoes",
+            "search_string": "ad_title.str.lower().str.contains('specialized') and (ad_title.str.lower().str.contains('s-works') or ad_title.str.lower().str.contains('sworks') or ad_title.str.lower().str.contains('recon') or ad_title.str.lower().str.contains('mtb'))"
+            "email_stem": "ty.elgin.andrews",
             "email_domain": "@gmail.com",
-            "last_checked": "2023-08-24 16:37:46.404334-06:00"
-        }
+            "last_checked": "2023-08-24 06:58:45.326234-06:00"
+        },
     ]
 }
