@@ -1,140 +1,171 @@
-import time
 import re
+import os
 import uuid
 from pathlib import Path
 
-from playwright.sync_api import Playwright, sync_playwright, expect
-import fire
+from playwright.sync_api import Playwright, sync_playwright, Page
+from playwright._impl._api_types import TimeoutError
 import pandas as pd
-import logging
-import unicodedata
+import numpy as np
+from joblib import Parallel, delayed
+from urllib.parse import unquote
+import fire
+from tqdm import tqdm
 
-BASE_URL = "https://99spokes.com"
-LANG_REGION = "en-CA"
-NO_BIKES_TEXT = "No bikes found :-("
-URL_MODIFIERS = "region=earth"
-START_YEAR = 2000
-
-logging.basicConfig(level=logging.INFO)
+# Print all pandas columns
+pd.set_option("display.max_columns", None)
 
 
-def normalize_manufacturer_name(manufacturer: str) -> str:
-    return remove_accents(manufacturer.lower().replace(" ", "").replace("-", ""))
-
-
-def remove_accents(input_str: str) -> str:
-    return (
-        unicodedata.normalize("NFKD", input_str).encode("ASCII", "ignore").decode("utf-8")
-    )
-
-
-def run(playwright: Playwright) -> None:
-    browser = playwright.chromium.launch(headless=False)
-    context = browser.new_context()
-    page = context.new_page()
-    page.goto("https://99spokes.com/en-CA/bikes?makerId=3t")
-    page.get_by_role("button", name="Year").click()
-    page.get_by_label("2023 (58)").check()
-    page.get_by_role("button", name="Apply").click()
-    page.get_by_role("link", name="3T Strada $4,999—$12,299").click()
-    page.get_by_role(
-        "link", name="2023 3T STRADA RED AXS 1X12/CLASSIFIED R50 $9,799"
-    ).click()
-    page.locator(
-        ".sc-5cd5ae29-0 > div:nth-child(2) > div > div > div > div"
-    ).first.click()
-    page.get_by_role("img", name="2023 3T STRADA RED AXS 1X12/CLASSIFIED R50").click()
-    page.get_by_role(
-        "link", name="2023 3T Strada X Automobili Lamborghini $12,299"
-    ).click()
-    page.goto("https://99spokes.com/en-CA/bikes?makerId=3t&year=2023&family=3t-strada")
-    page.get_by_role("link", name="2023 3T STRADA RIVAL AXS 2X12 $7,599").click()
-
-    # ---------------------
-    context.close()
-    browser.close()
-
-
-def scrape_manufacturer_specs(
-    manufacturers_file: str,
-    links_path_out: str,
-    base_url: str = BASE_URL,
-    delay_s: int = 1,
+def extract_specs_from_links(
+    url_list: str,
+    headless: bool = True,
+    save_frequency: int = 100,
+    specs_folder_path: str = "resources/specs",
+    job_number: int = 0,
 ) -> None:
-    manufacturer_list = pd.read_csv(manufacturers_file, header=None)[0].tolist()
-    # Update on progress
-    logging.info(f"Scraping manufacturers: {manufacturer_list}...")
-    for manufacturer in manufacturer_list:
-        with sync_playwright() as playwright:
-            get_manufacturer_data(
-                manufacturer,
-                links_path_out=links_path_out,
-                playwright_context=playwright,
-                base_url=base_url,
-                delay_s=delay_s,
-            )
+    
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(headless=headless)
+        context = browser.new_context()
+        context.set_default_timeout(3000)
+        page = context.new_page()
+
+        df_specs = pd.DataFrame()
+        for url in tqdm(url_list, position=job_number, leave=True):
+            df_specs = pd.concat([df_specs, extract_specs(url, page)])
+            if df_specs.shape[0] % save_frequency == 0:
+                df_specs.to_csv(
+                    os.path.join(specs_folder_path, f"specs_{df_specs.shape[0]}_{uuid.uuid4()}.csv")
+                )
+
+        df_specs.to_csv(f"specs_{df_specs.shape[0]}.csv")
+        context.close()
+        browser.close()
 
 
-def get_manufacturer_data(
-    manufacturer: str,
-    links_path_out: str,
-    playwright_context: Playwright,
-    base_url: str = BASE_URL,
-    delay_s: int = 1,
-) -> None:
-    browser = playwright_context.chromium.launch(headless=False)
-    context = browser.new_context()
-    page = context.new_page()
-    manufacturer_normalized = normalize_manufacturer_name(manufacturer)
+def process_html_table(html_table: str) -> pd.DataFrame:
+    """Read a html table transpose the table
+    and promote the first row to headers
+    """
+    df = pd.read_html(html_table)[0].transpose()
+    df.columns = df.iloc[0]
+    df = df.drop(df.index[0])
+    df = normalize_column_names(df)
+    return df
 
-    # Logic:
-    # First get model families per year
-    # Then get models per model family
-    # Then get specs per model
-    year_delay_s = 2
-    model_links_out = []
-    for year in range(START_YEAR, pd.Timestamp.now().year + 1):
-        page.goto(
-            f"{base_url}/{LANG_REGION}/bikes?{URL_MODIFIERS}&makerId={manufacturer_normalized}&year={year}"
+
+def normalize_column_names(df: pd.DataFrame) -> pd.DataFrame:
+    """Normalize column names to remove spaces and special characters"""
+    df.columns = df.columns.str.replace(r"[\s-]", "_", regex=True)
+    df.columns = df.columns.str.lower()
+    return df
+
+
+def extract_specs(url: str, page: Page):
+    """Given a page with a bike specs table, extract the specs and return a dataframe"""
+    page.goto(url, timeout=30000)
+
+    try:
+        # Due to an injected div for top rated bikes, need to check for this and grab
+        # next div
+        initial_summary_table_html = page.locator("div:nth-child(4) > div").first.inner_html()
+        if "99 Spokes" in initial_summary_table_html:
+            initial_summary_table_html = page.locator("div:nth-child(5) > div").first.inner_html()
+        df_summary_specs = process_html_table(
+            initial_summary_table_html
         )
-        time.sleep(year_delay_s)
+        df_summary_specs.columns = [f"{col}_summary" for col in df_summary_specs.columns]
+    except TimeoutError:
+        df_summary_specs = pd.DataFrame()
 
-        # Check if there are any bikes for this year, if pattern present anywhere on page
-        if page.get_by_text("No bikes found :-(").is_visible():
-            logging.info(f"No bikes found for {manufacturer} {year}...")
-            continue
+    try:
+        manufacturer_link = unquote(
+            page.get_by_role("link", name=re.compile(r"View on.*"))
+            .get_attribute("href")
+            .split("target=")[1]
+        ).split("?99spokes")[0]
+    except TimeoutError:
+        manufacturer_link = ""
 
-        logging.info(f"Scraping Manufactuer: {manufacturer} Year: {year}...")
-        model_family_pattern = re.compile(rf"{manufacturer}.*")
-        model_family_links = get_pattern_links(page, model_family_pattern)
-        for model_family_link in model_family_links:
-            logging.info(f"Scraping Model Family: {model_family_link}...")
-            page.goto(f"{base_url}/{model_family_link}")
-            time.sleep(delay_s)
-            model_pattern = re.compile(rf"{year} {manufacturer}.*")
-            model_links = get_pattern_links(page, model_pattern)
+    # Some manufacturers are missing all specs, including frame specs
+    try:
+        df_frame_specs = process_html_table(
+            page.get_by_text(re.compile(r"^Build.+"))
+            .filter(has=page.get_by_role("table"))
+            .inner_html()
+        )
+    except TimeoutError:
+        df_frame_specs = pd.DataFrame()
 
-            # In certain cases, only one model in family, so no subpage
-            if model_links:
-                model_links_out.extend(model_links)
-            else:
-                model_links_out.append(model_family_link)
+    # For framesets, no wheels or specs listed
+    # TODO: refactor all this to iterate over all tables
+    try:
+        df_drivetrain_specs = process_html_table(
+            page.get_by_text(re.compile(r"^Groupset.+"))
+            .filter(has=page.get_by_role("table"))
+            .inner_html()
+        )
+    except TimeoutError:
+        df_drivetrain_specs = pd.DataFrame()
 
-    model_links_out = [f"{base_url}{model_link}" for model_link in model_links_out]
+    try:
+        df_wheel_specs = process_html_table(
+            page.get_by_text(re.compile(r"^Wheels.+"))
+            .filter(has=page.get_by_role("table"))
+            .inner_html()
+        )
+    except TimeoutError:
+        df_wheel_specs = pd.DataFrame()
 
-    logging.info(f"Writing links to {links_path_out}...")
-    pd.DataFrame({"URL": model_links_out}).to_csv(
-        Path(links_path_out) / f"{uuid.uuid4()}_{manufacturer}.csv", index=False
+    df_complete = pd.concat(
+        [df_summary_specs, df_frame_specs, df_drivetrain_specs, df_wheel_specs], axis=1
+    ).assign(manufacturer_url=manufacturer_link, spec_url=url)
+
+    return df_complete
+
+
+def extract_all_specs(
+    csv_folder_path: str = "resources/links",
+    specs_folder_path: str = "resources/specs",
+    existing_specs_path: str = "resources/specs",
+    n_jobs: int = 10,
+    save_frequency: int = 1000,
+    headless: bool = True,
+):
+    """Given a path to a folder of CSV files,
+    extract all specs from the links in the CSV files
+
+    Parameters
+    ----------
+    csv_folder_path : str
+        Folder with CSV's containing bike links
+        in a column named 'URL'
+    """
+    csv_files = Path(csv_folder_path).glob("*.csv")
+    url_list = []
+    for file in csv_files:
+        url_list.extend(pd.read_csv(file)["URL"].tolist())
+
+    # Remove any URL found in existing_specs_path files:
+    existing_specs_files = Path(existing_specs_path).glob("*.csv")
+    existing_specs_urls = []
+    for file in existing_specs_files:
+        existing_specs_urls.extend(pd.read_csv(file)["spec_url"].tolist())
+    url_list = [url for url in url_list if url not in existing_specs_urls]
+
+    url_chunks = np.array_split(url_list, n_jobs)
+    jobs = list(range(n_jobs))
+    Parallel(n_jobs=n_jobs, verbose=0)(
+        delayed(extract_specs_from_links)(
+            url_list=url_chunk,
+            save_frequency=save_frequency,
+            specs_folder_path=specs_folder_path,
+            headless=headless,
+            job_number=job_number,
+        )
+        for url_chunk, job_number in zip(url_chunks,jobs)
     )
-
-
-def get_pattern_links(page, pattern: re.Pattern):
-    "Get links matching re.Pattern for further scraping"
-    matching_links = []
-    for matching_link in page.get_by_role("link", name=pattern).all():
-        matching_links.append(matching_link.get_attribute("href"))
-    return matching_links
 
 
 if __name__ == "__main__":
-    fire.Fire(scrape_manufacturer_specs)
+    fire.Fire(extract_all_specs)

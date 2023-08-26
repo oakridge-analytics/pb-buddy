@@ -10,6 +10,28 @@ For normal web scraping work, use the following to create the `pb-buddy` `conda`
 make conda
 ```
 
+### Scraping Configuration
+
+#### Used Ads
+
+#### Bike Specs
+
+**Warning: very rough process, needs refactoring and likely reading code to use**. 
+
+To build the bike spec dataset, first get links to bike spec pages with:
+
+```
+python scripts/scrape_bike_links.py --links_path_out=<folder_name_here>
+```
+
+Then, use this folder of csv files per manufacturer to scrape the specs of each model with:
+
+```
+python scripts/scrape_bike_specs.py --csv_folder_path=<path_to_folder_of_links_above> --specs_folder_path=<desired_output_folder> --existing_specs_folder=<desired_output_folder>
+```
+
+Progressively larger files of scraped bike specs will be saved to `--specs_folder_path`, dropping duplicates on `spec_url` across these gives the final dataset.
+
 #### Modelling
 
 For running modelling with GPU+CUDA after initial environment setup is done, first ensure that CUDA 11.6 is installed.

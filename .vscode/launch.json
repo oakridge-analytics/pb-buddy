@@ -6,10 +6,10 @@
             "type": "python",
             "request": "launch",
             "program": "${file}",
-            "args": [
-                "--num_jobs=20",
-                "--categories_to_scrape='10'"
-            ],
+            // "args": [
+            //     "--num_jobs=20",
+            //     "--categories_to_scrape='10'"
+            // ],
             "console": "integratedTerminal",
             "justMyCode": true
         },
