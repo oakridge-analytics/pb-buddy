@@ -15,6 +15,7 @@ jupyter:
 
 ```python
 import os
+import re
 
 import pandas as pd
 import numpy as np
@@ -106,10 +107,6 @@ df_modelling.iloc[4]
 ```
 
 ```python
-get_most_similar_spec(df_specs, test_str)
-```
-
-```python
 # test_str
 
 def get_most_similar_spec(_df, test_str):
@@ -135,7 +132,6 @@ def get_most_similar_spec(_df, test_str):
 (
     df_modelling
     .sample(30)
-    .head(10000)
     .assign(
         ad_title_clean = lambda _df: _df.ad_title.str.lower().str.replace(r"[^a-zA-Z0-9 ]", "", regex=True)
     )
@@ -146,5 +142,69 @@ def get_most_similar_spec(_df, test_str):
 ```
 
 ```python
+# Extract all years, then brands for each year as a dictionary, then within each brand, extract all models as a dictionary
+year_make_model_mapping = {year: {brand: list(df_specs.query(f"year == '{year}' and brand == '{brand}'").model.unique()) for brand in df_specs.query(f"year == '{year}'").brand.unique()} for year in df_specs.year.unique()}
+```
 
+```python
+def fuzzy_match_bike(input_string: str, year_make_model_mapping: dict , manufacturer_threshold: float = 0.7, model_threshold: float = 0.7):
+    """
+    Function to fuzzy match a bike ad title to a bike model. 
+    Returns a tuple of (year, brand, model) if found, else returns None
+    """
+    # Clean input string
+    input_string = input_string.lower().replace(r"[^a-zA-Z0-9 ]", "")
+    # Get all years from input string
+    years = re.findall(r"\d{4}", input_string)
+    # If no years found, return None
+    if len(years) == 0:
+        return None
+    # If more than one year found, return None
+    if len(years) > 1:
+        return None
+    # Get year
+    year = years[0]
+    # Get all brands for that year, return None if no brands found
+    if year not in year_make_model_mapping.keys():
+        return None
+    brands = list(year_make_model_mapping[year].keys())
+    # Get most similar brand using partial_ratio, and the similarity score
+    brand, brand_similarity = max([(brand, fuzz.partial_ratio(brand, input_string)) for brand in brands], key=lambda x: x[1])
+    if brand_similarity < manufacturer_threshold:
+        brand = None
+        model = None
+        return (year, brand, model)
+    # Get all models for that brand
+    models = year_make_model_mapping[year][brand]
+    # Get most similar model using partial_ratio, and the similarity score
+    model, model_similarity = max([(model, fuzz.partial_ratio(model, input_string)) for model in models], key=lambda x: x[1])
+    if model_similarity < model_threshold:
+        model = None
+    # Return tuple of (year, brand, model)
+    return (year, brand, model)
+
+# Test function
+fuzzy_match_bike("2021 Cannondle SuperSix", year_make_model_mapping,manufacturer_threshold=0.7, model_threshold=0.9)
+```
+
+```python
+(
+    df_modelling
+    .sample(3000)
+    .assign(
+        match = lambda _df: _df.ad_title.apply(lambda _str: fuzzy_match_bike(_str, year_make_model_mapping, manufacturer_threshold=90, model_threshold=75)).astype(str)
+    )
+    .query("match.str.contains('None')==False")
+    [["ad_title", "match"]]
+    .head(20)
+)
+```
+
+```python
+for model in [model for model in year_make_model_mapping["2017"]["trek"] if "820" in model]:
+    print(f"Similarity with {model}:  {fuzz.partial_ratio('2017 Trek Fuel EX 8'.lower(), model)}")
+```
+
+```python
+[model for model in year_make_model_mapping["2017"]["trek"] if "fuel" in model]
 ```
