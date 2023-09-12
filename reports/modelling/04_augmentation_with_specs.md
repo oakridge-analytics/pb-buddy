@@ -16,9 +16,12 @@ jupyter:
 ```python
 import os
 import re
+import json
 
 import pandas as pd
 import numpy as np
+from itertools import product
+from joblib import Parallel, delayed
 
 # Visuals ------------------
 import matplotlib.pyplot as plt
@@ -30,6 +33,7 @@ from rapidfuzz import fuzz
 # Custom code ---------------------
 import pb_buddy.data_processors as dt
 import pb_buddy.utils as ut
+from pb_buddy.data.specs import get_specs_dataset, build_year_make_model_mapping, get_year_make_model_mapping
 
 
 
@@ -63,21 +67,7 @@ else:
 ```
 
 ```python
-df_specs = dt.stream_parquet_to_dataframe(specs_blob_name, specs_container_name)
-```
-
-```python
-df_specs = (
-    df_specs
-    .pipe(lambda _df: _df.assign(**_df.spec_url.str.extract(r"bikes/(.*)/(.*)/(.*)").rename(columns={0: "brand", 1: "year", 2: "model"})))
-    .assign(
-        # combine year brand model, remove all non alphanumeric characters, and lowercase
-        year_brand_model = lambda _df: _df.year + " " +_df.brand + " " + _df.model.str.replace("-"," ")
-    )
-    .assign(
-        year_brand_model = lambda _df: _df.year_brand_model.str.replace(r"[^a-zA-Z0-9 ]", "").str.lower()
-    )
-)
+df_specs = get_specs_dataset()
 ```
 
 ```python
@@ -98,56 +88,15 @@ for col in ["brand", "year", "model"]:
 ```
 
 ```python
-test_str = df_modelling.iloc[4].ad_title.lower()
-test_str
-```
-
-```python
-df_modelling.iloc[4]
-```
-
-```python
-# test_str
-
-def get_most_similar_spec(_df, test_str):
-    res = (
-        _df
-        .assign(
-            similarity = lambda _df: _df.year_brand_model.apply(lambda _str: fuzz.partial_ratio(_str, test_str))
-        )
-        .sort_values("similarity", ascending=False)
-        .head(1)
-        .reset_index()
-        [["year_brand_model", "similarity"]]
-    )
-
-    return pd.Series([res.year_brand_model.values[0], res.similarity.values[0]])
-
-
-```
-
-```python
-
-# df_modelling = (
-(
-    df_modelling
-    .sample(30)
-    .assign(
-        ad_title_clean = lambda _df: _df.ad_title.str.lower().str.replace(r"[^a-zA-Z0-9 ]", "", regex=True)
-    )
-    .pipe(lambda _df: _df.assign(**_df.ad_title_clean.apply(lambda _str: get_most_similar_spec(df_specs, _str.lower())).rename(columns={0: "year_brand_model", 1: "similarity"})))
-    [["ad_title_clean", "year_brand_model", "similarity"]]
-)
-
-```
-
-```python
 # Extract all years, then brands for each year as a dictionary, then within each brand, extract all models as a dictionary
-year_make_model_mapping = {year: {brand: list(df_specs.query(f"year == '{year}' and brand == '{brand}'").model.unique()) for brand in df_specs.query(f"year == '{year}'").brand.unique()} for year in df_specs.year.unique()}
+year_make_model_mapping = get_year_make_model_mapping()
+# with open("data/year_make_model_mapping.json", "w") as f:
+#     json.dump(year_make_model_mapping, f)
+
 ```
 
 ```python
-def fuzzy_match_bike(input_string: str, year_make_model_mapping: dict , manufacturer_threshold: float = 0.7, model_threshold: float = 0.7):
+def fuzzy_match_bike(input_string: str, year_make_model_mapping: dict, top_n: int = 3, manufacturer_threshold: float = 0.7, model_threshold: float = 0.7, with_similarity: bool = False):
     """
     Function to fuzzy match a bike ad title to a bike model. 
     Returns a tuple of (year, brand, model) if found, else returns None
@@ -176,28 +125,78 @@ def fuzzy_match_bike(input_string: str, year_make_model_mapping: dict , manufact
         return (year, brand, model)
     # Get all models for that brand
     models = year_make_model_mapping[year][brand]
-    # Get most similar model using partial_ratio, and the similarity score
-    model, model_similarity = max([(model, fuzz.partial_ratio(model, input_string)) for model in models], key=lambda x: x[1])
-    if model_similarity < model_threshold:
+    # Get 3 most similar models using partial_ratio, and the similarity score
+    models_similar =[(model, fuzz.partial_ratio(model, input_string)) for model in models]
+    models_similar = sorted(models_similar, key=lambda x: x[1], reverse=True)[:3]
+
+    # For each of 3 most similar models, check compared to threshold and remove if not above
+    for model, model_similarity in models_similar:
+        if model_similarity < model_threshold:
+            models_similar.remove((model, model_similarity))
+    if models_similar is None:
         model = None
-    # Return tuple of (year, brand, model)
-    return (year, brand, model)
+    
+    if not with_similarity:
+        models_similar = [model for model, _ in models_similar]
+        
+    # Return tuple of (year, brand, model) for each match
+    return [(year, brand, model) for model in models_similar]
 
 # Test function
-fuzzy_match_bike("2021 Cannondle SuperSix", year_make_model_mapping,manufacturer_threshold=0.7, model_threshold=0.9)
+fuzzy_match_bike("2021 Cannondle SuperSix", year_make_model_mapping,manufacturer_threshold=70, model_threshold=70, with_similarity=True)
 ```
 
 ```python
-(
-    df_modelling
-    .sample(3000)
-    .assign(
-        match = lambda _df: _df.ad_title.apply(lambda _str: fuzzy_match_bike(_str, year_make_model_mapping, manufacturer_threshold=90, model_threshold=75)).astype(str)
+# iterate through different model_thresholds and manufacturer_thresholds to see how many ads are matched
+
+res = []
+def check_matches(manufacturer_threshold, model_threshold):
+    return (
+        manufacturer_threshold,
+        model_threshold,
+        df_modelling
+        .assign(
+            match = lambda _df: _df.ad_title.apply(lambda _str: fuzzy_match_bike(_str, year_make_model_mapping, manufacturer_threshold=manufacturer_threshold, model_threshold=model_threshold)).astype(str)
+        )
+        .query("match.str.contains('None')==False")
+        .shape[0]
     )
-    .query("match.str.contains('None')==False")
-    [["ad_title", "match"]]
-    .head(20)
-)
+
+# Use joblib to parallelize the process
+threshold_range = np.arange(55,100,5)
+n_jobs=20
+res = Parallel(n_jobs=20)(delayed(check_matches)(manufacturer_threshold, model_threshold) for manufacturer_threshold, model_threshold in product(threshold_range, threshold_range))
+
+```
+
+```python
+# convert to res to dataframe and plot by each threshold:
+df_res = pd.DataFrame(res, columns=["manufacturer_threshold", "model_threshold", "num_matches"])
+df_res["num_matches"] = df_res.num_matches.astype(int)
+df_res["manufacturer_threshold"] = df_res.manufacturer_threshold.astype(int)
+df_res["model_threshold"] = df_res.model_threshold.astype(int)
+df_res = df_res.pivot(index="manufacturer_threshold", columns="model_threshold", values="num_matches")
+df_res = df_res.fillna(0)
+df_res = df_res.astype(int)
+# df_res.style.background_gradient(cmap='viridis_r', axis=None)
+df_res.plot(figsize=(10,10))
+```
+
+```python
+# from IPython.display import display
+# for manufacturer_threshold, model_threshold in product(threshold_range, threshold_range):
+        
+#         display(
+#         df_modelling
+#         .sample(20, random_state=42)
+#         .assign(
+#             match = lambda _df: _df.ad_title.apply(lambda _str: fuzzy_match_bike(_str, year_make_model_mapping,top_n=3, manufacturer_threshold=manufacturer_threshold, model_threshold=model_threshold)).apply(lambda row: "<br>".join([str(item) for item in row]) if row else "None")
+#         )
+#         .query("match.str.contains('None')==False")
+#         [["ad_title", "match"]]
+#         .style
+#         .set_caption(f"manufacturer_threshold: {manufacturer_threshold}, model_threshold: {model_threshold}")
+#         )
 ```
 
 ```python
