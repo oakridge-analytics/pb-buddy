@@ -15,7 +15,7 @@ env:
 jobs:
   scrape-latest:
     runs-on: self-hosted2
-    timeout-minutes: 1000
+    timeout-minutes: 2000
     steps:
       - name: Setup repo
         uses: actions/checkout@v2
