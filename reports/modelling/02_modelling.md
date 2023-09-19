@@ -85,7 +85,6 @@ import uuid
 import matplotlib.pyplot as plt
 from IPython.display import Markdown
 import seaborn as sns
-import shap
 
 # Custom code ---------------------
 import pb_buddy.data_processors as dt
@@ -100,6 +99,7 @@ from pb_buddy.modelling.skhelpers import (
     remove_year_transformer,
     get_post_month_transformer
 )
+from pb_buddy.specs import augment_with_specs
 
 %load_ext autoreload
 %autoreload 2
