@@ -97,7 +97,8 @@ from pb_buddy.modelling.skhelpers import (
     add_age_transformer,
     add_covid_transformer,
     remove_year_transformer,
-    get_post_month_transformer
+    get_post_month_transformer,
+    AugmentSpecFeatures
 )
 from pb_buddy.specs import augment_with_specs
 
@@ -270,6 +271,16 @@ transformer = Pipeline(steps=[
                     ), 
                     "description"
                 ),
+                (
+                    "specs_data", 
+                    Pipeline(
+                        steps=[
+                            ("get_specs",AugmentSpecFeatures()),
+                            ("one_hot", OneHotEncoder(handle_unknown="infrequent_if_exist"))
+                        ]
+                    ),
+                    ["year","ad_title"]
+                ),
             ],
         remainder="drop"
     )),
@@ -350,6 +361,16 @@ outlier_transformer = Pipeline(steps=[
                     ), 
                     "description"
                 ),
+                (
+                    "specs_data", 
+                    Pipeline(
+                        steps=[
+                            ("get_specs",augment_spec_features_transformer),
+                            ("one_hot", OneHotEncoder(handle_unknown="infrequent_if_exist"))
+                        ]
+                    ),
+                    ["year","ad_title"]
+                ),
             ],
         remainder="drop"
     )),
@@ -412,9 +433,10 @@ We'll first do some baselines - first a simple bag of words, with dummy regresso
 
 ```python
 # transform Check ---------------------------------
+n=10
 pd.DataFrame(
-    data=transformer.fit_transform(X_train.head(1)),
-    columns=transformer.fit(X_train.head(1)).get_feature_names_out()
+    data=transformer.fit_transform(X_train.head(n)).toarray(),
+    columns=transformer.fit(X_train.head(n)).get_feature_names_out()
 )#.transpose().to_csv("test.csv")#.iloc[0:5,0:20]
 ```
 
@@ -492,6 +514,7 @@ hparams ={
     "transform__preprocess__description_text__tfidf__max_features" : [100000,200000],
     "transform__preprocess__description_text__tfidf__ngram_range": [(1,3),(1,5),(2,5)],
     # "transform__preprocess__description _text__tfidf__max_df":[0.4,0.6,0.7,1],
+    
     "model__C": [30],
     "model__tol": [1e-4]
 }
@@ -531,6 +554,20 @@ hparams ={
     # "transform__preprocess__title_text__tfidf__max_df": [0.6,0.7],
     "transform__preprocess__description_text__tfidf__max_features" : [10000],
     "transform__preprocess__description_text__tfidf__ngram_range": [(1,3),],
+    "transform__preprocess__specs_data__get_specs__spec_cols": [
+        [
+            "groupset_summary",
+            "wheels_summary",
+            "suspension_summary",
+        ],
+        [
+            "groupset_summary",
+            "wheels_summary",
+            "suspension_summary",
+            "manufacturer",
+            "model"
+        ]
+    ],
     # "transform__preprocess__description_text__tfidf__max_df": [0.6,0.7],
     # "model__C": [30]
 }

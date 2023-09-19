@@ -140,11 +140,22 @@ df_modelling = (
 ```
 
 ```python
+df_modelling_with_specs = (
+    df_modelling
+    .assign(
+            fuzzy_match = lambda _df: _df.fuzzy_match.apply(lambda _tuple: None if _tuple == [None] else " ".join(list(_tuple[0])))
+    )
+    .dropna(subset=["fuzzy_match"])
+    .merge(
+        df_specs,left_on="fuzzy_match", right_on="year_brand_model", how="inner"
+    )
+)
+```
 
-
-from pb_buddy.specs import augment_with_specs
-
-df_modelling_with_specs = augment_with_specs(df_modelling, year_col="year", ad_title_col="ad_title")
+```python
+# Determine fraction of each column is None
+df_modelling_with_specs[[col for col in df_specs if col in df_modelling_with_specs]].isnull().mean().sort_values()
+# df_modelling_with_specs[[col for col in df_modelling_with_specs.columns if "_summary" in col]].
 ```
 
 ```python

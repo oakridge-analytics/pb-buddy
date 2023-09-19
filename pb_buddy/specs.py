@@ -123,7 +123,12 @@ def augment_with_specs(
                 lambda _tuple: None if _tuple == [None] else " ".join(list(_tuple[0]))
             )
         )
-        .merge(df_specs, left_on="fuzzy_match", right_on="year_brand_model", how="inner")
+        .merge(
+            df_specs,
+            left_on="fuzzy_match",
+            right_on="year_manufacturer_model",
+            how="left",
+        )
     )
 
     return df_modelling

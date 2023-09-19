@@ -1,6 +1,9 @@
 from sklearn.preprocessing import FunctionTransformer, OneHotEncoder, MaxAbsScaler
+from sklearn.base import BaseEstimator, TransformerMixin
 import numpy as np
 import pandas as pd
+
+from pb_buddy.specs import augment_with_specs
 
 # -----------------------------Helper code for sklearn transformers --------------------------
 # `get_feature_names_out()` on Pipeline instances requires us to have callable functions
@@ -117,3 +120,64 @@ def get_post_month(df):
 get_post_month_transformer = FunctionTransformer(
     get_post_month, feature_names_out="one-to-one"
 )
+
+
+def augment_spec_features(
+    df,
+    spec_cols: list[str] = ["groupset_summary", "wheels_summary", "suspension_summary"],
+    year_col: str = "year",
+    ad_title_col: str = "ad_title",
+    manufacturer_threshold: int = 80,
+    model_threshold: int = 80,
+):
+    "Add specs data to input dataframe"
+    df_out = df
+
+    # print(df_out)
+    return df_out[spec_cols]
+
+
+def spec_feature_names(func_transformer, feature_names_in):
+    return ["covid_flag"]
+
+
+augment_spec_features_transformer = FunctionTransformer(
+    augment_spec_features, feature_names_out="one-to-one"
+)
+
+
+class AugmentSpecFeatures(BaseEstimator, TransformerMixin):
+    def __init__(
+        self,
+        spec_cols: list[str] = [
+            "groupset_summary",
+            "wheels_summary",
+            "suspension_summary",
+        ],
+        year_col: str = "year",
+        ad_title_col: str = "ad_title",
+        manufacturer_threshold: int = 80,
+        model_threshold: int = 80,
+    ) -> None:
+        super().__init__()
+        self.spec_cols = spec_cols
+        self.year_col = year_col
+        self.ad_title_col = ad_title_col
+        self.manufacturer_threshold = manufacturer_threshold
+        self.model_threshold = model_threshold
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        df_out = X.pipe(
+            augment_with_specs,
+            year_col=self.year_col,
+            ad_title_col=self.ad_title_col,
+            manufacturer_threshold=self.manufacturer_threshold,
+            model_threshold=self.model_threshold,
+        )
+        return df_out[self.spec_cols].values
+
+    def get_feature_names_out(self, input_features=None):
+        return self.spec_cols
