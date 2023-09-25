@@ -124,11 +124,51 @@ def augment_with_specs(
             )
         )
         .merge(
-            df_specs,
+            df_specs.drop(columns=["year"]),
             left_on="fuzzy_match",
             right_on="year_manufacturer_model",
             how="left",
         )
+        .assign(
+            msrp_cleaned=lambda _df: _df.msrp_summary.astype(str).apply(extract_msrp),
+        )
+        # Extract weights of form xx.x from weights_summary
+        .assign(
+            weight_summary=lambda _df: _df.weight_summary.astype(str).apply(
+                lambda x: float(match_with_default_value(r"([0-9]+\.[0-9]+)", x, 0))
+            ).astype(float)
+        )
+        # Extract from travel_summary xxxmm front, xxxmm rear into front_travel_summary and rear_travel_summary
+        .assign(
+            front_travel_summary=lambda _df: _df.travel_summary.astype(str).apply(
+                lambda x: float(match_with_default_value(r"([0-9]+)mm front", x, 0))
+            ).astype(float),
+            rear_travel_summary=lambda _df: _df.travel_summary.astype(str).apply(
+                lambda x: float(match_with_default_value(r"([0-9]+)mm rear", x, 0))
+            ).astype(float),
+        )
     )
 
     return df_modelling
+
+
+def extract_msrp(x):
+    if x is None:
+        return None
+    elif x.startswith("$"):
+        return float(x.replace("$", "").replace(",", ""))
+    else:
+        msrp_str = match_with_default_value(r".*about \$([0-9,\.]+).*", x).replace(",", "")
+        if re.match(r"[0-9]+", msrp_str):
+            return float(msrp_str)
+        else:
+            return None
+
+
+def match_with_default_value(pattern, str, default_value="Unknown"):
+    match = re.search(pattern, str)
+    if match is None:
+        return default_value
+    else:
+        return match.group(1)
+    

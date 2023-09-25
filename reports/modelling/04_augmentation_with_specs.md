@@ -33,10 +33,8 @@ from rapidfuzz import fuzz
 # Custom code ---------------------
 import pb_buddy.data_processors as dt
 import pb_buddy.utils as ut
-from pb_buddy.specs import fuzzy_match_bike
-from pb_buddy.data.specs import get_specs_dataset, build_year_manufacturer_model_mapping, get_year_manufacturer_model_mapping
-
-
+from pb_buddy.specs import augment_with_specs, extract_msrp, match_with_default_value
+from pb_buddy.data.specs import get_specs_dataset
 
 %load_ext autoreload
 %autoreload 2
@@ -72,100 +70,85 @@ df_specs = get_specs_dataset()
 ```
 
 ```python
-sns.set_theme()
-top_n = 30
-for col in ["brand", "year", "model"]:
-    fig,ax = plt.subplots(figsize=(10, 5))
-    print(
-        df_specs
-        # .head(20)
-        .pipe(lambda _df: _df.assign(**_df.spec_url.str.extract(r"bikes/(.*)/(.*)/(.*)").rename(columns={0: "brand", 1: "year", 2: "model"})))
-        # plot in horizontal bar chart with seaborn
-        .pipe(lambda _df: sns.countplot(y=col, data=_df, order=_df[col].value_counts().iloc[:top_n].index, ax=ax))
-        .set_title(f"Top {top_n} {col} in dataset")
-
-        
-    )
-```
-
-```python
-year_manufacturer_model_mapping = get_year_manufacturer_model_mapping()
-# Test function
-fuzzy_match_bike("2010 Santa Cruz Heckler".lower(), 2020, year_manufacturer_model_mapping, top_n=1, manufacturer_threshold=10, model_threshold=10, with_similarity=True)
-```
-
-```python
-# iterate through different model_thresholds and manufacturer_thresholds to see how many ads are matched
-
-# res = []
-# def check_matches(manufacturer_threshold, model_threshold):
-#     return (
-#         manufacturer_threshold,
-#         model_threshold,
-#         df_modelling
-#         .assign(
-#             match = lambda _df: _df.ad_title.apply(lambda _str: fuzzy_match_bike(_str, year_make_model_mapping, manufacturer_threshold=manufacturer_threshold, model_threshold=model_threshold)).astype(str)
-#         )
-#         .query("match.str.contains('None')==False")
-#         .shape[0]
-#     )
-
-# # Use joblib to parallelize the process
-# threshold_range = np.arange(55,100,5)
-# n_jobs=20
-# res = Parallel(n_jobs=20)(delayed(check_matches)(manufacturer_threshold, model_threshold) for manufacturer_threshold, model_threshold in product(threshold_range, threshold_range))
-
-```
-
-```python
-# # convert to res to dataframe and plot by each threshold:
-# df_res = pd.DataFrame(res, columns=["manufacturer_threshold", "model_threshold", "num_matches"])
-# df_res["num_matches"] = df_res.num_matches.astype(int)
-# df_res["manufacturer_threshold"] = df_res.manufacturer_threshold.astype(int)
-# df_res["model_threshold"] = df_res.model_threshold.astype(int)
-# df_res = df_res.pivot(index="manufacturer_threshold", columns="model_threshold", values="num_matches")
-# df_res = df_res.fillna(0)
-# df_res = df_res.astype(int)
-# df_res.plot(figsize=(10,10))
-```
-
-```python
-df_modelling = (
-    df_modelling
-        .assign(
-            fuzzy_match = lambda _df: _df[["ad_title","year"]].apply(lambda row: fuzzy_match_bike(row["ad_title"].lower(), row['year'], year_manufacturer_model_mapping, top_n=1, manufacturer_threshold=80, model_threshold=75, with_similarity=False), axis=1)
-        )
-        .query("fuzzy_match.astype('str').str.contains('None')==False")
-)
-```
-
-```python
-df_modelling_with_specs = (
-    df_modelling
+(
+    df_specs
     .assign(
-            fuzzy_match = lambda _df: _df.fuzzy_match.apply(lambda _tuple: None if _tuple == [None] else " ".join(list(_tuple[0])))
+        msrp_cleaned=lambda _df: _df.msrp_summary.astype(str).apply(extract_msrp),
     )
-    .dropna(subset=["fuzzy_match"])
-    .merge(
-        df_specs,left_on="fuzzy_match", right_on="year_brand_model", how="inner"
+    .dropna(subset=['weight_summary',"travel_summary"])
+    .query("travel_summary.str.contains(',')")
+    .head(20)
+    # Extract weights of form xx.x from weights_summary
+    .assign(
+        weight_summary=lambda _df: _df.weight_summary.astype(str).apply(
+            lambda x: float(match_with_default_value(r"([0-9]+\.[0-9]+)", x, 0))
+        ).astype(float)
     )
+    # Extract from travel_summary xxxmm front, xxxmm rear into front_travel_summary and rear_travel_summary
+    .assign(
+        front_travel_summary=lambda _df: _df.travel_summary.astype(str).apply(
+            lambda x: float(match_with_default_value(r"([0-9]+)mm front", x, 0))
+        ).astype(float),
+        rear_travel_summary=lambda _df: _df.travel_summary.astype(str).apply(
+            lambda x: float(match_with_default_value(r"([0-9]+)mm rear", x, 0))
+        ).astype(float),
+    )
+    [
+        [
+            "manufacturer",
+            "model",
+            "year",
+            "travel_summary",
+            "msrp_cleaned",
+            "weight_summary",
+            "front_travel_summary",
+            "rear_travel_summary",
+        ]
+    ]
 )
 ```
 
 ```python
-# Determine fraction of each column is None
-df_modelling_with_specs[[col for col in df_specs if col in df_modelling_with_specs]].isnull().mean().sort_values()
-# df_modelling_with_specs[[col for col in df_modelling_with_specs.columns if "_summary" in col]].
+check_cols = df_modelling.columns[-48:].to_list()
+
+# For each col in check_cols, calculate for each month, in each year
+# how many ads by original_post_date have a non-null spec-url value
+# and plot the results
+
+df_modelling['year_month'] = pd.to_datetime(df_modelling['original_post_date']).dt.strftime('%Y-%m')
+
+for col in check_cols:
+    (
+        df_modelling
+        .assign(
+            **{f"{col}_has_spec": lambda x: x[col].notnull()}
+        )
+        .groupby(['year_month'])
+        .agg({f"{col}_has_spec":'mean'})
+        .reset_index()
+        .plot(x='year_month', y=f"{col}_has_spec", figsize=(20,3), title=f"{col}_has_spec")
+    )
 ```
 
 ```python
-df_modelling_with_specs.sample(30)[["msrp_summary","ad_title","fuzzy_match","price", "url", "spec_url"]].style.format({"url": make_clickable, "spec_url": make_clickable})
-```
+# Get unique values of column "col", and the first spec_url that has that value
+from IPython.display import display, Markdown
 
-```python
-df_modelling_with_specs.shape
-```
+def get_unique_specs(df, col):
+    return (
+        df
+        .loc[df[col].notnull()]
+        .assign(
+            **{f"{col}": lambda x: x[col].fillna("None")}
+        )
+        .groupby(col)
+        .agg({'spec_url':'first', 'year_manufacturer_model':'count'})
+        .sort_values('year_manufacturer_model', ascending=False)
+        .reset_index()
+    )
 
-```python
-
+for col in [c for c in check_cols if "summary" in c]:
+    display(
+        get_unique_specs(df_modelling, col).head(10).style.format({'spec_url': make_clickable})
+    )
 ```

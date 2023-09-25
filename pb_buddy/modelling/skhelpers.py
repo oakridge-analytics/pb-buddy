@@ -102,7 +102,6 @@ def remove_year(df):
 
 remove_year_transformer = FunctionTransformer(remove_year, feature_names_out="one-to-one")
 
-
 # Get month ad is posted, encode as one hot for modelling
 def get_post_month(df):
     """

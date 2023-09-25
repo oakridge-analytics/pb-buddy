@@ -48,11 +48,8 @@ from sklearn.feature_extraction.text import (
     CountVectorizer,
     TfidfVectorizer
 )
-from sklearn.base import (
-    BaseEstimator,
-    RegressorMixin,
-    TransformerMixin
-)
+
+from sklearn.impute import SimpleImputer
 
 from sklearn.pipeline import (
     Pipeline,
@@ -65,7 +62,8 @@ from sklearn.compose import (
 from sklearn.preprocessing import (
     FunctionTransformer,
     OneHotEncoder,
-    MaxAbsScaler
+    MaxAbsScaler,
+    TargetEncoder,
 )
 
 # Transformers modelling ---------------
@@ -144,9 +142,24 @@ df_modelling = (
         country  = lambda _df: add_country(_df),
         ad_title_description = lambda _df: _df.ad_title + " " + _df.description
     )
+    .pipe(
+        augment_with_specs, year_col="year",
+          manufacturer_threshold=80,
+            model_threshold=80
+            )
+    # .dropna(subset=["spec_url"])
     .query("age_at_post>-365 and (country=='Canada' or country=='United States')")
     .drop(columns=["age_at_post","country"])
 )
+```
+
+```python
+df_modelling['year_month'] = df_modelling['original_post_date'].dt.to_period('M')
+df_modelling['has_spec_url'] = df_modelling['spec_url'].notnull()
+df_spec = df_modelling.groupby(['year_month'])['has_spec_url'].mean().reset_index()
+df_spec.plot(x="year_month", y="has_spec_url")
+
+
 ```
 
 Load the preprocessed dataset with inflation adjusted, and currency adjusted price as target.
@@ -189,6 +202,10 @@ y_train_valid = pd.concat([y_train,y_valid],axis=0)
 
 ```python
 sns.set_theme()
+```
+
+```python
+print(f"Train set size: {X_train.shape[0]}, valid set size: {X_valid.shape[0]}, test set size: {X_test.shape[0]}")
 ```
 
 ```python
@@ -272,15 +289,29 @@ transformer = Pipeline(steps=[
                     "description"
                 ),
                 (
-                    "specs_data", 
-                    Pipeline(
-                        steps=[
-                            ("get_specs",AugmentSpecFeatures()),
-                            ("one_hot", OneHotEncoder(handle_unknown="infrequent_if_exist"))
-                        ]
-                    ),
-                    ["year","ad_title"]
+                    "specs_data_one_hot", 
+                    OneHotEncoder(handle_unknown="infrequent_if_exist"),
+                    [
+                    "frame_summary",
+                    "wheels_summary",
+                    "drivetrain_summary",
+                    "brakes_summary",
+                    "suspension_summary",
+                    ]
                 ),
+                (
+                    "specs_data_high_cardinality",
+                    TargetEncoder(target_type="continuous"),
+                    [
+                    "groupset_summary",
+                    "fork_summary",
+                    ]
+                ),
+                (
+                    "specs_data_numerical",
+                    SimpleImputer(strategy="median"),
+                    ["msrp_cleaned", "weight_summary", "front_travel_summary", "rear_travel_summary"]
+                )
             ],
         remainder="drop"
     )),
@@ -289,6 +320,15 @@ transformer = Pipeline(steps=[
 )
 
 transformer
+```
+
+```python
+# transform Check ---------------------------------
+n=10
+pd.DataFrame(
+    data=transformer.fit_transform(X_train.head(n), y_train.head(n)).toarray(),
+    columns=transformer.fit(X_train.head(n), y_train.head(n)).get_feature_names_out()
+)
 ```
 
 # Outlier Detection
@@ -432,15 +472,6 @@ X_train_outlier_scored.query("outlier_flag==-1").outlier_score.hist(bins=100)
 We'll first do some baselines - first a simple bag of words, with dummy regressor (predict the mean) and with a linear regression
 
 ```python
-# transform Check ---------------------------------
-n=10
-pd.DataFrame(
-    data=transformer.fit_transform(X_train.head(n)).toarray(),
-    columns=transformer.fit(X_train.head(n)).get_feature_names_out()
-)#.transpose().to_csv("test.csv")#.iloc[0:5,0:20]
-```
-
-```python
 # Assign static validation split
 # -1 indicates train set, 0 is valid set
 split_mask = np.vstack((np.ones((len(X_train),1))*-1, np.zeros((len(X_valid),1))))
@@ -554,20 +585,20 @@ hparams ={
     # "transform__preprocess__title_text__tfidf__max_df": [0.6,0.7],
     "transform__preprocess__description_text__tfidf__max_features" : [10000],
     "transform__preprocess__description_text__tfidf__ngram_range": [(1,3),],
-    "transform__preprocess__specs_data__get_specs__spec_cols": [
-        [
-            "groupset_summary",
-            "wheels_summary",
-            "suspension_summary",
-        ],
-        [
-            "groupset_summary",
-            "wheels_summary",
-            "suspension_summary",
-            "manufacturer",
-            "model"
-        ]
-    ],
+    # "transform__preprocess__specs_data__get_specs__spec_cols": [
+    #     [
+    #         "groupset_summary",
+    #         "wheels_summary",
+    #         "suspension_summary",
+    #     ],
+    #     [
+    #         "groupset_summary",
+    #         "wheels_summary",
+    #         "suspension_summary",
+    #         "manufacturer",
+    #         "model"
+    #     ]
+    # ],
     # "transform__preprocess__description_text__tfidf__max_df": [0.6,0.7],
     # "model__C": [30]
 }
@@ -579,7 +610,8 @@ catboost_results, catboost_estimator = predefined_grid_search(
     hparams,
     cv=cv_strat,
     scoring="neg_root_mean_squared_error",
-    n_jobs=1
+    n_jobs=1,
+    verbose=3
 )
 
 results["catboost"] = pd.DataFrame(catboost_results).drop(columns=[c for c in catboost_results.keys() if "param_" in c])
@@ -659,6 +691,7 @@ sample_data.assign(
 sample_data = pd.DataFrame(
         data={
             "ad_title":["2018 Yeti SB5.5 Medium TURQ Mountain Bike"],
+            "year": [2018],
             "location":["Calgary, United States"],
             "original_post_date":[pd.to_datetime("2022-MAR-31")],
     "description":[
@@ -938,6 +971,16 @@ gluon_transformer = Pipeline(steps=[
                     ), 
                     ["description"]
                 ),
+                (
+                    "specs_data", 
+                    OneHotEncoder(handle_unknown="infrequent_if_exist", sparse=False),
+                    [
+                    "groupset_summary",
+                    "wheels_summary",
+                    "suspension_summary",
+                    "manufacturer",
+                    ]
+                ),
             ],
         remainder="drop"
     )
@@ -948,31 +991,6 @@ gluon_transformer
 
 ```
 
-### Augment with image paths for multimodal modelling
-
-```python
-# # All images are indexed by their ad id, within a base image folder. Need to pass file paths for autogluon multimodal
-# images_base_path = '/mnt/h/pb-buddy-images/'
-# df_images = (
-#     pd.DataFrame(data={"filename":os.listdir(images_base_path)})
-#     .assign(
-#         image = lambda _df: f"{images_base_path}" + _df.filename,
-#         url = lambda _df: "https://www.pinkbike.com/buysell/" + _df.filename.str.extract(r'([0-9]{7})') + "/"
-#     )
-# )
-
-# df_train = (
-#     df_train
-#     .merge(df_images, left_on="url", right_on="url")
-#     .dropna(subset=["image"])
-# )
-# df_valid = (
-#     df_valid
-#     .merge(df_images, left_on="url", right_on="url")
-#     .dropna(subset=["image"])
-# )
-```
-
 ```python
 gluon_transformer.fit(df_train)
 df_train_gluon = pd.DataFrame(data=gluon_transformer.transform(df_train), columns=gluon_transformer.get_feature_names_out())#.astype({"add_age__age_at_post":int})
@@ -980,7 +998,7 @@ df_valid_gluon = pd.DataFrame(data=gluon_transformer.transform(df_valid), column
 ```
 
 ```python
-df_valid_gluon.head()
+df_train_gluon.head()
 ```
 
 ```python
