@@ -6,6 +6,46 @@ import pandas as pd
 import time
 
 
+def get_category_list():
+    """
+    Get the mapping of category name to category number
+    for all categories from https://www.pinkbike.com/buysell/
+    """
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"
+    }
+
+    try:
+        page_request = requests.get("https://www.pinkbike.com/buysell/", headers=headers, timeout=20)
+    except TimeoutError as e:
+        print(e)
+        return {}
+    except requests.exceptions.Timeout as e:
+        print(e)
+        return {}
+    except requests.exceptions.ConnectionError as e:
+        print(e)
+        return {}
+
+    if page_request.status_code > 200:
+        print("Error requesting Categories")
+        if page_request.status_code == 404:
+            print("404 - Ad missing")
+        return {}
+
+    soup = BeautifulSoup(page_request.content, features="html.parser")
+
+    category_dict = {}
+    for link in soup.find_all("a"):
+        category_num_match = re.match(".*category=([0-9]{1,20})", link.get("href"))
+
+        if category_num_match is not None:
+            category_text = link.text
+            category_dict[category_text] = int(category_num_match.group(1))
+
+    return category_dict
+
+
 def get_buysell_ads(url: str, delay_s: int = 1) -> dict:
     """Grab all buysell URL's from a page of Pinkbike's buysell results
 
@@ -130,9 +170,7 @@ def parse_buysell_ad(buysell_url: str, delay_s: int) -> dict:
             # Still For Sale has a filler element we need to skip to get text.
             # Sometimes using text attribute of next_sibling fails, cast to str and strip HTML instead.
             if "Still For Sale" in tag.text:
-                data_dict[tag.text] = re.sub(
-                    "<[^<]+?>", "", str(tag.next_sibling.next_sibling)
-                )
+                data_dict[tag.text] = re.sub("<[^<]+?>", "", str(tag.next_sibling.next_sibling))
             else:
                 data_dict[tag.text] = re.sub("<[^<]+?>", "", str(tag.next_sibling))
 
@@ -177,9 +215,7 @@ def parse_buysell_ad(buysell_url: str, delay_s: int) -> dict:
     # Clean non standard whitespace, fix key names:
     pattern = re.compile(r"\s+")
     data_dict = {
-        k.replace(":", "").replace(" ", "_").lower(): re.sub(pattern, " ", v).strip()
-        if type(v) == str
-        else v
+        k.replace(":", "").replace(" ", "_").lower(): re.sub(pattern, " ", v).strip() if type(v) == str else v
         for k, v in data_dict.items()
     }
 
@@ -211,10 +247,7 @@ def retry(times, exceptions, time_delay=60):
                 try:
                     return func(*args, **kwargs)
                 except exceptions:
-                    print(
-                        "Exception thrown when attempting to run %s, attempt "
-                        "%d of %d" % (func, attempt, times)
-                    )
+                    print("Exception thrown when attempting to run %s, attempt " "%d of %d" % (func, attempt, times))
                     time.sleep(time_delay)
                     attempt += 1
             return func(*args, **kwargs)
