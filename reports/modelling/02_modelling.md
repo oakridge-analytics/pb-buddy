@@ -153,15 +153,6 @@ df_modelling = (
 )
 ```
 
-```python
-df_modelling['year_month'] = df_modelling['original_post_date'].dt.to_period('M')
-df_modelling['has_spec_url'] = df_modelling['spec_url'].notnull()
-df_spec = df_modelling.groupby(['year_month'])['has_spec_url'].mean().reset_index()
-df_spec.plot(x="year_month", y="has_spec_url")
-
-
-```
-
 Load the preprocessed dataset with inflation adjusted, and currency adjusted price as target.
 
 Target column = `price_cpi_adjusted_cad`
@@ -220,6 +211,10 @@ ax.set_title("Train/Valid/Test Price Distributions")
 ```python
 import torch
 torch.cuda.is_available()
+```
+
+```python
+
 ```
 
 # Pipeline Definition
@@ -821,7 +816,7 @@ df_valid_inspection = (
     axis=1
     )
     .assign(
-        pred = lambda _df : svr_estimator.predict(_df),
+        pred = lambda _df : catboost_estimator.predict(_df),
         residual = lambda _df: _df.price_cpi_adjusted_CAD - _df.pred,
         price_in_description = lambda _df: _df.description.str.contains('[$][0-9]+[.]', regex=True),
         month = lambda _df : _df.original_post_date.dt.month,
@@ -972,15 +967,23 @@ gluon_transformer = Pipeline(steps=[
                     ["description"]
                 ),
                 (
-                    "specs_data", 
-                    OneHotEncoder(handle_unknown="infrequent_if_exist", sparse=False),
+                    "specs_data_categories", 
+                    "passthrough",
                     [
-                    "groupset_summary",
+                    "frame_summary",
                     "wheels_summary",
+                    "drivetrain_summary",
+                    "brakes_summary",
                     "suspension_summary",
-                    "manufacturer",
+                    "groupset_summary",
+                    "fork_summary",
                     ]
                 ),
+                (
+                    "specs_data_numerical",
+                    SimpleImputer(strategy="median"),
+                    ["msrp_cleaned", "weight_summary", "front_travel_summary", "rear_travel_summary"]
+                )
             ],
         remainder="drop"
     )
@@ -995,10 +998,6 @@ gluon_transformer
 gluon_transformer.fit(df_train)
 df_train_gluon = pd.DataFrame(data=gluon_transformer.transform(df_train), columns=gluon_transformer.get_feature_names_out())#.astype({"add_age__age_at_post":int})
 df_valid_gluon = pd.DataFrame(data=gluon_transformer.transform(df_valid), columns=gluon_transformer.get_feature_names_out())#.astype({"add_age__age_at_post":int})
-```
-
-```python
-df_train_gluon.head()
 ```
 
 ```python
@@ -1031,7 +1030,7 @@ predictor.fit(
                 # "model.names": ["hf_text", "timm_image", "clip", "categorical_mlp", "numerical_mlp", "fusion_mlp"],
                 "optimization.max_epochs": 10,
                 "optimization.patience": 6, # Num checks without valid improvement, every 0.5 epoch by default
-                "env.per_gpu_batch_size": 18,
+                "env.per_gpu_batch_size": 14,
                 "env.num_workers": 20,
                 "env.num_workers_evaluation": 20,
                 # "model.hf_text.checkpoint_name": tune.choice(["google/electra-base-discriminator", 'roberta-base','roberta-large']),
@@ -1053,7 +1052,7 @@ predictor.fit_summary()
 ## Model Load and Results Inspection
 
 ```python
-# predictor = MultiModalPredictor.load("tmp/6c2a7bf3c0944248b56d34ed26c48df9-auto_mm_bikes")
+predictor = MultiModalPredictor.load("tmp/be901a11a3234fef85729799a07a4965-auto_mm_bikes")
 ```
 
 ```python
@@ -1085,6 +1084,9 @@ print(f"""Mean absolute percentage error on selected model: {mean_absolute_perce
 
 ## Sweep Over Features
 
+
+### Depreciation Curves
+
 ```python
 initial_df = df_valid_gluon.sample(1)
 sample_df = pd.concat(
@@ -1093,7 +1095,7 @@ sample_df = pd.concat(
             add_covid_flag__covid_flag=0,
             add_age__age_at_post = str(x)
         )
-        for x in range(100,3000,100)
+        for x in range(100,3000,365)
     ]
 ).assign(pred=lambda _df: predictor.predict(_df))
 sample_df.plot(x="add_age__age_at_post", y="pred",
@@ -1101,6 +1103,31 @@ sample_df.plot(x="add_age__age_at_post", y="pred",
                marker='o');
 # sample_df
 initial_df.head(1)
+```
+
+### PDP Plots
+
+```python
+df_valid_gluon
+```
+
+```python
+from sklearn.inspection import PartialDependenceDisplay
+
+# Patch to allow partial dependence to work with Gluon models
+predictor.fitted_ = True
+predictor._estimator_type = "regressor"
+predictor.set_verbosity(0)
+
+fig, ax = plt.subplots(figsize=(30, 10))
+PartialDependenceDisplay.from_estimator(
+    predictor, df_valid_gluon.sample(10000),
+    ["add_age__age_at_post",("add_age__age_at_post","specs_data_numerical__msrp_cleaned")],
+    grid_resolution=10,
+    verbose=4,
+    ax=ax
+    # n_jobs=3
+    )
 ```
 
 ```python
@@ -1119,11 +1146,6 @@ sample_df.plot(x="model_year", y="pred",
                title=sample_df["title_text__ad_title"].iloc[0],
                marker='o');
 initial_df
-```
-
-```python
-df_habits = df_gluon_inspection.query("title_text__ad_title.str.contains('Habit[\w\W+]Carbon[\w\W+]')")#.query("title_text__ad_title.isin(@df_valid_gluon.title_text__ad_title)")
-df_habits.plot(kind="scatter",x="add_age__age_at_post",y="resid")
 ```
 
 ```python
@@ -1185,16 +1207,37 @@ def make_clickable(val):
 )
 ```
 
+### Residuals by Spec Feature
+
 ```python
-# fig,ax = plt.subplots(figsize=(12,12))
-g= (
-    df_gluon_inspection.astype({"price__price_cpi_adjusted_CAD":float})
-    .pipe((sns.jointplot, "data"),y="pred", x="price__price_cpi_adjusted_CAD", hue="split", height=10, alpha=0.1)
-)
-g.fig.suptitle("Residuals");
-# axes = g.axes
-# g.fig.axline([0,0],[1,1], color="red")
-# plt.legend()
+# Show the residuals distribution, facet by if certain columns are NA or not
+# - Appears that we overpredict on ads with no description, and underpredict on ads with no image
+check_cols = [
+    'wheels_summary',
+    'drivetrain_summary',
+    'brakes_summary',
+    'suspension_summary',
+    'groupset_summary',
+    'fork_summary',
+    'msrp_cleaned',
+    'weight_summary',
+    'front_travel_summary',
+    'rear_travel_summary'
+]
+for col in check_cols:
+    g= (
+        df_gluon_inspection
+        .query("split == 'valid'")
+        .query("resid.abs() < 2500")
+        .assign(
+            **{f"{col}__isna": lambda _df: (_df[col].isna()) | (_df[col] == 0.0)}
+        )
+        .astype({"price__price_cpi_adjusted_CAD":float})
+        .pipe((sns.displot, "data"), x="resid", hue=f"{col}__isna", kind="kde", common_norm=False, bw_adjust=0.5, height=5, aspect=2, rug=True)
+        # .pipe((sns.jointplot, "data"),y="pred", x="price__price_cpi_adjusted_CAD", hue=f"{col}__isna", height=10, alpha=0.1)
+    )
+    g.fig.suptitle(f"Residuals by Specs Data Availability, Col: {col}");
+
 
 ```
 
@@ -1221,19 +1264,19 @@ g.fig.suptitle("Price vs. Age of Ad")
 ## Embeddings Exploration
 
 ```python
-gluon_embeddings = predictor.extract_embedding(pd.concat([df_valid_gluon, df_train_gluon]))
+# gluon_embeddings = predictor.extract_embedding(pd.concat([df_valid_gluon, df_train_gluon]))
 ```
 
 ### Save Files for External Exploration
 
 ```python
-gluon_embeddings.shape
+# gluon_embeddings.shape
 ```
 
 ```python
-# Save data for exploring in separate app
-df_gluon_inspection.to_csv("data/df_gluon_inspection.csv", index=False)
-np.save("data/gluon_embeddings", gluon_embeddings)
+# # Save data for exploring in separate app
+# df_gluon_inspection.to_csv("data/df_gluon_inspection.csv", index=False)
+# np.save("data/gluon_embeddings", gluon_embeddings)
 
 # df_valid_gluon_inspection = pd.read_csv("data/df_valid_gluon_inspection.csv", index_col=None)
 # valid_gluon_embeddings = np.load("data/valid_gluon_embeddings.npy")

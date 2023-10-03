@@ -46,10 +46,7 @@ def fuzzy_match_bike(
     manufacturers = list(year_manufacturer_model_mapping[year].keys())
     # Get most similar manufacturer using partial_ratio, and the similarity score
     manufacturer, manufacturer_similarity = max(
-        [
-            (manufacturer, fuzz.partial_ratio(manufacturer, input_string))
-            for manufacturer in manufacturers
-        ],
+        [(manufacturer, fuzz.partial_ratio(manufacturer, input_string)) for manufacturer in manufacturers],
         key=lambda x: x[1],
     )
     if manufacturer_similarity < manufacturer_threshold:
@@ -60,9 +57,7 @@ def fuzzy_match_bike(
     # Get all models for that manufacturer
     models = year_manufacturer_model_mapping[year][manufacturer]
     # Get 3 most similar models using partial_ratio, and the similarity score
-    models_similar = [
-        (model, fuzz.partial_ratio(model, input_string)) for model in models
-    ]
+    models_similar = [(model, fuzz.partial_ratio(model, input_string)) for model in models]
     models_similar = sorted(models_similar, key=lambda x: x[1], reverse=True)[:top_n]
 
     # For each of 3 most similar models, check compared to threshold and remove if not above
@@ -134,18 +129,18 @@ def augment_with_specs(
         )
         # Extract weights of form xx.x from weights_summary
         .assign(
-            weight_summary=lambda _df: _df.weight_summary.astype(str).apply(
-                lambda x: float(match_with_default_value(r"([0-9]+\.[0-9]+)", x, 0))
-            ).astype(float)
+            weight_summary=lambda _df: _df.weight_summary.astype(str)
+            .apply(lambda x: float(match_with_default_value(r"([0-9]+\.[0-9]+)", x, 0)))
+            .astype(float)
         )
         # Extract from travel_summary xxxmm front, xxxmm rear into front_travel_summary and rear_travel_summary
         .assign(
-            front_travel_summary=lambda _df: _df.travel_summary.astype(str).apply(
-                lambda x: float(match_with_default_value(r"([0-9]+)mm front", x, 0))
-            ).astype(float),
-            rear_travel_summary=lambda _df: _df.travel_summary.astype(str).apply(
-                lambda x: float(match_with_default_value(r"([0-9]+)mm rear", x, 0))
-            ).astype(float),
+            front_travel_summary=lambda _df: _df.travel_summary.astype(str)
+            .apply(lambda x: float(match_with_default_value(r"([0-9]+)mm front", x, 0)))
+            .astype(float),
+            rear_travel_summary=lambda _df: _df.travel_summary.astype(str)
+            .apply(lambda x: float(match_with_default_value(r"([0-9]+)mm rear", x, 0)))
+            .astype(float),
         )
     )
 
@@ -171,4 +166,3 @@ def match_with_default_value(pattern, str, default_value="Unknown"):
         return default_value
     else:
         return match.group(1)
-    

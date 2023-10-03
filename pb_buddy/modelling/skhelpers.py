@@ -1,4 +1,4 @@
-from sklearn.preprocessing import FunctionTransformer, OneHotEncoder, MaxAbsScaler
+from sklearn.preprocessing import FunctionTransformer
 from sklearn.base import BaseEstimator, TransformerMixin
 import numpy as np
 import pandas as pd
@@ -16,18 +16,14 @@ def add_country(df):
     """
     Extract country from location string, of form "city, country"
     """
-    return df.assign(country=lambda _df: _df.location.str.extract(r", ([A-Za-z\s]+)"))[
-        ["country"]
-    ].astype("category")
+    return df.assign(country=lambda _df: _df.location.str.extract(r", ([A-Za-z\s]+)"))[["country"]].astype("category")
 
 
 def add_country_names(func_transformer, feature_names_in):
     return ["country"]
 
 
-add_country_transformer = FunctionTransformer(
-    add_country, feature_names_out=add_country_names
-)
+add_country_transformer = FunctionTransformer(add_country, feature_names_out=add_country_names)
 
 
 # For calculating how old bike was at time of posting:----------------------------------
@@ -44,12 +40,8 @@ def add_age(df):
     return (
         df.assign(original_post_date=lambda _df: pd.to_datetime(_df.original_post_date))
         .assign(
-            bike_model_date=lambda _df: pd.to_datetime(
-                _df.ad_title.str.extract("((?:19|20)\d{2})", expand=False)
-            ),
-            age_at_post=lambda _df: (
-                _df.original_post_date - _df.bike_model_date
-            ).dt.days,
+            bike_model_date=lambda _df: pd.to_datetime(_df.ad_title.str.extract(r"((?:19|20)\d{2})", expand=False)),
+            age_at_post=lambda _df: (_df.original_post_date - _df.bike_model_date).dt.days,
         )
         .fillna(-1000)
         .astype({"age_at_post": int})[["age_at_post"]]
@@ -77,8 +69,7 @@ def add_covid_flag(df):
     """
     return df.assign(
         covid_flag=lambda _df: np.where(
-            (_df.original_post_date > "20-MARCH-2020")
-            & (_df.original_post_date < "01-AUG-2022"),
+            (_df.original_post_date > "20-MARCH-2020") & (_df.original_post_date < "01-AUG-2022"),
             1,
             0,
         )
@@ -89,18 +80,18 @@ def add_covid_name(func_transformer, feature_names_in):
     return ["covid_flag"]
 
 
-add_covid_transformer = FunctionTransformer(
-    add_covid_flag, feature_names_out=add_covid_name
-)
+add_covid_transformer = FunctionTransformer(add_covid_flag, feature_names_out=add_covid_name)
 
 
-# Remove year information from ad title and ad description - so model learns based on age of ad instead of encoding specific knowledge about each
+# Remove year information from ad title and ad description - so model learns based on
+# age of ad instead of encoding specific knowledge about each
 # year.
 def remove_year(df):
-    return df.replace("((?:19|20)\d{2})", "", regex=True)
+    return df.replace(r"((?:19|20)\d{2})", "", regex=True)
 
 
 remove_year_transformer = FunctionTransformer(remove_year, feature_names_out="one-to-one")
+
 
 # Get month ad is posted, encode as one hot for modelling
 def get_post_month(df):
@@ -116,9 +107,7 @@ def get_post_month(df):
     )
 
 
-get_post_month_transformer = FunctionTransformer(
-    get_post_month, feature_names_out="one-to-one"
-)
+get_post_month_transformer = FunctionTransformer(get_post_month, feature_names_out="one-to-one")
 
 
 def augment_spec_features(
@@ -140,9 +129,7 @@ def spec_feature_names(func_transformer, feature_names_in):
     return ["covid_flag"]
 
 
-augment_spec_features_transformer = FunctionTransformer(
-    augment_spec_features, feature_names_out="one-to-one"
-)
+augment_spec_features_transformer = FunctionTransformer(augment_spec_features, feature_names_out="one-to-one")
 
 
 class AugmentSpecFeatures(BaseEstimator, TransformerMixin):
