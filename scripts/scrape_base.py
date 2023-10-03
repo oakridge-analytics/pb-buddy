@@ -15,7 +15,6 @@ from dotenv import load_dotenv
 import pb_buddy.scraper as scraper
 import pb_buddy.utils as ut
 import pb_buddy.data_processors as dt
-from pb_buddy.resources import get_category_list
 
 
 def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape=None):
@@ -24,7 +23,7 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape=None):
     num_jobs = int(num_jobs) if num_jobs else 4
     full_refresh = False if not full_refresh else full_refresh
 
-    category_dict = get_category_list()
+    category_dict = scraper.get_category_list()
     # Settings -----------------------------------------------------------------
     start_category = min(category_dict.values())
     end_category = max(category_dict.values())
@@ -52,9 +51,7 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape=None):
     # Iterate through all categories in random order, prevent noticeable patterns?
 
     num_categories_scraped = 0
-    for category_to_scrape in np.random.choice(
-        categories_to_scrape, size=len(categories_to_scrape), replace=False
-    ):
+    for category_to_scrape in np.random.choice(categories_to_scrape, size=len(categories_to_scrape), replace=False):
         # Get category, some don't have entries so skip to next.(category 10 etc.)
         category_name = [x for x, v in category_dict.items() if v == category_to_scrape]
         if not category_name:
@@ -94,8 +91,7 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape=None):
             for x in pages_to_check
         ]
         ad_urls = Parallel(n_jobs=num_jobs)(
-            delayed(scraper.get_buysell_ads)(x, delay_s=delay_s)
-            for x in tqdm(page_urls, disable=(not show_progress))
+            delayed(scraper.get_buysell_ads)(x, delay_s=delay_s) for x in tqdm(page_urls, disable=(not show_progress))
         )
         ad_urls = {key: value for d in ad_urls for key, value in d.items()}
 
@@ -112,39 +108,27 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape=None):
             single_ad_data = scraper.parse_buysell_ad(url, delay_s=0)
             if single_ad_data != {}:
                 if (
-                    pd.to_datetime(single_ad_data["last_repost_date"]).date()
-                    >= last_scrape_dt.date()
+                    pd.to_datetime(single_ad_data["last_repost_date"]).date() >= last_scrape_dt.date()
                     or boosted_status == "boosted"
                 ):
                     # Sometimes sold ads kept in main results, ad for later
-                    if (
-                        "sold" in single_ad_data["still_for_sale"].lower()
-                        and url not in sold_ad_data.url.values
-                    ):
+                    if "sold" in single_ad_data["still_for_sale"].lower() and url not in sold_ad_data.url.values:
                         intermediate_sold_ad_data.append(single_ad_data)
                     else:
                         intermediate_ad_data.append(single_ad_data)
                 else:
-                    logging.info(
-                        f"Checked up until ~ page: { (len(intermediate_ad_data)//20)+1} of ads"
-                    )
+                    logging.info(f"Checked up until ~ page: { (len(intermediate_ad_data)//20)+1} of ads")
                     break
 
-        logging.info(
-            f"Found: {len(intermediate_sold_ad_data)} sold ads in buysell normal pages"
-        )
+        logging.info(f"Found: {len(intermediate_sold_ad_data)} sold ads in buysell normal pages")
         # Split out brand new ads, versus updates ------------------
         if len(intermediate_ad_data) == 0:
             continue
         else:
             recently_added_ads = pd.DataFrame(intermediate_ad_data)
-            logging.info(
-                f"Found {len(recently_added_ads)} new ads, {len(intermediate_sold_ad_data)} sold ads"
-            )
+            logging.info(f"Found {len(recently_added_ads)} new ads, {len(intermediate_sold_ad_data)} sold ads")
             # Check membership across categories in case of changes!
-            new_ads = recently_added_ads.loc[
-                ~recently_added_ads.url.isin(all_base_data.url), :
-            ]
+            new_ads = recently_added_ads.loc[~recently_added_ads.url.isin(all_base_data.url), :]
             logging.info(f"Found {len(new_ads)} new ads")
 
             # Get ads that might have an update. check price, description,title and category
@@ -161,11 +145,7 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape=None):
                 .sort_values("url")
                 .reset_index(drop=True)
             )
-            unchanged_mask = (
-                updated_ads[cols_to_check]
-                .eq(previous_versions[cols_to_check])
-                .all(axis=1)
-            )
+            unchanged_mask = updated_ads[cols_to_check].eq(previous_versions[cols_to_check]).all(axis=1)
 
             # Filter to adds that actually had changes in columns of interest
             updated_ads = updated_ads.loc[~unchanged_mask.values, :]
@@ -194,20 +174,14 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape=None):
 
             # Write new ones !
             if len(new_ads) > 0:
-                dt.write_dataset(
-                    new_ads.assign(category_num=category_to_scrape), data_type="base"
-                )
+                dt.write_dataset(new_ads.assign(category_num=category_to_scrape), data_type="base")
 
         logging.info(f"Adding {len(new_ads)} new ads to base data")
 
         # Get sold ad data ------------------------------------------------
-        potentially_sold_urls = base_data.loc[
-            ~base_data.url.isin(ad_urls.keys()), "url"
-        ].dropna()
+        potentially_sold_urls = base_data.loc[~base_data.url.isin(ad_urls.keys()), "url"].dropna()
         # Rescrape sold ads to make sure, check for "SOLD"
-        logging.info(
-            f"Extracting ad data from {len(potentially_sold_urls)} potentially sold ads"
-        )
+        logging.info(f"Extracting ad data from {len(potentially_sold_urls)} potentially sold ads")
 
         # Do sequentially and check datetime of last scrape
         # Only add new ads. Removed ads won't return a usable page.
@@ -223,9 +197,7 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape=None):
             else:
                 urls_to_remove.append(url)
 
-        logging.info(
-            f"Found {len(intermediate_sold_ad_data)} sold ads, {len(urls_to_remove)} removed ads"
-        )
+        logging.info(f"Found {len(intermediate_sold_ad_data)} sold ads, {len(urls_to_remove)} removed ads")
 
         # If any sold ads found in normal listings, or missing from new scrape.
         # Write out to sold ad file. Deduplicate just in case
@@ -233,9 +205,7 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape=None):
             new_sold_ad_data = (
                 pd.DataFrame(intermediate_sold_ad_data)
                 .dropna()
-                .pipe(
-                    ut.convert_to_float, colnames=["price", "watch_count", "view_count"]
-                )
+                .pipe(ut.convert_to_float, colnames=["price", "watch_count", "view_count"])
                 .pipe(dt.get_latest_by_scrape_dt)
             )
             if len(new_sold_ad_data) > 0:
@@ -247,8 +217,7 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape=None):
         # remove ads that didn't sell or sold and shouldn't be in anymore ---------------
         dt.remove_from_base_data(
             removal_df=base_data.loc[
-                (base_data.url.isin(urls_to_remove))
-                | (base_data.url.isin(sold_ad_data.url)),
+                (base_data.url.isin(potentially_sold_urls)) | (base_data.url.isin(sold_ad_data.url)),
                 :,
             ],
             index_col="url",
