@@ -32,6 +32,12 @@ python scripts/scrape_bike_specs.py --csv_folder_path=<path_to_folder_of_links_a
 
 Progressively larger files of scraped bike specs will be saved to `--specs_folder_path`, dropping duplicates on `spec_url` across these gives the final dataset.
 
+Refreshing package mapping of year, make, model, after confirming which version of specs data you want to use in `pb_buddy.constants`:
+
+```
+python -m pb_buddy.data.specs > pb_buddy/resources/year_make_model_mapping.json
+```
+
 #### Modelling
 
 For running modelling with GPU+CUDA after initial environment setup is done, first ensure that CUDA 11.6 is installed.
