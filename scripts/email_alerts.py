@@ -76,7 +76,7 @@ for alert in alerts["alerts"]:
                 filtered_df.assign(
                     # TODO: implement batched requests. For now, do single ad at time
                     pred_price=lambda _df: [
-                        requests.post(api_url, json=[row]).json()["predictions"][0]
+                        requests.post(api_url, json=[row], timeout=60).json()["predictions"][0]
                         for row in _df[api_cols].to_dict(orient="records")
                     ],
                     price=lambda _df: _df.apply(
