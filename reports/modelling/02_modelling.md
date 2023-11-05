@@ -1018,7 +1018,8 @@ predictor = MultiModalPredictor(
         problem_type="regression",
         path=model_path,
         # eval_metric="mean",
-        verbosity=4
+        verbosity=4,
+        presets="best_quality",
         ) 
 predictor.fit(
         train_data=df_train_gluon,
@@ -1052,10 +1053,13 @@ predictor.fit_summary()
 ## Model Load and Results Inspection
 
 ```python
-predictor = MultiModalPredictor.load("tmp/be901a11a3234fef85729799a07a4965-auto_mm_bikes")
+predictor = MultiModalPredictor.load("tmp/09c893891b0c42768943590f07f638cb-auto_mm_bikes")
 ```
 
 ```python
+# torch.set_float32_matmul_precision(precision='medium')
+predictor._config.env.per_gpu_batch_size = 70
+
 df_gluon_inspection = pd.DataFrame(
     data=gluon_transformer.transform(
         pd.concat([df_valid, df_train])
@@ -1088,20 +1092,26 @@ print(f"""Mean absolute percentage error on selected model: {mean_absolute_perce
 ### Depreciation Curves
 
 ```python
-initial_df = df_valid_gluon.sample(1)
+initial_df = df_valid_gluon.sample(2).assign(pred=lambda _df: predictor.predict(_df)).head(1)
 sample_df = pd.concat(
     [
         initial_df.assign(
-            add_covid_flag__covid_flag=0,
-            add_age__age_at_post = str(x)
+            # add_covid_flag__covid_flag=0,
+            add_age__age_at_post = x
         )
-        for x in range(100,3000,365)
+        for x in range(100,3000,100)
     ]
 ).assign(pred=lambda _df: predictor.predict(_df))
+
 sample_df.plot(x="add_age__age_at_post", y="pred",
-            #    title=sample_df["title_text__ad_title"].iloc[0],
+               title=sample_df["title_text__ad_title"].iloc[0],
                marker='o');
-# sample_df
+plt.axvline(x=initial_df["add_age__age_at_post"].iloc[0], color='r', linestyle='--') 
+# Add point for specs_data_numerical__msrp_cleaned, at add_age__age_at_post=0
+plt.plot([0], initial_df["specs_data_numerical__msrp_cleaned"].iloc[0], 'bx')
+plt.plot(initial_df["add_age__age_at_post"].iloc[0], initial_df["pred"].iloc[0], 'ro')
+plt.plot(initial_df["add_age__age_at_post"].iloc[0], initial_df["price__price_cpi_adjusted_CAD"].iloc[0], 'go')
+
 initial_df.head(1)
 ```
 
@@ -1233,7 +1243,7 @@ for col in check_cols:
             **{f"{col}__isna": lambda _df: (_df[col].isna()) | (_df[col] == 0.0)}
         )
         .astype({"price__price_cpi_adjusted_CAD":float})
-        .pipe((sns.displot, "data"), x="resid", hue=f"{col}__isna", kind="kde", common_norm=False, bw_adjust=0.5, height=5, aspect=2, rug=True)
+        .pipe((sns.displot, "data"), x="resid", hue=f"{col}__isna", kind="kde", common_norm=True, bw_adjust=0.5, height=5, aspect=2, rug=False)
         # .pipe((sns.jointplot, "data"),y="pred", x="price__price_cpi_adjusted_CAD", hue=f"{col}__isna", height=10, alpha=0.1)
     )
     g.fig.suptitle(f"Residuals by Specs Data Availability, Col: {col}");
