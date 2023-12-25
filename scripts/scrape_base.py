@@ -17,7 +17,7 @@ import pb_buddy.utils as ut
 import pb_buddy.data_processors as dt
 
 
-def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape=None):
+def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape: list[int]=None):
     # TODO: Fix how we handle poor formatted inputs when using
     # workflow_dispatch vs. cron scheduled runs
     num_jobs = int(num_jobs) if num_jobs else 4
@@ -33,8 +33,6 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape=None):
     # If categories to scrape not specified, scrape all
     if categories_to_scrape is None:
         categories_to_scrape = range(start_category, end_category + 1)
-    else:
-        categories_to_scrape = [int(x) for x in categories_to_scrape.split(",")]
 
     logging.basicConfig(
         level=getattr(logging, log_level.upper(), None),
@@ -102,15 +100,14 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape=None):
 
         # Do sequentially and check datetime of last scrape
         # Only add new ads. Note Pinkbike doesn't note AM/PM so can't do by time.
-        # Have to round to date and check anything >= last scrape date.
+        # Have to round to date and check anything > 36 hours since last scrape date
         # Boosted ads are always at top of results, and may have older dates
         for url, boosted_status in tqdm(ad_urls.items(), disable=(not show_progress)):
             single_ad_data = scraper.parse_buysell_ad(url, delay_s=0)
             if single_ad_data != {}:
                 if (
-                    pd.to_datetime(single_ad_data["last_repost_date"]).date() >= last_scrape_dt.date()
-                    or boosted_status == "boosted"
-                ):
+                    pd.to_datetime(single_ad_data["last_repost_date"], utc=False).tz_localize("MST") - last_scrape_dt
+                ).total_seconds() / (60 * 60) > -36 or boosted_status == "boosted":
                     # Sometimes sold ads kept in main results, ad for later
                     if "sold" in single_ad_data["still_for_sale"].lower() and url not in sold_ad_data.url.values:
                         intermediate_sold_ad_data.append(single_ad_data)
