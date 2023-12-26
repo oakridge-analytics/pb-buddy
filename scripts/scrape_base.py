@@ -107,7 +107,7 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape: list[i
             if single_ad_data != {}:
                 if (
                     pd.to_datetime(single_ad_data["last_repost_date"], utc=False).tz_localize("MST") - last_scrape_dt
-                ).total_seconds() / (60 * 60) > -36 or boosted_status == "boosted":
+                ).total_seconds() / (60 * 60) > -48 or boosted_status == "boosted":
                     # Sometimes sold ads kept in main results, ad for later
                     if "sold" in single_ad_data["still_for_sale"].lower() and url not in sold_ad_data.url.values:
                         intermediate_sold_ad_data.append(single_ad_data)
