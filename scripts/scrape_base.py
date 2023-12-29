@@ -116,6 +116,18 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape: list[i
                 else:
                     logging.info(f"Checked up until ~ page: { (len(intermediate_ad_data)//20)+1} of ads")
                     break
+        
+        # If any ads missed from previous scrape, add back in
+        ads_missed = (
+                list(set(ad_urls)
+                .difference(set(all_base_data.url))
+                .difference(set([ad['url'] for ad in intermediate_ad_data])))
+        )
+        logging.info(f"Extracting ad data from {len(ads_missed)} missed ads")
+        ads_missed_data = [scraper.parse_buysell_ad(url, delay_s=0) for url in ads_missed]
+        ads_missed_data = [ad for ad in ads_missed_data if "sold" not in ad["still_for_sale"].lower() and ad != {}]
+
+        intermediate_ad_data.extend(ads_missed_data)
 
         logging.info(f"Found: {len(intermediate_sold_ad_data)} sold ads in buysell normal pages")
         # Split out brand new ads, versus updates ------------------
