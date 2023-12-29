@@ -33,9 +33,7 @@ def download_image(url, save_dir, delay, max_retries, backoff_factor, error_fold
                 if image:
                     image_url = image["data-fullimageurl"]
                     with open(filename, "wb") as file:
-                        for chunk in requests.get(image_url).iter_content(
-                            chunk_size=8192
-                        ):
+                        for chunk in requests.get(image_url).iter_content(chunk_size=8192):
                             file.write(chunk)
                     print(f"Downloaded image for: {url}")
                     with counter.get_lock():
@@ -65,9 +63,7 @@ def download_image(url, save_dir, delay, max_retries, backoff_factor, error_fold
     print(f"Failed to download (max retries): {url}")
 
 
-def download_images(
-    urls, save_dir, num_processes, delay, max_retries, backoff_factor, error_folder
-):
+def download_images(urls, save_dir, num_processes, delay, max_retries, backoff_factor, error_folder):
     global counter
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
@@ -78,8 +74,7 @@ def download_images(
     urls = [
         url
         for url in urls
-        if f"{url.split('/')[-2]}.jpg" not in existing_files
-        and f"{url.split('/')[-2]}.jpg" not in error_files
+        if f"{url.split('/')[-2]}.jpg" not in existing_files and f"{url.split('/')[-2]}.jpg" not in error_files
     ]
 
     with Pool(num_processes) as pool:
