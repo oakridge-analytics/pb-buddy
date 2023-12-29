@@ -23,9 +23,7 @@ def normalize_manufacturer_name(manufacturer: str) -> str:
 
 
 def remove_accents(input_str: str) -> str:
-    return (
-        unicodedata.normalize("NFKD", input_str).encode("ASCII", "ignore").decode("utf-8")
-    )
+    return unicodedata.normalize("NFKD", input_str).encode("ASCII", "ignore").decode("utf-8")
 
 
 def get_manufacturer_names():
@@ -40,12 +38,7 @@ def get_manufacturer_names():
         page.goto(f"{BASE_URL}/{LANG_REGION}/bikes")
         page.get_by_role("button", name="Brand").click()
         manufacturers = []
-        for manufacturer in (
-            page.get_by_role("dialog")
-            .locator("li")
-            .filter(has_text=re.compile(r"\([\d]+\)"))
-            .all()
-        ):
+        for manufacturer in page.get_by_role("dialog").locator("li").filter(has_text=re.compile(r"\([\d]+\)")).all():
             manufacturers.append(manufacturer.inner_text().split("\n")[0])
 
         return manufacturers
@@ -91,9 +84,7 @@ def get_manufacturer_links(
     model_links_out = []
     run_timestamp = pd.Timestamp.now().strftime("%Y%m%d%H%M%S")
     for year in range(START_YEAR, pd.Timestamp.now().year + 2):
-        page.goto(
-            f"{base_url}/{LANG_REGION}/bikes?{URL_MODIFIERS}&makerId={manufacturer_normalized}&year={year}"
-        )
+        page.goto(f"{base_url}/{LANG_REGION}/bikes?{URL_MODIFIERS}&makerId={manufacturer_normalized}&year={year}")
         time.sleep(year_delay_s)
 
         # Check if there are any bikes for this year, if pattern present anywhere on page

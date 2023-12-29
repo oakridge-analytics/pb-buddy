@@ -23,7 +23,6 @@ def extract_specs_from_links(
     specs_folder_path: str = "resources/specs",
     job_number: int = 0,
 ) -> None:
-    
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=headless)
         context = browser.new_context()
@@ -35,7 +34,10 @@ def extract_specs_from_links(
             df_specs = pd.concat([df_specs, extract_specs(url, page)])
             if df_specs.shape[0] % save_frequency == 0:
                 df_specs.to_csv(
-                    os.path.join(specs_folder_path, f"specs_{df_specs.shape[0]}_{uuid.uuid4()}.csv")
+                    os.path.join(
+                        specs_folder_path,
+                        f"specs_{df_specs.shape[0]}_{uuid.uuid4()}.csv",
+                    )
                 )
 
         df_specs.to_csv(f"specs_{df_specs.shape[0]}.csv")
@@ -71,18 +73,14 @@ def extract_specs(url: str, page: Page):
         initial_summary_table_html = page.locator("div:nth-child(4) > div").first.inner_html()
         if "99 Spokes" in initial_summary_table_html:
             initial_summary_table_html = page.locator("div:nth-child(5) > div").first.inner_html()
-        df_summary_specs = process_html_table(
-            initial_summary_table_html
-        )
+        df_summary_specs = process_html_table(initial_summary_table_html)
         df_summary_specs.columns = [f"{col}_summary" for col in df_summary_specs.columns]
     except TimeoutError:
         df_summary_specs = pd.DataFrame()
 
     try:
         manufacturer_link = unquote(
-            page.get_by_role("link", name=re.compile(r"View on.*"))
-            .get_attribute("href")
-            .split("target=")[1]
+            page.get_by_role("link", name=re.compile(r"View on.*")).get_attribute("href").split("target=")[1]
         ).split("?99spokes")[0]
     except TimeoutError:
         manufacturer_link = ""
@@ -90,9 +88,7 @@ def extract_specs(url: str, page: Page):
     # Some manufacturers are missing all specs, including frame specs
     try:
         df_frame_specs = process_html_table(
-            page.get_by_text(re.compile(r"^Build.+"))
-            .filter(has=page.get_by_role("table"))
-            .inner_html()
+            page.get_by_text(re.compile(r"^Build.+")).filter(has=page.get_by_role("table")).inner_html()
         )
     except TimeoutError:
         df_frame_specs = pd.DataFrame()
@@ -101,25 +97,21 @@ def extract_specs(url: str, page: Page):
     # TODO: refactor all this to iterate over all tables
     try:
         df_drivetrain_specs = process_html_table(
-            page.get_by_text(re.compile(r"^Groupset.+"))
-            .filter(has=page.get_by_role("table"))
-            .inner_html()
+            page.get_by_text(re.compile(r"^Groupset.+")).filter(has=page.get_by_role("table")).inner_html()
         )
     except TimeoutError:
         df_drivetrain_specs = pd.DataFrame()
 
     try:
         df_wheel_specs = process_html_table(
-            page.get_by_text(re.compile(r"^Wheels.+"))
-            .filter(has=page.get_by_role("table"))
-            .inner_html()
+            page.get_by_text(re.compile(r"^Wheels.+")).filter(has=page.get_by_role("table")).inner_html()
         )
     except TimeoutError:
         df_wheel_specs = pd.DataFrame()
 
-    df_complete = pd.concat(
-        [df_summary_specs, df_frame_specs, df_drivetrain_specs, df_wheel_specs], axis=1
-    ).assign(manufacturer_url=manufacturer_link, spec_url=url)
+    df_complete = pd.concat([df_summary_specs, df_frame_specs, df_drivetrain_specs, df_wheel_specs], axis=1).assign(
+        manufacturer_url=manufacturer_link, spec_url=url
+    )
 
     return df_complete
 
@@ -163,7 +155,7 @@ def extract_all_specs(
             headless=headless,
             job_number=job_number,
         )
-        for url_chunk, job_number in zip(url_chunks,jobs)
+        for url_chunk, job_number in zip(url_chunks, jobs)
     )
 
 
