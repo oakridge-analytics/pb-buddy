@@ -135,7 +135,7 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape: list[i
             continue
         else:
             recently_added_ads = pd.DataFrame(intermediate_ad_data)
-            logging.info(f"Found {len(recently_added_ads)} new ads, {len(intermediate_sold_ad_data)} sold ads")
+            logging.info(f"Found {len(recently_added_ads)} recently modified ads, {len(intermediate_sold_ad_data)} sold ads")
             # Check membership across categories in case of changes!
             new_ads = recently_added_ads.loc[~recently_added_ads.url.isin(all_base_data.url), :]
             logging.info(f"Found {len(new_ads)} new ads")
