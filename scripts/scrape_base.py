@@ -65,10 +65,10 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape: list[i
         # Setup date the compare ads to for refresh. If we want to check all current ads
         # for existence in our system, don't restrict based on date.
         if len(base_data) == 0:
-            last_scrape_dt = pd.to_datetime("01-JAN-1900")
+            last_scrape_dt = pd.to_datetime("01-JAN-1900", utc=True)
         else:
             if full_refresh:
-                last_scrape_dt = pd.to_datetime("01-JAN-1900")
+                last_scrape_dt = pd.to_datetime("01-JAN-1900", utc=True)
             else:
                 last_scrape_dt = pd.to_datetime(base_data.datetime_scraped).max()
 
