@@ -6,7 +6,7 @@
             "search_string": "price > 3000 and price < 5000 and material.str.contains('Carbon') and location.str.contains('Canada') and (restrictions.str.contains('within') or restrictions.str.contains('globally')) and frame_size.str.contains('M') and (front_travel.str.contains('140') or front_travel.str.contains('130')) and (ad_title.str.contains('2019') or ad_title.str.contains('2020') or ad_title.str.contains('2021'))",
             "email_stem": "dustin.brown.andrews",
             "email_domain": "@gmail.com",
-            "last_checked": "2024-02-29 09:44:11.577560-07:00"
+            "last_checked": "2024-02-29 20:04:25.640098-07:00"
         },
         {
             "category_num": 2,
@@ -14,7 +14,7 @@
             "search_string": "price > 3000 and price < 5000 and material.str.contains('Carbon') and location.str.contains('Canada') and (restrictions.str.contains('within') or restrictions.str.contains('globally')) and frame_size.str.contains('M') and (front_travel.str.contains('140') or front_travel.str.contains('130')) and (ad_title.str.contains('2019') or ad_title.str.contains('2020') or ad_title.str.contains('2021'))",
             "email_stem": "dustin.brown.andrews",
             "email_domain": "@gmail.com",
-            "last_checked": "2024-02-29 09:44:18.211485-07:00"
+            "last_checked": "2024-02-29 20:04:34.012662-07:00"
         },
         {
             "category_num": 2,
@@ -23,7 +23,7 @@
             "price_search_string": "pred_price_diff > 500",
             "email_stem": "dustin.brown.andrews",
             "email_domain": "@gmail.com",
-            "last_checked": "2024-02-29 09:44:25.023567-07:00"
+            "last_checked": "2024-02-29 20:04:41.189997-07:00"
         },
         {
             "category_num": 40,
@@ -31,7 +31,7 @@
             "search_string": "ad_title.str.lower().str.contains('specialized') and (ad_title.str.lower().str.contains('s-works') or ad_title.str.lower().str.contains('sworks') or ad_title.str.lower().str.contains('recon') or ad_title.str.lower().str.contains('mtb'))",
             "email_stem": "ty.elgin.andrews",
             "email_domain": "@gmail.com",
-            "last_checked": "2024-02-29 09:44:28.725676-07:00"
+            "last_checked": "2024-02-29 20:04:44.928986-07:00"
         }
     ]
 }
