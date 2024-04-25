@@ -4,18 +4,12 @@ import json
 import fire
 from dotenv import load_dotenv
 
-
-from pb_buddy.constants import (
-    SPECS_BLOB_NAME,
-    SPECS_CONTAINER_NAME,
-)
 import pb_buddy.data_processors as dt
+from pb_buddy.constants import SPECS_BLOB_NAME, SPECS_CONTAINER_NAME
 
 
 def get_specs_dataset():
-    df_specs = dt.stream_parquet_to_dataframe(
-        blob_container=SPECS_CONTAINER_NAME, blob_name=SPECS_BLOB_NAME
-    )
+    df_specs = dt.stream_parquet_to_dataframe(blob_container=SPECS_CONTAINER_NAME, blob_name=SPECS_BLOB_NAME)
     df_specs = df_specs.pipe(
         lambda _df: _df.assign(
             **_df.spec_url.str.extract(r"bikes/(.*)/(.*)/(.*)").rename(
