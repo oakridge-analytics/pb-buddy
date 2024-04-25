@@ -1,2 +1,0 @@
-model = None
-pipeline = None
