@@ -1,13 +1,11 @@
 import os
-from contextlib import asynccontextmanager
 from typing import List, Optional
 
 import modal
 import pandas as pd
-from autogluon.multimodal import MultiModalPredictor
 from fastapi import FastAPI
 from joblib import load
-from modal import App, Image, asgi_app
+from modal import App, Image, asgi_app, enter, method
 from pydantic import BaseModel
 
 
@@ -71,15 +69,15 @@ def download_assets():
 
 
 # Reduce the number of times the model is loaded into memory by loading only at launch
-@asynccontextmanager
-async def lifespan(web_app: FastAPI):
-    estimator_dict["pipeline"] = load(PIPELINE_FILE)
-    estimator_dict["model"] = MultiModalPredictor.load(MODEL_FILE)
-    yield
-    estimator_dict.clear()
+# @asynccontextmanager
+# async def lifespan(web_app: FastAPI):
+#     estimator_dict["pipeline"] = load(PIPELINE_FILE)
+#     estimator_dict["model"] = MultiModalPredictor.load(MODEL_FILE)
+#     yield
+#     estimator_dict.clear()
 
 
-web_app = FastAPI(title="Bike Buddy API", description="API bike price prediction", version="0.1", lifespan=lifespan)
+web_app = FastAPI(title="Bike Buddy API", description="API bike price prediction", version="0.1")
 app = App("bike-buddy-api")
 S3_BUCKET_NAME = "bike-buddy"
 image = (
@@ -93,11 +91,31 @@ image = (
     .run_function(
         download_assets,
         secrets=[modal.Secret.from_name("aws-s3-secrets")],
-        force_build=True,
+        # force_build=True,
     )
 )
 
-estimator_dict = {}
+
+@app.cls(
+    image=image,
+)
+class AutoGluonModel:
+    @enter()
+    def load(self):
+        self.model = MultiModalPredictor.load(MODEL_FILE)
+        self.pipeline = load(PIPELINE_FILE)
+
+    @method()
+    def transform(self, input_data: pd.DataFrame) -> pd.DataFrame:
+        return self.pipeline.transform(input_data)
+
+    @method()
+    def get_feature_names_out(self) -> List[str]:
+        return self.pipeline.get_feature_names_out()
+
+    @method()
+    def predict(self, input_data: pd.DataFrame, **kwargs) -> str:
+        return self.model.predict(input_data, **kwargs)
 
 
 @web_app.post("/text-predict", tags=["text-predictions"])
@@ -117,13 +135,13 @@ async def predict(ads: List[BikeBuddyAd]) -> BikeBuddyAdPredictions:
     #         ]
     #     )
     # )
-
+    autogluon = AutoGluonModel()
     df_predict = pd.DataFrame(
-        data=estimator_dict["pipeline"].transform(df_input),
-        columns=estimator_dict["pipeline"].get_feature_names_out(),
+        data=autogluon.pipeline.transform.remote(df_input),
+        columns=autogluon.pipeline.get_feature_names_out.remote(),
     )
 
-    predictions = estimator_dict["model"].predict(df_predict, as_pandas=False).tolist()
+    predictions = autogluon.model.predict.remote(df_predict, as_pandas=False).tolist()
     if isinstance(predictions, float):
         predictions = [predictions]
     outputs = BikeBuddyAdPredictions(predictions=predictions)
