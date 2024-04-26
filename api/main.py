@@ -67,15 +67,6 @@ def download_assets():
         bucket.download_file(obj.key, obj.key)
 
 
-# Reduce the number of times the model is loaded into memory by loading only at launch
-# @asynccontextmanager
-# async def lifespan(web_app: FastAPI):
-#     estimator_dict["pipeline"] = load(PIPELINE_FILE)
-#     estimator_dict["model"] = MultiModalPredictor.load(MODEL_FILE)
-#     yield
-#     estimator_dict.clear()
-
-
 web_app = FastAPI(title="Bike Buddy API", description="API bike price prediction", version="0.1")
 app = App("bike-buddy-api")
 S3_BUCKET_NAME = "bike-buddy"
@@ -91,6 +82,7 @@ image = (
         "github.com/pb-buddy/pb-buddy@master",
         git_user="dbandrews",
         secrets=[modal.Secret.from_name("pb-buddy-github")],
+        # force_build=True,
     )
     .run_function(
         download_assets,
