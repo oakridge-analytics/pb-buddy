@@ -1,20 +1,21 @@
 # %%
-import pandas as pd
 import json
-import requests
 import os
-import pandas_datareader.data as web
+
+import pandas as pd
+import requests
+
+import pb_buddy.data_processors as dt
 
 # Custom code
 import pb_buddy.emailer as et
 import pb_buddy.utils as ut
-import pb_buddy.data_processors as dt
 
 # %%
 # Get rules to check and email for each
 alerts = json.load(open(os.path.join("alerts", "alerts.json")))
 changes = dt.get_dataset(-1, data_type="changes")
-api_url = "https://bikebuddy-api.azurewebsites.net/text-predict"
+api_url = "https://dbandrews--bike-buddy-api-autogluonmodelinference-predict.modal.run"
 email_cols = [
     "url",
     "ad_title",
