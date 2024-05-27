@@ -3,7 +3,7 @@ concurrency: ${{ github.workflow }}
 
 on:
  schedule:
-   - cron: "23 */5 * * 1-6"
+   - cron: "23 */24 * * 1-6"
  workflow_dispatch:
     inputs:
       num_jobs:
@@ -15,7 +15,7 @@ env:
 
 jobs:
   scrape-latest:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 1000
     steps:
       - name: Setup repo
