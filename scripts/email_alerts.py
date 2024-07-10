@@ -84,14 +84,13 @@ for alert in alerts["alerts"]:
         error_message = "Check all columns in alert are spelled correctly!"
         filtered_df = pd.DataFrame({"error": "Check alert search string definition"})
     except AttributeError:
-        error_message = (
-            "Ensure you are using Pandas query syntax" " correctly and '.str' accesor only on string columns!"
-        )
+        error_message = "Ensure you are using Pandas query syntax correctly and '.str' accesor only on string columns!"
         filtered_df = pd.DataFrame({"error": "Check alert search string definition"})
 
     timestamp = str(pd.Timestamp.now(tz="US/Mountain"))
 
     if len(filtered_df) != 0:
+        print(f"For {alert['alert_name']} alert, identified {len(filtered_df)} new ads. Sending email.")
         target_email = alert["email_stem"] + alert["email_domain"]
 
         if error_message is not None:
