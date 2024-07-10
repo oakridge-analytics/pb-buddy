@@ -24,6 +24,14 @@
             "email_stem": "dustin.brown.andrews",
             "email_domain": "@gmail.com",
             "last_checked": "2024-07-10 15:53:05.497000-06:00"
+        },
+        {
+            "category_num": 107,
+            "alert_name": "Droppers for Ibis",
+            "search_string": "seat_post_diameter.str.contains('31.6') and price <= 200 and location.str.contains('Calgary') and (ad_title.str.contains('2019') or ad_title.str.contains('2020') or ad_title.str.contains('2021') or ad_title.str.contains('2022') or ad_title.str.contains('2023'))",
+            "email_stem": "dustin.brown.andrews",
+            "email_domain": "@gmail.com",
+            "last_checked": "2024-07-10 15:53:05.497000-06:00"
         }
     ]
 }
