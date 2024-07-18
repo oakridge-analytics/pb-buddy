@@ -43,9 +43,12 @@ class BikeBuddyAdPredictions(BaseModel):
     predictions: List[float]
 
 
+# Local paths to download model and pipeline files
 BASE_DIR = "/assets"
-PIPELINE_FILE = "models/7c6aeb0363614859bbb52ba01c177c21-transformer-auto_mm_bikes.pkl"
-MODEL_FILE = "models/7c6aeb0363614859bbb52ba01c177c21-auto_mm_bikes"
+# S3_BUCKET_NAME = "bike-buddy"
+UUID = "3fa3716e7a524170a0d564646ed185cd"
+PIPELINE_FILE = f"models/{UUID}-transformer-auto_mm_bikes.pkl"
+MODEL_FILE = f"models/{UUID}-auto_mm_bikes"
 
 
 # Download model into image to be snapshotted and used in the function
