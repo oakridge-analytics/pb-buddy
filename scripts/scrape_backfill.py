@@ -74,10 +74,10 @@ print("Making chunks")
 # Create chunks, add factor to max integer
 # %%
 # Load previous scrape files, get URL out of all JSON in cache dir after reading them
-previous_files = os.listdir(cache_dir)
+previous_files = os.listdir(cache_folder)
 previous_integers = []
 for file in previous_files:
-    with open(os.path.join(cache_dir, file), 'r') as f:
+    with open(os.path.join(cache_folder, file), 'r') as f:
         data = json.load(f)
         previous_integers.extend([int(ad['url'].split('/')[-2]) for ad in data])
 
