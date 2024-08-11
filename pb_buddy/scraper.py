@@ -1,10 +1,16 @@
+import logging
+import os
 import re
 import time
 
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
-from tenacity import retry, stop_after_attempt, wait_fixed
+from tenacity import retry, stop_after_attempt, wait_exponential
+
+# Set up logging
+log_file = os.path.join("scraper.log")
+logging.basicConfig(filename=log_file, level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 
 def get_category_list():
@@ -124,8 +130,9 @@ def get_total_pages(category_num: str, region: int = 3) -> int:
             largest_page_num = int(page_num.group(1))
     return largest_page_num
 
-@retry(stop=stop_after_attempt(5), wait=wait_fixed(60))
-def parse_buysell_ad(buysell_url: str, delay_s: int) -> dict:
+
+@retry(stop=stop_after_attempt(20), wait=wait_exponential(multiplier=10, min=2, exp_base=5, max=1000))
+def parse_buysell_ad(buysell_url: str, delay_s: float, session: requests.Session, proxy_server: str) -> dict:
     """Takes a Pinkbike buysell URL and extracts all attributes listed for product.
 
     Parameters
@@ -144,16 +151,19 @@ def parse_buysell_ad(buysell_url: str, delay_s: int) -> dict:
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"
     }
 
-    page_request = requests.get(buysell_url, headers=headers, timeout=200)
-    # except TimeoutError as e:
-    #     print(e)
-    #     return {}
-    # except requests.exceptions.Timeout as e:
-    #     print(e)
-    #     return {}
-    # except requests.exceptions.ConnectionError as e:
-    #     print(e)
-    #     return {}
+    if proxy_server is not None:
+        try:
+            prox = {
+                "https": f'socks5://{os.getenv("SOCKS_PROXY_USERNAME")}:{os.getenv("SOCKS_PROXY_PASSWORD")}@{proxy_server}:1080'
+            }
+            session.headers["Connection"] = "close"
+            session.headers["USER-AGENT"] = headers["User-Agent"]
+            page_request = session.get(buysell_url, headers=headers, proxies=prox, timeout=200)
+        except Exception as e:
+            logging.error(f"Error with {proxy_server}: {e}")
+            raise e
+    else:
+        page_request = requests.get(buysell_url, headers=headers, timeout=200)
 
     if page_request.status_code > 200:
         if page_request.status_code == 404:
