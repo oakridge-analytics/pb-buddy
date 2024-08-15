@@ -1,27 +1,26 @@
 # %%
-import os
 import logging
+import os
 import warnings
-import sys
 
-import pandas as pd
-import numpy as np
-from tqdm import tqdm
-from joblib import Parallel, delayed
 import fire
+import numpy as np
+import pandas as pd
 from dotenv import load_dotenv
+from joblib import Parallel, delayed
+from tqdm import tqdm
+
+import pb_buddy.data_processors as dt
 
 # Custom code
 import pb_buddy.scraper as scraper
 import pb_buddy.utils as ut
-import pb_buddy.data_processors as dt
 
 
-def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape: list[int]=None):
+def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape: list[int] = None, region=3):
     # TODO: Fix how we handle poor formatted inputs when using
     # workflow_dispatch vs. cron scheduled runs
-    num_jobs = int(num_jobs) if num_jobs else 4
-    full_refresh = False if not full_refresh else full_refresh
+    num_jobs = int(num_jobs)
 
     category_dict = scraper.get_category_list()
     # Settings -----------------------------------------------------------------
@@ -76,7 +75,7 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape: list[i
         sold_ad_data = all_sold_data.query("category_num == @category_to_scrape")
 
         # Get total number of pages of ads-----------------------------------------------
-        total_page_count = scraper.get_total_pages(category_to_scrape)
+        total_page_count = scraper.get_total_pages(category_to_scrape, region=region)
         if total_page_count == 0:
             continue
 
@@ -85,7 +84,7 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape: list[i
         logging.info(f"Scraping {total_page_count} pages of ads......")
         pages_to_check = list(range(1, total_page_count + 1))
         page_urls = [
-            f"https://www.pinkbike.com/buysell/list/?region=3&page={x}&category={category_to_scrape}"
+            f"https://www.pinkbike.com/buysell/list/?region={region}&page={x}&category={category_to_scrape}"
             for x in pages_to_check
         ]
         ad_urls = Parallel(n_jobs=num_jobs)(
@@ -116,12 +115,10 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape: list[i
                 else:
                     logging.info(f"Checked up until ~ page: { (len(intermediate_ad_data)//20)+1} of ads")
                     break
-        
+
         # If any ads missed from previous scrape, add back in
-        ads_missed = (
-                list(set(ad_urls)
-                .difference(set(all_base_data.url))
-                .difference(set([ad['url'] for ad in intermediate_ad_data])))
+        ads_missed = list(
+            set(ad_urls).difference(set(all_base_data.url)).difference(set([ad["url"] for ad in intermediate_ad_data]))
         )
         logging.info(f"Extracting ad data from {len(ads_missed)} missed ads")
         ads_missed_data = [scraper.parse_buysell_ad(url, delay_s=0) for url in ads_missed]
@@ -135,7 +132,9 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape: list[i
             continue
         else:
             recently_added_ads = pd.DataFrame(intermediate_ad_data)
-            logging.info(f"Found {len(recently_added_ads)} recently modified ads, {len(intermediate_sold_ad_data)} sold ads")
+            logging.info(
+                f"Found {len(recently_added_ads)} recently modified ads, {len(intermediate_sold_ad_data)} sold ads"
+            )
             # Check membership across categories in case of changes!
             new_ads = recently_added_ads.loc[~recently_added_ads.url.isin(all_base_data.url), :]
             logging.info(f"Found {len(new_ads)} new ads")
