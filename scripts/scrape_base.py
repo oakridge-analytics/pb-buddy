@@ -20,7 +20,7 @@ import pb_buddy.utils as ut
 def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape: list[int] = None, region=3):
     # TODO: Fix how we handle poor formatted inputs when using
     # workflow_dispatch vs. cron scheduled runs
-    num_jobs = int(num_jobs)
+    num_jobs = int(num_jobs) if num_jobs else 4
 
     category_dict = scraper.get_category_list()
     # Settings -----------------------------------------------------------------
