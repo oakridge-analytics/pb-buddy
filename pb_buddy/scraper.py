@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 from tenacity import retry, stop_after_attempt, wait_fixed
 
 
-def get_category_list():
+def get_category_list() -> dict:
     """
     Get the mapping of category name to category number
     for all categories from https://www.pinkbike.com/buysell/
@@ -127,7 +127,7 @@ def get_total_pages(category_num: str, region: int = 3) -> int:
 
 
 @retry(stop=stop_after_attempt(5), wait=wait_fixed(10))
-def parse_buysell_ad(buysell_url: str, delay_s: int) -> dict:
+def parse_buysell_ad(buysell_url: str, delay_s: int, region_code: int) -> dict:
     """Takes a Pinkbike buysell URL and extracts all attributes listed for product.
 
     Parameters
@@ -211,7 +211,7 @@ def parse_buysell_ad(buysell_url: str, delay_s: int) -> dict:
         k.replace(":", "").replace(" ", "_").lower(): re.sub(pattern, " ", v).strip() if type(v) == str else v
         for k, v in data_dict.items()
     }
-
+    data_dict["region_code"] = region_code
     time.sleep(delay_s)
 
     return data_dict
