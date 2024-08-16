@@ -1,9 +1,10 @@
-import pandas as pd
 import os
-import pymongo
-import certifi
-from typing import List
 from io import BytesIO
+from typing import List
+
+import certifi
+import pandas as pd
+import pymongo
 from azure.storage.blob import BlobServiceClient
 
 
@@ -23,17 +24,13 @@ def get_latest_by_scrape_dt(df: pd.DataFrame) -> pd.DataFrame:
         Dataframe deduplicated for each 'url' using 'datetime_scraped'
     """
     return (
-        df.assign(
-            datetime_scraped=lambda x: pd.to_datetime(
-                x.datetime_scraped, utc=True
-            ).dt.tz_convert("US/Mountain")
-        )
+        df.assign(datetime_scraped=lambda x: pd.to_datetime(x.datetime_scraped, utc=True).dt.tz_convert("US/Mountain"))
         .sort_values("datetime_scraped", ascending=False)
         .drop_duplicates(subset="url")
     )
 
 
-def get_dataset(category_num: int, data_type: str) -> pd.DataFrame:
+def get_dataset(category_num: int, data_type: str, region_code: int) -> pd.DataFrame:
     """Get active, sold or changed ad data for a given category number. Normalizes column
     names into nicer forms. Requires env variable "COSMOS_CONN_STR" to
     be set for MongoDB api on CosmosDB access.
@@ -54,6 +51,8 @@ def get_dataset(category_num: int, data_type: str) -> pd.DataFrame:
     """
     if data_type not in ["base", "sold", "changes"]:
         raise ValueError("data_type should be one of 'base','sold','changes'")
+    if region_code not in [3, 5]:
+        raise ValueError("region_code should be one of 3,5")
 
     db = get_mongodb()
 
@@ -61,14 +60,16 @@ def get_dataset(category_num: int, data_type: str) -> pd.DataFrame:
         database_mongo = db.base_data
     elif data_type == "sold":
         database_mongo = db.sold_data
-    else:
+    elif data_type == "changes":
         database_mongo = db.change_data
+    else:
+        raise ValueError("data_type must be one of 'base','sold','changes'")
 
     if category_num == -1:
         # Blank query returns all data
-        query_result = list(database_mongo.find({}))
+        query_result = list(database_mongo.find({"region_code": region_code}))
     else:
-        query_result = list(database_mongo.find({"category_num": category_num}))
+        query_result = list(database_mongo.find({"category_num": category_num, "region_code": region_code}))
 
     if len(query_result) == 0:
         df_out = pd.DataFrame({"url": []})
@@ -77,9 +78,7 @@ def get_dataset(category_num: int, data_type: str) -> pd.DataFrame:
 
         if "datetime_scraped" in df_out.columns:
             df_out = df_out.assign(
-                datetime_scraped=lambda x: pd.to_datetime(
-                    x.datetime_scraped, utc=True
-                ).dt.tz_convert("US/Mountain")
+                datetime_scraped=lambda x: pd.to_datetime(x.datetime_scraped, utc=True).dt.tz_convert("US/Mountain")
             )
     return df_out
 
@@ -110,9 +109,7 @@ def write_dataset(category_df: pd.DataFrame, data_type: str):
         database_mongo = db.change_data
 
     # normalize column names
-    category_df.columns = [
-        x.replace(":", "").replace(" ", "_").lower() for x in category_df.columns
-    ]
+    category_df.columns = [x.replace(":", "").replace(" ", "_").lower() for x in category_df.columns]
 
     # Insert as many as possible, return without printing errors for now.
     try:
@@ -121,9 +118,7 @@ def write_dataset(category_df: pd.DataFrame, data_type: str):
         pass
 
 
-def update_base_data(
-    category_df: pd.DataFrame, index_col: str, cols_to_update: List[str]
-):
+def update_base_data(category_df: pd.DataFrame, index_col: str, cols_to_update: List[str]):
     """Update MongoDB collection for base ad data documents uniquely identified by `index_col` and update fields
     with values in `cols_to_update` from `category_df`. Requires env variable "COSMOS_CONN_STR" to
     be set for MongoDB api on CosmosDB access.
@@ -138,21 +133,15 @@ def update_base_data(
     cols_to_update : List[str]
         Columns to use for updating data in MongoDB documents. Must all be existing fields in MongoDB documents.
     """
-    if len(set(category_df.columns).intersection([index_col] + cols_to_update)) != len(
-        [index_col] + cols_to_update
-    ):
-        raise ValueError(
-            "index_col and cols_to_update must all be present in category_df"
-        )
+    if len(set(category_df.columns).intersection([index_col] + cols_to_update)) != len([index_col] + cols_to_update):
+        raise ValueError("index_col and cols_to_update must all be present in category_df")
 
     db = get_mongodb()
     database_mongo = db.base_data
 
     for row in category_df.itertuples():
         updates_dict = {x: getattr(row, x) for x in cols_to_update}
-        database_mongo.update_one(
-            {index_col: getattr(row, index_col)}, {"$set": updates_dict}
-        )
+        database_mongo.update_one({index_col: getattr(row, index_col)}, {"$set": updates_dict})
 
 
 def remove_from_base_data(removal_df: pd.DataFrame, index_col: str):
@@ -216,17 +205,13 @@ def stream_parquet_to_blob(df: pd.DataFrame, blob_name: str, blob_container: str
         Container to upload to
     """
     # Create a blob client using the local account credentials
-    blob_service_client = BlobServiceClient.from_connection_string(
-        os.environ["AZURE_STORAGE_CONN_STR"]
-    )
+    blob_service_client = BlobServiceClient.from_connection_string(os.environ["AZURE_STORAGE_CONN_STR"])
 
     # Create a unique name for the container
     container_name = blob_container
 
     # Create a blob client using the container client
-    blob_client = blob_service_client.get_blob_client(
-        container=container_name, blob=blob_name
-    )
+    blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
 
     parquet_file = BytesIO()
     df.to_parquet(parquet_file, engine="pyarrow", compression="gzip")
@@ -253,17 +238,13 @@ def stream_parquet_to_dataframe(blob_name: str, blob_container: str) -> pd.DataF
         DataFrame when blob is downloaded
     """
     # Create a blob client using the local account credentials
-    blob_service_client = BlobServiceClient.from_connection_string(
-        os.environ["AZURE_STORAGE_CONN_STR"]
-    )
+    blob_service_client = BlobServiceClient.from_connection_string(os.environ["AZURE_STORAGE_CONN_STR"])
 
     # Create a unique name for the container
     container_name = blob_container
 
     # Create a blob client using the container client
-    blob_client = blob_service_client.get_blob_client(
-        container=container_name, blob=blob_name
-    )
+    blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
 
     stream_download = blob_client.download_blob()
     stream = BytesIO()
@@ -271,4 +252,5 @@ def stream_parquet_to_dataframe(blob_name: str, blob_container: str) -> pd.DataF
 
     df = pd.read_parquet(stream, engine="pyarrow")
 
+    return df
     return df
