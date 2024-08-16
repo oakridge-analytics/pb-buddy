@@ -1,9 +1,10 @@
-import requests
-from typing import List
-from bs4 import BeautifulSoup
 import re
-import pandas as pd
 import time
+
+import pandas as pd
+import requests
+from bs4 import BeautifulSoup
+from tenacity import retry, stop_after_attempt, wait_fixed
 
 
 def get_category_list():
@@ -46,6 +47,7 @@ def get_category_list():
     return category_dict
 
 
+@retry(stop=stop_after_attempt(5), wait=wait_fixed(10))
 def get_buysell_ads(url: str, delay_s: int = 1) -> dict:
     """Grab all buysell URL's from a page of Pinkbike's buysell results
 
@@ -124,6 +126,7 @@ def get_total_pages(category_num: str, region: int = 3) -> int:
     return largest_page_num
 
 
+@retry(stop=stop_after_attempt(5), wait=wait_fixed(10))
 def parse_buysell_ad(buysell_url: str, delay_s: int) -> dict:
     """Takes a Pinkbike buysell URL and extracts all attributes listed for product.
 
@@ -143,17 +146,7 @@ def parse_buysell_ad(buysell_url: str, delay_s: int) -> dict:
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"
     }
 
-    try:
-        page_request = requests.get(buysell_url, headers=headers, timeout=200)
-    except TimeoutError as e:
-        print(e)
-        return {}
-    except requests.exceptions.Timeout as e:
-        print(e)
-        return {}
-    except requests.exceptions.ConnectionError as e:
-        print(e)
-        return {}
+    page_request = requests.get(buysell_url, headers=headers, timeout=200)
 
     if page_request.status_code > 200:
         print("Error requesting Ad")
@@ -253,5 +246,7 @@ def retry(times, exceptions, time_delay=60):
             return func(*args, **kwargs)
 
         return newfn
+
+    return decorator
 
     return decorator
