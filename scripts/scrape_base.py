@@ -39,8 +39,8 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape: list[i
     )
 
     logging.info("######## Starting new scrape session #########")
-    all_base_data = dt.get_dataset(category_num=-1, data_type="base")
-    all_sold_data = dt.get_dataset(category_num=-1, data_type="sold")
+    all_base_data = dt.get_dataset(category_num=-1, data_type="base", region_code=region)
+    all_sold_data = dt.get_dataset(category_num=-1, data_type="sold", region_code=region)
     logging.info("All previous data loaded from MongoDB")
     warnings.filterwarnings(action="ignore")
 
@@ -103,6 +103,7 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape: list[i
         # Boosted ads are always at top of results, and may have older dates
         for url, boosted_status in tqdm(ad_urls.items(), disable=(not show_progress)):
             single_ad_data = scraper.parse_buysell_ad(url, delay_s=0)
+            single_ad_data["region_code"] = region
             if single_ad_data != {}:
                 if (
                     pd.to_datetime(single_ad_data["last_repost_date"], utc=False).tz_localize("MST") - last_scrape_dt
