@@ -1,0 +1,40 @@
+name: Scrape Latest
+
+on:
+  workflow_call:
+    inputs:
+      num_jobs:
+        required: true
+        type: string
+      region:
+        required: true
+        type: string
+    secrets:
+      COSMOS_CONN_STR:
+        required: true
+
+jobs:
+  scrape-latest:
+    runs-on: self-hosted
+    timeout-minutes: 1000
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v2
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9.16
+      - name: Install package
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install poetry
+          python3 -m poetry install
+      - name: Set env vars
+        run: |
+          echo "DATE=$(python -c 'import datetime as dt; print((dt.datetime.now()))')" >> $GITHUB_ENV
+      - name: Log env
+        run: env
+      - name: Run Scraper
+        run: python3 -m poetry run python scripts/scrape_base.py --full_refresh=False --num_jobs=${{ inputs.num_jobs }} --region=${{ inputs.region }}
+        env: 
+          COSMOS_CONN_STR: ${{ secrets.COSMOS_CONN_STR }}
