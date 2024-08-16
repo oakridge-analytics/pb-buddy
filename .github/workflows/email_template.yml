@@ -1,4 +1,4 @@
-name: Email Template
+name: Email Alerts
 
 on:
   workflow_call:
@@ -7,10 +7,6 @@ on:
         required: true
       TWILIO_PASS:
         required: true
-      COSMOS_CONN_STR:
-        required: true
-      HOTMAIL_ADDRESS:
-        required: true
 
 jobs:
   email-alerts:
@@ -18,9 +14,9 @@ jobs:
     timeout-minutes: 1000
     steps:
       - name: Setup repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v2
       - name: Set up Python 3.9
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v2
         with:
           python-version: 3.9
       - name: Install package
@@ -37,16 +33,3 @@ jobs:
         env: 
           TWILIO_USER: ${{ secrets.TWILIO_USER }}
           TWILIO_PASS: ${{ secrets.TWILIO_PASS }}
-          HOTMAIL_ADDRESS: ${{ secrets.HOTMAIL_ADDRESS }}
-          COSMOS_CONN_STR: ${{ secrets.COSMOS_CONN_STR }}
-      - name: Commit files
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"        
-          git add alerts/
-          git commit -m "Update alerts for $DATE"
-      - name: Push changes
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref }}
