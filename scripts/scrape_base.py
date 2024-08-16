@@ -39,8 +39,8 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape: list[i
     )
 
     logging.info("######## Starting new scrape session #########")
-    all_base_data = dt.get_dataset(category_num=-1, data_type="base", region_code=region)
-    all_sold_data = dt.get_dataset(category_num=-1, data_type="sold", region_code=region)
+    all_base_data = dt.get_dataset(category_num=-1, data_type="base", region_code=int(region))
+    all_sold_data = dt.get_dataset(category_num=-1, data_type="sold", region_code=int(region))
     logging.info("All previous data loaded from MongoDB")
     warnings.filterwarnings(action="ignore")
 
