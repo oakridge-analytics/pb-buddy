@@ -49,7 +49,9 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape: Option
     # Iterate through all categories in random order, prevent noticeable patterns?
 
     num_categories_scraped = 0
-    for category_to_scrape in np.random.choice(categories_to_scrape, size=len(categories_to_scrape), replace=False):
+    for category_to_scrape in np.random.choice(
+        np.asarray(categories_to_scrape), size=len(categories_to_scrape), replace=False
+    ):
         # Get category, some don't have entries so skip to next.(category 10 etc.)
         category_name = [x for x, v in category_dict.items() if v == category_to_scrape]
         if not category_name:
