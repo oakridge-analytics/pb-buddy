@@ -1,4 +1,4 @@
-name: Scrape Template
+name: Scrape Latest
 
 on:
   workflow_call:
@@ -13,25 +13,22 @@ on:
       COSMOS_CONN_STR:
         required: true
 
-
 jobs:
   scrape-latest:
     runs-on: self-hosted
     timeout-minutes: 1000
     steps:
       - name: Setup repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v2
       - name: Set up Python 3.9
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v2
         with:
           python-version: 3.9.16
       - name: Install package
-        shell: bash
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install poetry
           python3 -m poetry install
-          python3 -m poetry run playwright install chromium
       - name: Set env vars
         run: |
           echo "DATE=$(python -c 'import datetime as dt; print((dt.datetime.now()))')" >> $GITHUB_ENV
