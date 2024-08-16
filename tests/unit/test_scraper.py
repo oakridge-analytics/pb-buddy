@@ -46,7 +46,7 @@ def test_parse_buysell_ad_fields():
 
 
 def test_parse_buysell_content(sample_url):
-    ad_data = parse_buysell_ad(sample_url, 1, 3)
+    ad_data = parse_buysell_ad(sample_url, 0, 3)
     expected = {
         "category": "Trail Bikes",
         "condition": "Excellent - Lightly Ridden",
