@@ -1,11 +1,6 @@
 import pytest
 
-from pb_buddy.scraper import (
-    PlaywrightScraper,
-    get_category_list,
-    get_total_pages,
-    parse_buysell_ad,
-)
+from pb_buddy.scraper import get_category_list, get_total_pages, parse_buysell_ad
 
 
 @pytest.fixture
@@ -14,37 +9,30 @@ def category_list():
 
 
 @pytest.fixture
-def playwright_scraper():
-    playwright_scraper = PlaywrightScraper()
-    yield playwright_scraper
-    playwright_scraper.close_browser()
-
-
-@pytest.fixture
 def sample_url():
     return "https://www.pinkbike.com/buysell/3144637/"
 
 
-def test_get_category_list(category_list, playwright_scraper):
-    res = get_category_list(playwright_scraper=playwright_scraper)
+def test_get_category_list(category_list):
+    res = get_category_list()
     # sort by values
     res = dict(sorted(res.items(), key=lambda x: x[1]))
     assert all(res[key] == value for key, value in category_list.items() if key in res)
 
 
-def test_get_total_pages(playwright_scraper):
+def test_get_total_pages():
     category_num = 1
     region = 3
-    total_pages = get_total_pages(category_num, region=region, playwright_scraper=playwright_scraper)
+    total_pages = get_total_pages(category_num, region)
     assert isinstance(total_pages, int)
     assert total_pages >= 0
 
 
-def test_parse_buysell_ad_fields(playwright_scraper):
+def test_parse_buysell_ad_fields():
     buysell_url = "https://www.pinkbike.com/buysell/1234567"
     delay_s = 1
     region_code = 3
-    ad_data = parse_buysell_ad(buysell_url, delay_s, region_code, playwright_scraper=playwright_scraper)
+    ad_data = parse_buysell_ad(buysell_url, delay_s, region_code)
     assert isinstance(ad_data, dict)
     assert "url" in ad_data
     assert "datetime_scraped" in ad_data
@@ -57,8 +45,8 @@ def test_parse_buysell_ad_fields(playwright_scraper):
     assert "region_code" in ad_data
 
 
-def test_parse_pinkbike_buysell_content(sample_url, playwright_scraper):
-    ad_data = parse_buysell_ad(sample_url, delay_s=0, region_code=3, playwright_scraper=playwright_scraper)
+def test_parse_buysell_content(sample_url):
+    ad_data = parse_buysell_ad(sample_url, 1, 3)
     expected = {
         "category": "Trail Bikes",
         "condition": "Excellent - Lightly Ridden",
@@ -102,5 +90,5 @@ def test_parse_pinkbike_buysell_content(sample_url, playwright_scraper):
         "url",
         "region_code",
     ]
-
-    assert all(ad_data[key] == expected[key] for key in keys_to_check), "Mismatch found in dictionary values"
+    for key in keys_to_check:
+        assert ad_data[key] == expected[key]
