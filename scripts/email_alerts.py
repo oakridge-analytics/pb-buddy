@@ -14,7 +14,7 @@ import pb_buddy.utils as ut
 # %%
 # Get rules to check and email for each
 alerts = json.load(open(os.path.join("alerts", "alerts.json")))
-changes = dt.get_dataset(-1, data_type="changes")
+changes = dt.get_dataset(-1, data_type="changes", region_code=3)
 api_url = "https://dbandrews--bike-buddy-api-autogluonmodelinference-predict.modal.run"
 email_cols = [
     "url",
@@ -37,7 +37,7 @@ api_cols = [
 
 # %%
 for alert in alerts["alerts"]:
-    df = dt.get_dataset(alert["category_num"], data_type="base")
+    df = dt.get_dataset(alert["category_num"], data_type="base", region_code=3)
     last_check_dt = pd.to_datetime(alert["last_checked"], utc=True).tz_convert("US/Mountain")
 
     # Get price drop data
