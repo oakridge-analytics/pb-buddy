@@ -7,6 +7,8 @@ on:
         required: true
       TWILIO_PASS:
         required: true
+      COSMOS_CONN_STR:
+        required: true
 
 jobs:
   email-alerts:
@@ -33,3 +35,4 @@ jobs:
         env: 
           TWILIO_USER: ${{ secrets.TWILIO_USER }}
           TWILIO_PASS: ${{ secrets.TWILIO_PASS }}
+          COSMOS_CONN_STR: ${{ secrets.COSMOS_CONN_STR }}

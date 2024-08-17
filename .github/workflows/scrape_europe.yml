@@ -24,3 +24,4 @@ jobs:
     secrets:
       TWILIO_USER: ${{ secrets.TWILIO_USER }}
       TWILIO_PASS: ${{ secrets.TWILIO_PASS }}
+      COSMOS_CONN_STR: ${{ secrets.COSMOS_CONN_STR }}
