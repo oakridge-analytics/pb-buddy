@@ -47,7 +47,7 @@ def get_category_list() -> dict:
     return category_dict
 
 
-@retry(stop=stop_after_attempt(5), wait=wait_fixed(10))
+@retry(stop=stop_after_attempt(5), wait=wait_fixed(2))
 def get_buysell_ads(url: str, delay_s: int = 1) -> dict:
     """Grab all buysell URL's from a page of Pinkbike's buysell results
 
@@ -126,7 +126,7 @@ def get_total_pages(category_num: str, region: int = 3) -> int:
     return largest_page_num
 
 
-@retry(stop=stop_after_attempt(5), wait=wait_fixed(10))
+@retry(stop=stop_after_attempt(5), wait=wait_fixed(2))
 def parse_buysell_ad(buysell_url: str, delay_s: int, region_code: int) -> dict:
     """Takes a Pinkbike buysell URL and extracts all attributes listed for product.
 
