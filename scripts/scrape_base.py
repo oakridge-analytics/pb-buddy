@@ -125,7 +125,7 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape: Option
         )
         logging.info(f"Extracting ad data from {len(ads_missed)} missed ads")
         ads_missed_data = [scraper.parse_buysell_ad(url, delay_s=0, region_code=region) for url in ads_missed]
-        ads_missed_data = [ad for ad in ads_missed_data if "sold" not in ad["still_for_sale"].lower() and ad != {}]
+        ads_missed_data = [ad for ad in ads_missed_data if ad != {} and "sold" not in ad["still_for_sale"].lower()]
 
         intermediate_ad_data.extend(ads_missed_data)
 
