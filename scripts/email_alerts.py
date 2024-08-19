@@ -14,7 +14,7 @@ import pb_buddy.utils as ut
 # %%
 # Get rules to check and email for each
 alerts = json.load(open(os.path.join("alerts", "alerts.json")))
-changes = dt.get_dataset(-1, data_type="changes", region_code=3)
+changes = dt.get_dataset(-1, data_type="changes")
 api_url = "https://dbandrews--bike-buddy-api-autogluonmodelinference-predict.modal.run"
 email_cols = [
     "url",
