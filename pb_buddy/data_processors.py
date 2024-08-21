@@ -1,6 +1,6 @@
 import os
 from io import BytesIO
-from typing import List
+from typing import List, Optional
 
 import certifi
 import pandas as pd
@@ -30,7 +30,7 @@ def get_latest_by_scrape_dt(df: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def get_dataset(category_num: int, data_type: str, region_code: int) -> pd.DataFrame:
+def get_dataset(category_num: int, data_type: str, region_code: Optional[int] = None) -> pd.DataFrame:
     """Get active, sold or changed ad data for a given category number. Normalizes column
     names into nicer forms. Requires env variable "COSMOS_CONN_STR" to
     be set for MongoDB api on CosmosDB access.
@@ -43,6 +43,8 @@ def get_dataset(category_num: int, data_type: str, region_code: int) -> pd.DataF
         Category num to lookup.
     data_type : str
         Either "base","sold" or "changes" for active ads and sold ads respectively.
+    region_code : int, optional
+        Region code to get data for. Default of None returns for all
 
     Returns
     -------
@@ -51,8 +53,8 @@ def get_dataset(category_num: int, data_type: str, region_code: int) -> pd.DataF
     """
     if data_type not in ["base", "sold", "changes"]:
         raise ValueError("data_type should be one of 'base','sold','changes'")
-    if region_code not in [3, 5]:
-        raise ValueError("region_code should be one of 3,5")
+    if region_code not in [3, 5, None]:
+        raise ValueError("region_code should be one of 3,5 or None")
 
     db = get_mongodb()
 
@@ -65,11 +67,13 @@ def get_dataset(category_num: int, data_type: str, region_code: int) -> pd.DataF
     else:
         raise ValueError("data_type must be one of 'base','sold','changes'")
 
-    if category_num == -1:
-        # Blank query returns all data
-        query_result = list(database_mongo.find({"region_code": region_code}))
-    else:
-        query_result = list(database_mongo.find({"category_num": category_num, "region_code": region_code}))
+    query = {}
+    if category_num != -1:
+        query["category_num"] = category_num
+    if region_code is not None:
+        query["region_code"] = region_code
+
+    query_result = list(database_mongo.find(query))
 
     if len(query_result) == 0:
         df_out = pd.DataFrame({"url": []})
