@@ -26,12 +26,12 @@
             "last_checked": "2024-08-03 11:08:40.903389-06:00"
         },
         {
-            "category_num": 107,
-            "alert_name": "Droppers for Ibis",
-            "search_string": "seat_post_diameter.str.contains('31.6') and price <= 200 and location.str.contains('Calgary') and (ad_title.str.contains('2019') or ad_title.str.contains('2020') or ad_title.str.contains('2021') or ad_title.str.contains('2022') or ad_title.str.contains('2023'))",
-            "email_stem": "dustin.brown.andrews",
-            "email_domain": "@gmail.com",
-            "last_checked": "2024-08-03 11:08:47.338187-06:00"
-        }
+            "category_num": 12,
+            "alert_name": "Craig Wheels Alert",
+            "search_string": "location.str.contains('Calgary|Edmonton|Canmore') and wheel_size == '29\"' and rear_axle.str.contains('12 x 148')",
+            "email_stem": "CraigcLogan",
+            "email_domain": "@outlook.com",
+            "last_checked": "2023-08-03 11:08:40.903389-06:00"
+        },
     ]
 }
