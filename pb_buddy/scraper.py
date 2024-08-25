@@ -5,6 +5,7 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 from tenacity import retry, stop_after_attempt, wait_fixed
+from enum import Enum
 
 
 def get_category_list() -> dict:
@@ -48,6 +49,38 @@ def get_category_list() -> dict:
 
 
 @retry(stop=stop_after_attempt(5), wait=wait_fixed(2))
+def request_ad(url: str, delay_s: int = 1) -> requests.models.Response:
+    """Request a URL and return the response object
+
+    Parameters
+    ----------
+    url : str
+        URL to request
+    delay_s : int
+        Time in seconds to delay before returning.
+
+    Returns
+    -------
+    requests.models.Response
+        Response object from the request
+    """
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"
+    }
+    page_request = requests.get(url, headers=headers, timeout=200)
+    # Add error handling if ad not found return a empty dict, otherwise raise exception
+    if page_request.status_code > 200:
+        print("Error requesting Ad")
+        if page_request.status_code == 404:
+            print("404 - Ad missing")
+            return {}/
+        else:
+            raise requests.exceptions.RequestException("Ad request error")
+
+    time.sleep(delay_s)
+    return page_request
+
+
 def get_buysell_ads(url: str, delay_s: int = 1) -> dict:
     """Grab all buysell URL's from a page of Pinkbike's buysell results
 
@@ -126,9 +159,12 @@ def get_total_pages(category_num: str, region: int = 3) -> int:
     return largest_page_num
 
 
-@retry(stop=stop_after_attempt(5), wait=wait_fixed(2))
-def parse_buysell_ad(buysell_url: str, delay_s: int, region_code: int) -> dict:
-    """Takes a Pinkbike buysell URL and extracts all attributes listed for product.
+class AdType(Enum):
+    PINKBIKE = "pinkbike"
+    OTHER = "other"
+
+def parse_buysell_ad(buysell_url: str, delay_s: int, region_code: int, ad_type: AdType = AdType.PINKBIKE) -> dict:
+    """Takes a buysell URL and extracts all attributes listed for product.
 
     Parameters
     ----------
@@ -136,23 +172,17 @@ def parse_buysell_ad(buysell_url: str, delay_s: int, region_code: int) -> dict:
         URL to the buysell ad
     delay_s : int
         Number of seconds to sleep before returning
+    region_code : int
+        Region code for the ad
+    ad_type : AdType
+        Type of the ad, default is AdType.PINKBIKE
 
     Returns
     -------
     dict
-        dictionary with all ad data, plus URL and date scraped.
+        Dictionary with all ad data, plus URL and date scraped.
     """
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"
-    }
-
-    page_request = requests.get(buysell_url, headers=headers, timeout=200)
-
-    if page_request.status_code > 200:
-        print("Error requesting Ad")
-        if page_request.status_code == 404:
-            print("404 - Ad missing")
-        return {}
+    page_request = request_ad(buysell_url, delay_s=delay_s)
 
     soup = BeautifulSoup(page_request.content, features="html.parser")
 
@@ -217,6 +247,6 @@ def parse_buysell_ad(buysell_url: str, delay_s: int, region_code: int) -> dict:
         for k, v in data_dict.items()
     }
     data_dict["region_code"] = region_code
-    time.sleep(delay_s)
+    data_dict["ad_type"] = ad_type.value
 
     return data_dict
