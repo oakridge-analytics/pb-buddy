@@ -1,11 +1,11 @@
 import re
 import time
+from enum import Enum
 
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 from tenacity import retry, stop_after_attempt, wait_fixed
-from enum import Enum
 
 
 def get_category_list() -> dict:
@@ -73,7 +73,7 @@ def request_ad(url: str, delay_s: int = 1) -> requests.models.Response:
         print("Error requesting Ad")
         if page_request.status_code == 404:
             print("404 - Ad missing")
-            return {}/
+            return {}
         else:
             raise requests.exceptions.RequestException("Ad request error")
 
@@ -136,7 +136,7 @@ def get_total_pages(category_num: str, region: int = 3) -> int:
     Parameters
     ----------
     category_num : int
-        Category number to grab total number of paes of ads for
+        Category number to grab total number of pages of ads for
     region : int
         Region to get results for. Default of 3 is North America.
 
@@ -163,6 +163,7 @@ class AdType(Enum):
     PINKBIKE = "pinkbike"
     OTHER = "other"
 
+
 def parse_buysell_ad(buysell_url: str, delay_s: int, region_code: int, ad_type: AdType = AdType.PINKBIKE) -> dict:
     """Takes a buysell URL and extracts all attributes listed for product.
 
@@ -180,11 +181,38 @@ def parse_buysell_ad(buysell_url: str, delay_s: int, region_code: int, ad_type: 
     Returns
     -------
     dict
-        Dictionary with all ad data, plus URL and date scraped.
+        Dictionary with all ad data, plus URL and datetime scraped.
     """
     page_request = request_ad(buysell_url, delay_s=delay_s)
 
     soup = BeautifulSoup(page_request.content, features="html.parser")
+
+    if ad_type == AdType.PINKBIKE:
+        results = parse_buysell_pinkbike_ad(soup)
+    else:
+        results = parse_buysell_other_ad(soup)
+
+    # Add region code
+    results["region_code"] = region_code
+    results["url"] = buysell_url
+    results["datetime_scraped"] = str(pd.Timestamp.today(tz="US/Mountain"))
+    return results
+
+
+def parse_buysell_pinkbike_ad(page_content: BeautifulSoup) -> dict:
+    """Takes a Pinkbike buysell URL and extracts all attributes listed for a product.
+
+    Parameters
+    ----------
+    page_content : BeautifulSoup
+        BeautifulSoup object representing the HTML content of the page
+
+    Returns
+    -------
+    dict
+        Dictionary with all ad data
+    """
+    soup = page_content
 
     data_dict = {}
 
@@ -237,16 +265,56 @@ def parse_buysell_ad(buysell_url: str, delay_s: int, region_code: int, ad_type: 
         if "Restrictions" in sp.text:
             data_dict["restrictions"] = sp.text.split(":")[-1]
 
-    # Add scrape datetime
-    data_dict["datetime_scraped"] = str(pd.Timestamp.today(tz="US/Mountain"))
-    data_dict["url"] = buysell_url
-
     # Clean non standard whitespace, fix key names:
     data_dict = {
         k.replace(":", "").replace(" ", "_").lower(): " ".join(v.split()).strip() if isinstance(v, str) else v
         for k, v in data_dict.items()
     }
-    data_dict["region_code"] = region_code
-    data_dict["ad_type"] = ad_type.value
+
+    return data_dict
+
+
+def parse_buysell_buycycle_ad(page_content: BeautifulSoup) -> dict:
+    """Takes a Buycycle buysell URL and extracts all attributes listed for a product.
+
+    Parameters
+    ----------
+    page_content : BeautifulSoup
+        BeautifulSoup object representing the HTML content of the page
+
+    Returns
+    -------
+    dict
+        Dictionary with all ad data
+    """
+    soup = page_content
+
+    data_dict = {}
+
+    ad_title = soup.find("h1", class_="text-3xl font-500 content-primary mb-1").text
+    ad_title = " ".join(ad_title.split())
+    price_text = soup.find("p", class_="text-3xl font-500 mb-0 content-sale").text
+    price = price_text.split()[0].replace(".", "")
+    currency = price_text.split()[1]
+    # No post date found on site, so using current date
+    original_post_date = str(pd.Timestamp.today(tz="US/Mountain"))
+    country = soup.find("p", class_="text-sm content-tertiary mb-0").text.strip()
+    details_divs = soup.find_all("div", class_="pdp-modal-content")
+    for div in details_divs:
+        if "Condition & details" in div.text:
+            # # Remove occurences of multiple whitespace in a row
+            # # with a single occurence of respective whitespace
+            details = re.sub(r" +", " ", div.text)
+            details = re.sub(r"\n +", r"\n", details)
+            details = re.sub(r"\n+", r"\n", details)
+            # Remove the newline before each colon, and then add a newline after each colon
+            details = re.sub(r"\n:", ":", details)
+            details = re.sub(r":", ":\n", details)
+    data_dict["ad_title"] = ad_title
+    data_dict["price"] = price
+    data_dict["currency"] = currency
+    data_dict["original_post_date"] = original_post_date
+    data_dict["location"] = country
+    data_dict["description"] = details
 
     return data_dict
