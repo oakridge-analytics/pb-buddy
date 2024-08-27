@@ -5,7 +5,59 @@ from enum import Enum
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
+from playwright.sync_api import sync_playwright
 from tenacity import retry, stop_after_attempt, wait_fixed
+
+
+class PlaywrightScraper:
+    _shared_state = {}
+    cookies = []
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"
+    }
+
+    def __new__(cls, *args, **kwargs):
+        obj = super(PlaywrightScraper, cls).__new__(cls)
+        obj.__dict__ = cls._shared_state
+        return obj
+
+    def __init__(self, headless: bool = True):
+        if not hasattr(self, "initialized"):
+            self.page = None
+            self.browser = None
+            self.context = None
+            self.headless = headless
+            self.initialized = True
+
+    def start_browser(self):
+        if self.browser is None:
+            self._playwright = sync_playwright().start()
+            self.browser = self._playwright.chromium.launch(headless=self.headless)
+            self.context = self.browser.new_context()
+            self.context.set_extra_http_headers(self.headers)
+            self.page = self.context.new_page()
+
+    def close_browser(self):
+        if self.browser:
+            self.browser.close()
+            self.browser = None
+        if hasattr(self, "_playwright"):
+            self._playwright.stop()
+
+    def set_cookies(self, cookies: list):
+        if self.context is None:
+            raise Exception("Browser context is not started. Call start_browser() first.")
+        self.context.add_cookies(cookies)
+
+    def get_page_content(self, url: str):
+        if self.page is None:
+            raise Exception("Browser is not started. Call start_browser() first.")
+        self.page.goto(url)
+        # print(json.dumps(self.context.cookies()))
+        return self.page.content()
+
+    # def get_soup(self):
+    #     return BeautifulSoup(self.get_page_content(), features="html.parser")
 
 
 def get_category_list() -> dict:
@@ -49,8 +101,8 @@ def get_category_list() -> dict:
 
 
 @retry(stop=stop_after_attempt(5), wait=wait_fixed(2))
-def request_ad(url: str, delay_s: int = 1) -> requests.models.Response:
-    """Request a URL and return the response object
+def request_ad(url: str, playwright_scraper: PlaywrightScraper, delay_s: int = 1) -> str:
+    """Request a URL and return the page HTML content using Playwright.
 
     Parameters
     ----------
@@ -61,24 +113,28 @@ def request_ad(url: str, delay_s: int = 1) -> requests.models.Response:
 
     Returns
     -------
-    requests.models.Response
-        Response object from the request
+    str
+        Page content as a string
     """
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"
-    }
-    page_request = requests.get(url, headers=headers, timeout=200)
-    # Add error handling if ad not found return a empty dict, otherwise raise exception
-    if page_request.status_code > 200:
-        print("Error requesting Ad")
-        if page_request.status_code == 404:
-            print("404 - Ad missing")
-            return {}
-        else:
-            raise requests.exceptions.RequestException("Ad request error")
+    # headers = {
+    #     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"
+    # }
+    # page_request = requests.get(url, headers=headers, timeout=200)
+    # # Add error handling if ad not found return a empty dict, otherwise raise exception
+    # if page_request.status_code > 200:
+    #     print("Error requesting Ad")
+    #     if page_request.status_code == 404:
+    #         print("404 - Ad missing")
+    #         return {}
+    #     else:
+    #         raise requests.exceptions.RequestException("Ad request error")
+
+    playwright = PlaywrightScraper()
+    playwright.start_browser()
+    page_content = playwright.get_page_content(url)
 
     time.sleep(delay_s)
-    return page_request
+    return page_content
 
 
 def get_buysell_ads(url: str, delay_s: int = 1) -> dict:
@@ -164,7 +220,13 @@ class AdType(Enum):
     OTHER = "other"
 
 
-def parse_buysell_ad(buysell_url: str, delay_s: int, region_code: int, ad_type: AdType = AdType.PINKBIKE) -> dict:
+def parse_buysell_ad(
+    buysell_url: str,
+    delay_s: int,
+    region_code: int,
+    playwright_scraper: PlaywrightScraper,
+    ad_type: AdType = AdType.PINKBIKE,
+) -> dict:
     """Takes a buysell URL and extracts all attributes listed for product.
 
     Parameters
@@ -175,6 +237,8 @@ def parse_buysell_ad(buysell_url: str, delay_s: int, region_code: int, ad_type: 
         Number of seconds to sleep before returning
     region_code : int
         Region code for the ad
+    playwright_scraper : PlaywrightScraper
+        PlaywrightScraper object to store playwright browser context for requests
     ad_type : AdType
         Type of the ad, default is AdType.PINKBIKE
 
@@ -183,10 +247,9 @@ def parse_buysell_ad(buysell_url: str, delay_s: int, region_code: int, ad_type: 
     dict
         Dictionary with all ad data, plus URL and datetime scraped.
     """
-    page_request = request_ad(buysell_url, delay_s=delay_s)
+    page_request = request_ad(buysell_url, delay_s=delay_s, playwright_scraper=playwright_scraper)
 
-    soup = BeautifulSoup(page_request.content, features="html.parser")
-
+    soup = BeautifulSoup(page_request, features="html.parser")
     if ad_type == AdType.PINKBIKE:
         results = parse_buysell_pinkbike_ad(soup)
     else:
