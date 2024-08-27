@@ -9,24 +9,16 @@ from tenacity import retry, stop_after_attempt, wait_fixed
 
 
 class PlaywrightScraper:
-    _shared_state = {}
     cookies = []
     headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"
     }
 
-    def __new__(cls, *args, **kwargs):
-        obj = super(PlaywrightScraper, cls).__new__(cls)
-        obj.__dict__ = cls._shared_state
-        return obj
-
     def __init__(self, headless: bool = True):
-        if not hasattr(self, "initialized"):
-            self.page = None
-            self.browser = None
-            self.context = None
-            self.headless = headless
-            self.initialized = True
+        self.page = None
+        self.browser = None
+        self.context = None
+        self.headless = headless
 
     def start_browser(self):
         if self.browser is None:
@@ -94,19 +86,6 @@ def request_ad(url: str, playwright_scraper: PlaywrightScraper, delay_s: int = 1
     str
         Page content as a string
     """
-    # headers = {
-    #     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"
-    # }
-    # page_request = requests.get(url, headers=headers, timeout=200)
-    # # Add error handling if ad not found return a empty dict, otherwise raise exception
-    # if page_request.status_code > 200:
-    #     print("Error requesting Ad")
-    #     if page_request.status_code == 404:
-    #         print("404 - Ad missing")
-    #         return {}
-    #     else:
-    #         raise requests.exceptions.RequestException("Ad request error")
-
     playwright = PlaywrightScraper()
     playwright.start_browser()
     page_content = playwright.get_page_content(url)
@@ -152,11 +131,10 @@ def get_buysell_ads(url: str, playwright_scraper: PlaywrightScraper, delay_s: in
             buysell_ad_status[buysell_ad_links[i]] = "not boosted"
 
     time.sleep(delay_s)
-    # Return de duplicated, order maintained
     return buysell_ad_status
 
 
-def get_total_pages(category_num: str, playwright_scraper: PlaywrightScraper, region: int = 3) -> int:
+def get_total_pages(category_num: int, playwright_scraper: PlaywrightScraper, region: int = 3) -> int:
     """Get the total number of pages in the Pinkbike buysell results
     for a given category number
 
@@ -182,6 +160,8 @@ def get_total_pages(category_num: str, playwright_scraper: PlaywrightScraper, re
 
     largest_page_num = 0
     for link in soup.find_all("a"):
+        if link.get("href") is None:
+            continue
         page_num = re.match(".*page=([0-9]{1,20})", link.get("href"))
         # If page number is found, convert to int from only match and compare
         if page_num is not None and int(page_num.group(1)) > largest_page_num:

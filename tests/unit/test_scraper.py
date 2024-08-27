@@ -1,6 +1,7 @@
 import pytest
 
-from pb_buddy.scraper import PlaywrightScraper, get_category_list, get_total_pages, parse_buysell_ad
+from pb_buddy.scraper import (PlaywrightScraper, get_category_list,
+                              get_total_pages, parse_buysell_ad)
 
 
 @pytest.fixture
@@ -28,7 +29,7 @@ def test_get_category_list(category_list, playwright_scraper):
 def test_get_total_pages(playwright_scraper):
     category_num = 1
     region = 3
-    total_pages = get_total_pages(category_num, region, playwright_scraper=playwright_scraper)
+    total_pages = get_total_pages(category_num, region=region, playwright_scraper=playwright_scraper)
     assert isinstance(total_pages, int)
     assert total_pages >= 0
 
@@ -95,4 +96,10 @@ def test_parse_pinkbike_buysell_content(sample_url, playwright_scraper):
         "url",
         "region_code",
     ]
+
+    assert all(ad_data[key] == expected[key] for key in keys_to_check), "Mismatch found in dictionary values"
+        "url",
+        "region_code",
+    ]
+
     assert all(ad_data[key] == expected[key] for key in keys_to_check), "Mismatch found in dictionary values"
