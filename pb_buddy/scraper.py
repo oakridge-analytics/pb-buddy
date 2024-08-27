@@ -9,16 +9,23 @@ from tenacity import retry, stop_after_attempt, wait_fixed
 
 
 class PlaywrightScraper:
+    _shared_state = {}
     cookies = []
     headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"
     }
 
+    def __new__(cls, *args, **kwargs):
+        obj = super(PlaywrightScraper, cls).__new__(cls)
+        obj.__dict__ = cls._shared_state
+        return obj
+
     def __init__(self, headless: bool = True):
-        self.page = None
-        self.browser = None
-        self.context = None
-        self.headless = headless
+        if not hasattr(self, "initialized"):
+            self.page = None
+            self.browser = None
+            self.headless = headless
+            self.initialized = True
 
     def start_browser(self):
         if self.browser is None:
@@ -115,6 +122,8 @@ def get_buysell_ads(url: str, playwright_scraper: PlaywrightScraper, delay_s: in
 
     # Get all buysell ad links
     for link in soup.find_all("a"):
+        if link.get("href") is None:
+            continue
         if re.match("https://www.pinkbike.com/buysell/[0-9]{6,7}", link.get("href")):
             buysell_ad_links.append(link.get("href"))
 

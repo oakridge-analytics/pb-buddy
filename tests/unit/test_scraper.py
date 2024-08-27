@@ -1,7 +1,6 @@
 import pytest
 
-from pb_buddy.scraper import (PlaywrightScraper, get_category_list,
-                              get_total_pages, parse_buysell_ad)
+from pb_buddy.scraper import PlaywrightScraper, get_category_list, get_total_pages, parse_buysell_ad
 
 
 @pytest.fixture
@@ -93,11 +92,6 @@ def test_parse_pinkbike_buysell_content(sample_url, playwright_scraper):
         "ad_title",
         "location",
         "restrictions",
-        "url",
-        "region_code",
-    ]
-
-    assert all(ad_data[key] == expected[key] for key in keys_to_check), "Mismatch found in dictionary values"
         "url",
         "region_code",
     ]
