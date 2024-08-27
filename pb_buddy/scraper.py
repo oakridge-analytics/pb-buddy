@@ -3,7 +3,6 @@ import time
 from enum import Enum
 
 import pandas as pd
-import requests
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 from tenacity import retry, stop_after_attempt, wait_fixed
@@ -51,43 +50,22 @@ class PlaywrightScraper:
 
     def get_page_content(self, url: str):
         if self.page is None:
-            raise Exception("Browser is not started. Call start_browser() first.")
+            self.start_browser()
         self.page.goto(url)
-        # print(json.dumps(self.context.cookies()))
         return self.page.content()
 
     # def get_soup(self):
     #     return BeautifulSoup(self.get_page_content(), features="html.parser")
 
 
-def get_category_list() -> dict:
+def get_category_list(playwright_scraper: PlaywrightScraper) -> dict:
     """
     Get the mapping of category name to category number
     for all categories from https://www.pinkbike.com/buysell/
     """
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"
-    }
+    page_content = playwright_scraper.get_page_content("https://www.pinkbike.com/buysell/")
 
-    try:
-        page_request = requests.get("https://www.pinkbike.com/buysell/", headers=headers, timeout=20)
-    except TimeoutError as e:
-        print(e)
-        return {}
-    except requests.exceptions.Timeout as e:
-        print(e)
-        return {}
-    except requests.exceptions.ConnectionError as e:
-        print(e)
-        return {}
-
-    if page_request.status_code > 200:
-        print("Error requesting Categories")
-        if page_request.status_code == 404:
-            print("404 - Ad missing")
-        return {}
-
-    soup = BeautifulSoup(page_request.content, features="html.parser")
+    soup = BeautifulSoup(page_content, features="html.parser")
 
     category_dict = {}
     for link in soup.find_all("a"):
@@ -137,7 +115,7 @@ def request_ad(url: str, playwright_scraper: PlaywrightScraper, delay_s: int = 1
     return page_content
 
 
-def get_buysell_ads(url: str, delay_s: int = 1) -> dict:
+def get_buysell_ads(url: str, playwright_scraper: PlaywrightScraper, delay_s: int = 1) -> dict:
     """Grab all buysell URL's from a page of Pinkbike's buysell results
 
     Parameters
@@ -152,15 +130,8 @@ def get_buysell_ads(url: str, delay_s: int = 1) -> dict:
     dict
         Mapping of ad URL: "boosted" or "not boosted"
     """
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"
-    }
-    search_results = requests.get(url, headers=headers, timeout=200)
-    if search_results.status_code > 200:
-        print(search_results.content)
-        print(search_results.status_code)
-        raise requests.exceptions.RequestException("Buysell url status error")
-    soup = BeautifulSoup(search_results.content, features="html.parser")
+    search_results = request_ad(url, playwright_scraper, delay_s=delay_s)
+    soup = BeautifulSoup(search_results, features="html.parser")
     buysell_ad_links = []
 
     # Get all buysell ad links
@@ -185,7 +156,7 @@ def get_buysell_ads(url: str, delay_s: int = 1) -> dict:
     return buysell_ad_status
 
 
-def get_total_pages(category_num: str, region: int = 3) -> int:
+def get_total_pages(category_num: str, playwright_scraper: PlaywrightScraper, region: int = 3) -> int:
     """Get the total number of pages in the Pinkbike buysell results
     for a given category number
 
@@ -202,8 +173,11 @@ def get_total_pages(category_num: str, region: int = 3) -> int:
         Total number of pages possible to click through to.
     """
     # Get total number of pages-----------------------------------------------
-    base_url = f"https://www.pinkbike.com/buysell/list/?region={region}&page=1&category={category_num}"
-    search_results = requests.get(base_url, timeout=200).content
+    search_results = request_ad(
+        f"https://www.pinkbike.com/buysell/list/?region={region}&page=1&category={category_num}",
+        playwright_scraper=playwright_scraper,
+        delay_s=0,
+    )
     soup = BeautifulSoup(search_results, features="html.parser")
 
     largest_page_num = 0
@@ -217,6 +191,7 @@ def get_total_pages(category_num: str, region: int = 3) -> int:
 
 class AdType(Enum):
     PINKBIKE = "pinkbike"
+    BUYCYCLE = "buycycle"
     OTHER = "other"
 
 
@@ -252,8 +227,11 @@ def parse_buysell_ad(
     soup = BeautifulSoup(page_request, features="html.parser")
     if ad_type == AdType.PINKBIKE:
         results = parse_buysell_pinkbike_ad(soup)
+    elif ad_type == AdType.BUYCYCLE:
+        results = parse_buysell_buycycle_ad(soup)
     else:
-        results = parse_buysell_other_ad(soup)
+        # results = parse_buysell_other_ad(soup)
+        raise NotImplementedError(f"Ad type {ad_type} not implemented")
 
     # Add region code
     results["region_code"] = region_code
