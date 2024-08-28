@@ -12,6 +12,8 @@ on:
     secrets:
       COSMOS_CONN_STR:
         required: true
+      SUDO:
+        required: true
 
 jobs:
   scrape-latest:
