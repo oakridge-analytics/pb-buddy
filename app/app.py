@@ -1,5 +1,4 @@
 import os
-import re
 
 import modal
 from modal import App, Image, Secret, wsgi_app
@@ -36,6 +35,7 @@ def flask_app():
     import base64
     import json
     import random
+    import re
 
     import dash
     import dash_bootstrap_components as dbc
@@ -91,7 +91,7 @@ def flask_app():
 
         return base64.b64encode(screenshot).decode("utf-8")
 
-    def parse_other_buysell_ad(url: str) -> dict:
+    def parse_other_buysell_ad(url: str) -> tuple[dict, str]:
         """
         Use a screenshot, and gpt-4o w/ function calling to parse the ad.
         """
@@ -112,7 +112,7 @@ def flask_app():
                             },
                             "ad_title": {"title": "Ad Title", "type": "string"},
                             "description": {
-                                "description": "Detailed information about the bike for sale",
+                                "description": "Detailed information about the bike for sale. Should include all possible details.",
                                 "title": "Ad Description",
                                 "type": "string",
                             },
@@ -127,7 +127,7 @@ def flask_app():
                                 "type": "string",
                             },
                         },
-                        "required": ["model_year", "ad_title", "ad_description", "country", "original_post_date"],
+                        "required": ["model_year", "ad_title", "description", "location", "original_post_date"],
                     },
                 },
             }
@@ -143,13 +143,16 @@ def flask_app():
                 },
                 {
                     "role": "user",
-                    "content": [{"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64_img}"}}],
+                    "content": [
+                        {"type": "text", "text": "Extract the information about the main ad on this page."},
+                        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64_img}"}},
+                    ],
                 },
             ],
             tools=tools,
             tool_choice={"type": "function", "function": {"name": f"{tool_name}"}},
         )
-        return json.loads(response.choices[0].message.tool_calls[0].function.arguments)
+        return json.loads(response.choices[0].message.tool_calls[0].function.arguments), b64_img
 
     current_year = pd.Timestamp.now().year
     dash_app.layout = dbc.Container(
@@ -252,7 +255,7 @@ def flask_app():
                     dbc.Col(
                         [
                             dcc.Loading(
-                                [html.Div(id="kpi")],
+                                [html.Div(id="kpi"), html.Img(id="screenshot", src="")],
                                 type="dot",
                             )
                         ],
@@ -308,13 +311,14 @@ def flask_app():
             Output("post-date", "date"),
             Output("country", "value"),
             Output("url-alert", "is_open"),
+            Output("screenshot", "src"),
         ],
         [Input("parse-ad", "n_clicks")],
         [State("ad-url", "value")],
     )
     def update_ad_fields(n_clicks, ad_url):
         if n_clicks is None or ad_url is None:
-            return [None, None, None, str(pd.Timestamp.now()), None, False]
+            return [None, None, None, str(pd.Timestamp.now()), None, False, ""]
 
         ad_type = determine_ad_type(ad_url)
         page_content = get_page_from_playwright_scraper(ad_url)
@@ -324,10 +328,10 @@ def flask_app():
         elif ad_type == AdType.BUYCYCLE:
             parsed_ad = parse_buysell_buycycle_ad(soup)
         else:
-            parsed_ad = parse_other_buysell_ad(ad_url)
+            parsed_ad, b64_img = parse_other_buysell_ad(ad_url)
 
         if not parsed_ad:
-            return [None, None, None, str(pd.Timestamp.now()), None, True]
+            return [None, None, None, str(pd.Timestamp.now()), None, True, ""]
 
         year_match = re.search(r"((?:19|20)\d{2})", parsed_ad["ad_title"])
         if year_match:
@@ -348,6 +352,7 @@ def flask_app():
             pd.to_datetime(parsed_ad["original_post_date"]).date(),
             parsed_ad["country"],
             False,
+            f"data:image/png;base64,{b64_img}" if ad_type == AdType.OTHER else "",
         )
 
     @dash_app.callback(
