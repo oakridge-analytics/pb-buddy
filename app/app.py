@@ -36,6 +36,7 @@ def flask_app():
     import json
     import random
     import re
+    import time
 
     import dash
     import dash_bootstrap_components as dbc
@@ -85,7 +86,9 @@ def flask_app():
             browser = p.chromium.launch()
             page = browser.new_page()
             page.set_extra_http_headers({"User-Agent": random.choice(user_agents_opts)})
-            page.goto(url)
+            page.goto(url, wait_until="networkidle")
+            # Some pages are sensitive to the speed of the screenshot (ebay)
+            time.sleep(1)
             screenshot = page.screenshot(full_page=True)
             browser.close()
 
