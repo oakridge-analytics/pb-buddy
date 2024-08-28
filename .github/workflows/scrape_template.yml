@@ -32,7 +32,7 @@ jobs:
           python3 -m pip install poetry
           python3 -m poetry install
           python3 -m poetry run playwright install-deps
-          echo "$SUPER_SECRET" | sudo -S python3 -m poetry run playwright install chromium
+          echo "$SUDO" | sudo -S python3 -m poetry run playwright install chromium
       - name: Set env vars
         run: |
           echo "DATE=$(python -c 'import datetime as dt; print((dt.datetime.now()))')" >> $GITHUB_ENV
