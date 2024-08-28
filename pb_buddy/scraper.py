@@ -222,10 +222,10 @@ def parse_buysell_ad(
         # results = parse_buysell_other_ad(soup)
         raise NotImplementedError(f"Ad type {ad_type} not implemented")
 
-    # Add region code
-    results["region_code"] = region_code
-    results["url"] = buysell_url
-    results["datetime_scraped"] = str(pd.Timestamp.today(tz="US/Mountain"))
+    if results:
+        results["region_code"] = region_code
+        results["url"] = buysell_url
+        results["datetime_scraped"] = str(pd.Timestamp.today(tz="US/Mountain"))
     return results
 
 
