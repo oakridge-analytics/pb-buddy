@@ -19,7 +19,7 @@ image = (
         # force_build=True,
     )
     .pip_install_private_repos(
-        "github.com/pb-buddy/pb-buddy@feat/add_other_ad_parsing",
+        "github.com/pb-buddy/pb-buddy@master",
         git_user="dbandrews",
         secrets=[Secret.from_name("pb-buddy-github")],
         # force_build=True,
