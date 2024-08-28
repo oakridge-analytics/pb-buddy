@@ -12,6 +12,8 @@ on:
     secrets:
       COSMOS_CONN_STR:
         required: true
+      SUDO:
+        required: true
 
 jobs:
   scrape-latest:
@@ -25,11 +27,11 @@ jobs:
         with:
           python-version: 3.9.16
       - name: Install package
+        shell: bash
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install poetry
           python3 -m poetry install
-          python3 -m poetry run playwright install-deps
           python3 -m poetry run playwright install chromium
       - name: Set env vars
         run: |
