@@ -34,7 +34,7 @@ jobs:
           python3 -m pip install --upgrade pip
           python3 -m pip install poetry
           python3 -m poetry install
-          echo "$SUDO" | sudo -S -E python3 -m poetry run playwright install-deps
+          echo "$SUDO" | sudo -S env "PATH=$Python3_ROOT_DIR/bin:$PATH" python3 -m poetry run playwright install-deps
           python3 -m poetry run playwright install chromium
       - name: Set env vars
         run: |
