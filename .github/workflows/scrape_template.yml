@@ -25,6 +25,7 @@ jobs:
         with:
           python-version: 3.9.16
       - name: Install package
+        shell: bash
         env:
           SUDO : ${{ secrets.SUDO }}
         run: |
