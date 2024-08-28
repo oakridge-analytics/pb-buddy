@@ -22,8 +22,8 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape: Option
     # TODO: Fix how we handle poor formatted inputs when using
     # workflow_dispatch vs. cron scheduled runs
     num_jobs = int(num_jobs) if num_jobs else 4
-
-    category_dict = scraper.get_category_list()
+    playwright_scraper = scraper.PlaywrightScraper()
+    category_dict = scraper.get_category_list(playwright_scraper=playwright_scraper)
     # Settings -----------------------------------------------------------------
     log_level = "INFO"
     show_progress = False if os.environ.get("PROGRESS", "0") == "0" else True
@@ -78,7 +78,9 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape: Option
         sold_ad_data = all_sold_data.query("category_num == @category_to_scrape")
 
         # Get total number of pages of ads-----------------------------------------------
-        total_page_count = scraper.get_total_pages(category_to_scrape, region=region)
+        total_page_count = scraper.get_total_pages(
+            category_to_scrape, region=region, playwright_scraper=playwright_scraper
+        )
         if total_page_count == 0:
             continue
 
@@ -91,7 +93,8 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape: Option
             for x in pages_to_check
         ]
         ad_urls = Parallel(n_jobs=num_jobs)(
-            delayed(scraper.get_buysell_ads)(x, delay_s=delay_s) for x in tqdm(page_urls, disable=(not show_progress))
+            delayed(scraper.get_buysell_ads)(x, delay_s=delay_s, playwright_scraper=playwright_scraper)
+            for x in tqdm(page_urls, disable=(not show_progress))
         )
         ad_urls = {key: value for d in ad_urls for key, value in d.items()}
 
@@ -105,7 +108,9 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape: Option
         # Have to round to date and check anything > 36 hours since last scrape date
         # Boosted ads are always at top of results, and may have older dates
         for url, boosted_status in tqdm(ad_urls.items(), disable=(not show_progress)):
-            single_ad_data = scraper.parse_buysell_ad(url, delay_s=0, region_code=region)
+            single_ad_data = scraper.parse_buysell_ad(
+                url, delay_s=0, region_code=region, playwright_scraper=playwright_scraper
+            )
             if single_ad_data != {}:
                 if (
                     pd.to_datetime(single_ad_data["last_repost_date"], utc=False).tz_localize("MST") - last_scrape_dt
@@ -124,7 +129,10 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape: Option
             set(ad_urls).difference(set(all_base_data.url)).difference(set([ad["url"] for ad in intermediate_ad_data]))
         )
         logging.info(f"Extracting ad data from {len(ads_missed)} missed ads")
-        ads_missed_data = [scraper.parse_buysell_ad(url, delay_s=0, region_code=region) for url in ads_missed]
+        ads_missed_data = [
+            scraper.parse_buysell_ad(url, delay_s=0, region_code=region, playwright_scraper=playwright_scraper)
+            for url in ads_missed
+        ]
         ads_missed_data = [ad for ad in ads_missed_data if ad != {} and "sold" not in ad["still_for_sale"].lower()]
 
         intermediate_ad_data.extend(ads_missed_data)
@@ -198,7 +206,9 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape: Option
         # Only add new ads. Removed ads won't return a usable page.
         urls_to_remove = []
         for url in tqdm(potentially_sold_urls, disable=(not show_progress)):
-            single_ad_data = scraper.parse_buysell_ad(url, delay_s=0, region_code=region)
+            single_ad_data = scraper.parse_buysell_ad(
+                url, delay_s=0, region_code=region, playwright_scraper=playwright_scraper
+            )
             if (
                 single_ad_data
                 and "sold" in single_ad_data["still_for_sale"].lower()
