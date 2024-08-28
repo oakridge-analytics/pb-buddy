@@ -22,26 +22,43 @@ image = (
         "github.com/pb-buddy/pb-buddy@feat/add_other_ad_parsing",
         git_user="dbandrews",
         secrets=[Secret.from_name("pb-buddy-github")],
-        force_build=True,
+        # force_build=True,
     )
+    .run_commands("playwright install-deps")
+    .run_commands("playwright install chromium")
 )
 
 
 @app.function(image=image)
 @wsgi_app()
 def flask_app():
+    import logging
+
     import dash
     import dash_bootstrap_components as dbc
     import pandas as pd
     import requests
+    from bs4 import BeautifulSoup
     from dash import dcc, html
     from dash.dependencies import Input, Output, State
+    from playwright.sync_api import sync_playwright
 
-    from pb_buddy.scraper import PlaywrightScraper  # noqa
-    from pb_buddy.scraper import AdType, parse_buysell_ad
+    from pb_buddy.scraper import (AdType, parse_buysell_buycycle_ad,
+                                  parse_buysell_pinkbike_ad)
 
     dash_app = dash.Dash(__name__, external_stylesheets=[dbc.themes.SLATE])
-    playwright_scraper = PlaywrightScraper()
+
+    # Configure logging
+    logging.basicConfig(level=logging.DEBUG)
+
+    def get_page_from_playwright_scraper(url: str) -> str:
+        with sync_playwright() as p:
+            browser = p.chromium.launch()
+            page = browser.new_page()
+            page.goto(url)
+            page_content = page.content()
+            browser.close()
+        return page_content
 
     current_year = pd.Timestamp.now().year
     dash_app.layout = dbc.Container(
@@ -176,12 +193,22 @@ def flask_app():
             return [None, None, None, str(pd.Timestamp.now()), None]
 
         ad_type = determine_ad_type(ad_url)
-        parsed_ad = parse_buysell_ad(
-            buysell_url=ad_url, delay_s=0, region_code=3, playwright_scraper=playwright_scraper, ad_type=ad_type
-        )
+        page_content = get_page_from_playwright_scraper(ad_url)
+        soup = BeautifulSoup(page_content, features="html.parser")
+        if ad_type == AdType.PINKBIKE:
+            parsed_ad = parse_buysell_pinkbike_ad(soup)
+            logging.info(f"Parsed ad: {ad_type}")
+        elif ad_type == AdType.BUYCYCLE:
+            parsed_ad = parse_buysell_buycycle_ad(soup)
+        else:
+            parsed_ad = {"ad_title": "Unknown", "description": "Unknown", "original_post_date": pd.Timestamp("now")}
 
         # Post process for dash_app inputs:
-        year_match = re.search(r"((?:19|20)\d{2})", parsed_ad["ad_title"])
+        try:
+            year_match = re.search(r"((?:19|20)\d{2})", parsed_ad["ad_title"])
+        except KeyError as e:
+            logging.info(f"KeyError: {e} in parsed_ad: {parsed_ad}")
+
         if year_match:
             parsed_ad["model_year"] = year_match.group(1)
         else:
@@ -190,7 +217,8 @@ def flask_app():
         country_match = re.search(r"((Canada)|(United States))", parsed_ad["location"])
         if country_match is None:
             parsed_ad["country"] = None
-        parsed_ad["country"] = country_match.group(1)
+        else:
+            parsed_ad["country"] = country_match.group(1)
 
         return (
             parsed_ad["model_year"],
@@ -230,28 +258,11 @@ def flask_app():
         kpi_value = response_data["predictions"][0]
         kpi_element = html.H3(f"Predicted Price: ${round(kpi_value, 2)} CAD", className="text-center")
 
-        # # Depreciation curve over next 5 years
-        # depreciaton_data = [
-        #     {
-        #         "ad_title": f"{model_year} {ad_title}",
-        #         "description": ad_description,
-        #         "location": f"Unknown, {country}",
-        #         "original_post_date": str(date),
-        #     }
-        #     for date in pd.date_range(
-        #         start=f"{current_year-1}-01-01", periods=6, freq="Y"
-        #     ).tolist()
-        # ]
-        # response = requests.post(api_url, json=depreciaton_data)
-        # response_data = response.json()["predictions"]
-        # df_depreciation = pd.DataFrame(
-        #     data=[dict(single_ad) for single_ad in depreciaton_data]
-        # ).assign(prediction=response_data)
+        return kpi_element
 
-        # depreciation_fig = px.line(
-        #     data_frame=df_depreciation, x="original_post_date", y="prediction", markers=True
-        # )
+    return dash_app.server
+        kpi_element = html.H3(f"Predicted Price: ${round(kpi_value, 2)} CAD", className="text-center")
 
-        return kpi_element  # , depreciation_fig
+        return kpi_element
 
     return dash_app.server
