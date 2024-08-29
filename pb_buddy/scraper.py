@@ -30,7 +30,7 @@ class PlaywrightScraper:
     def start_browser(self):
         if self.browser is None:
             self._playwright = sync_playwright().start()
-            self.browser = self._playwright.chromium.launch(headless=self.headless)
+            self.browser = self._playwright.chromium.launch(headless=self.headless, args=["--single-process"])
             self.context = self.browser.new_context()
             self.context.set_extra_http_headers(self.headers)
             self.page = self.context.new_page()
@@ -68,6 +68,8 @@ def get_category_list(playwright_scraper: PlaywrightScraper) -> dict:
 
     category_dict = {}
     for link in soup.find_all("a"):
+        if link.get("href") is None:
+            continue
         category_num_match = re.match(".*category=([0-9]{1,20})", link.get("href"))
 
         if category_num_match is not None:
