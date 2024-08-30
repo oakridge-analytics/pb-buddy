@@ -1,6 +1,11 @@
 import pytest
 
-from pb_buddy.scraper import PlaywrightScraper, get_category_list, get_total_pages, parse_buysell_ad
+from pb_buddy.scraper import (
+    PlaywrightScraper,
+    get_category_list,
+    get_total_pages,
+    parse_buysell_ad,
+)
 
 
 @pytest.fixture
@@ -10,7 +15,9 @@ def category_list():
 
 @pytest.fixture
 def playwright_scraper():
-    return PlaywrightScraper()
+    playwright_scraper = PlaywrightScraper()
+    yield playwright_scraper
+    playwright_scraper.close_browser()
 
 
 @pytest.fixture
