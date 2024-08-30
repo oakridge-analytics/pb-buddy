@@ -1,6 +1,7 @@
 import re
 import time
 from enum import Enum
+from typing import Callable
 
 import pandas as pd
 from bs4 import BeautifulSoup
@@ -41,13 +42,36 @@ class PlaywrightScraper:
         self.context.add_cookies(cookies)
 
     def get_page_content(self, url: str):
+        "Use playwright to avoid detection for getting a page's content"
         if self.page is None:
             self.start_browser()
         self.page.goto(url)
         return self.page.content()
 
-    # def get_soup(self):
-    #     return BeautifulSoup(self.get_page_content(), features="html.parser")
+    def process_urls(self, urls: list, callable_func: Callable):
+        """Process a list of URLs with a callable function.
+
+        Parameters
+        ----------
+        urls : list
+            URLs to visit and get page contents for
+        callable_func : Callable
+            callable function to process the page content.
+        """
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(headless=self.headless)
+            context = browser.new_context()
+            context.set_extra_http_headers(self.headers)
+            page = context.new_page()
+            results = []
+            for url in urls:
+                page.goto(url)
+                page_content = page.content()
+                results.append(callable_func(page_content))
+
+            context.close()
+            browser.close()
+            return results
 
 
 def get_category_list(playwright_scraper: PlaywrightScraper) -> dict:
@@ -94,22 +118,19 @@ def request_ad(url: str, playwright_scraper: PlaywrightScraper, delay_s: int = 1
     return page_content
 
 
-def get_buysell_ads(url: str, playwright_scraper: PlaywrightScraper, delay_s: int = 1) -> dict:
+def get_buysell_ads(search_results: str) -> dict:
     """Grab all buysell URL's from a page of Pinkbike's buysell results
 
     Parameters
     ----------
-    url : str
-        URL to a buysell results page to extract all ad links from
-    delay_s : int
-        Time in seconds to delay before returning.
+    search_results : str
+        HTML content of the search results page
 
     Returns
     -------
     dict
         Mapping of ad URL: "boosted" or "not boosted"
     """
-    search_results = request_ad(url, playwright_scraper, delay_s=delay_s)
     soup = BeautifulSoup(search_results, features="html.parser")
     buysell_ad_links = []
 
@@ -132,7 +153,6 @@ def get_buysell_ads(url: str, playwright_scraper: PlaywrightScraper, delay_s: in
         else:
             buysell_ad_status[buysell_ad_links[i]] = "not boosted"
 
-    time.sleep(delay_s)
     return buysell_ad_status
 
 
