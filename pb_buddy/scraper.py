@@ -9,23 +9,16 @@ from tenacity import retry, stop_after_attempt, wait_fixed
 
 
 class PlaywrightScraper:
-    _shared_state = {}
     cookies = []
     headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"
     }
 
-    def __new__(cls, *args, **kwargs):
-        obj = super(PlaywrightScraper, cls).__new__(cls)
-        obj.__dict__ = cls._shared_state
-        return obj
-
     def __init__(self, headless: bool = True):
-        if not hasattr(self, "initialized"):
-            self.page = None
-            self.browser = None
-            self.headless = headless
-            self.initialized = True
+        self.page = None
+        self.browser = None
+        self.headless = headless
+        self.initialized = True
 
     def start_browser(self):
         if self.browser is None:
@@ -68,6 +61,8 @@ def get_category_list(playwright_scraper: PlaywrightScraper) -> dict:
 
     category_dict = {}
     for link in soup.find_all("a"):
+        if link.get("href") is None:
+            continue
         category_num_match = re.match(".*category=([0-9]{1,20})", link.get("href"))
 
         if category_num_match is not None:
@@ -93,9 +88,7 @@ def request_ad(url: str, playwright_scraper: PlaywrightScraper, delay_s: int = 1
     str
         Page content as a string
     """
-    playwright = PlaywrightScraper()
-    playwright.start_browser()
-    page_content = playwright.get_page_content(url)
+    page_content = playwright_scraper.get_page_content(url)
 
     time.sleep(delay_s)
     return page_content
