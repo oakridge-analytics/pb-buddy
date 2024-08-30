@@ -25,7 +25,7 @@ image = (
         # force_build=True,
     )
     .run_commands("playwright install-deps")
-    .run_commands("playwright install chromium")
+    .run_commands("playwright install")
 )
 
 
@@ -36,7 +36,6 @@ def flask_app():
     import json
     import random
     import re
-    import time
 
     import dash
     import dash_bootstrap_components as dbc
@@ -83,15 +82,13 @@ def flask_app():
 
     def get_page_screenshot(url: str) -> str:
         with sync_playwright() as p:
-            browser = p.chromium.launch()
+            browser = p.firefox.launch()
             page = browser.new_page()
             page.set_extra_http_headers({"User-Agent": random.choice(user_agents_opts)})
-            page.goto(url, wait_until="networkidle")
-            # Some pages are sensitive to the speed of the screenshot (ebay)
-            time.sleep(1)
+            page.goto(url)
+            # page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
             screenshot = page.screenshot(full_page=True)
             browser.close()
-
         return base64.b64encode(screenshot).decode("utf-8")
 
     def parse_other_buysell_ad(url: str) -> tuple[dict, str]:
