@@ -18,10 +18,10 @@ import pb_buddy.scraper as scraper
 import pb_buddy.utils as ut
 
 
-def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape: Optional[List[int]] = None, region=3):
+def main(full_refresh=False, delay_s=1, num_jobs=8, categories_to_scrape: Optional[List[int]] = None, region=3):
     # TODO: Fix how we handle poor formatted inputs when using
     # workflow_dispatch vs. cron scheduled runs
-    num_jobs = int(num_jobs) if num_jobs else 4
+    num_jobs = int(num_jobs) if num_jobs else 8
     playwright_scraper = scraper.PlaywrightScraper()
     category_dict = scraper.get_category_list(playwright_scraper=playwright_scraper)
     # Settings -----------------------------------------------------------------
@@ -42,6 +42,7 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape: Option
     logging.info("######## Starting new scrape session #########")
     all_base_data = dt.get_dataset(category_num=-1, data_type="base", region_code=int(region))
     all_sold_data = dt.get_dataset(category_num=-1, data_type="sold", region_code=int(region))
+
     logging.info("All previous data loaded from MongoDB")
     warnings.filterwarnings(action="ignore")
 
@@ -92,11 +93,12 @@ def main(full_refresh=False, delay_s=1, num_jobs=4, categories_to_scrape: Option
             f"https://www.pinkbike.com/buysell/list/?region={region}&page={x}&category={category_to_scrape}"
             for x in pages_to_check
         ]
+        url_chunks = np.array_split(page_urls, num_jobs)
         ad_urls = Parallel(n_jobs=num_jobs)(
-            delayed(scraper.get_buysell_ads)(x, delay_s=delay_s, playwright_scraper=playwright_scraper)
-            for x in tqdm(page_urls, disable=(not show_progress))
+            delayed(scraper.PlaywrightScraper().process_urls)(chunk, scraper.get_buysell_ads)
+            for chunk in tqdm(url_chunks, disable=(not show_progress))
         )
-        ad_urls = {key: value for d in ad_urls for key, value in d.items()}
+        ad_urls = {key: value for chunk in ad_urls for d in chunk for key, value in d.items()}
 
         # Get new ad data ---------------------------------------------------------
         intermediate_ad_data = []
