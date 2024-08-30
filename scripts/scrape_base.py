@@ -40,16 +40,8 @@ def main(full_refresh=False, delay_s=1, num_jobs=8, categories_to_scrape: Option
     )
 
     logging.info("######## Starting new scrape session #########")
-    # all_base_data = dt.get_dataset(category_num=-1, data_type="base", region_code=int(region))
-    # all_sold_data = dt.get_dataset(category_num=-1, data_type="sold", region_code=int(region))
-
-    # # Save data to CSV
-    # all_base_data.to_csv("/tmp/base_data.csv", index=False)
-    # all_sold_data.to_csv("/tmp/sold_data.csv", index=False)
-
-    # Load data from CSV
-    all_base_data = pd.read_csv("/tmp/base_data.csv")
-    all_sold_data = pd.read_csv("/tmp/sold_data.csv")
+    all_base_data = dt.get_dataset(category_num=-1, data_type="base", region_code=int(region))
+    all_sold_data = dt.get_dataset(category_num=-1, data_type="sold", region_code=int(region))
 
     logging.info("All previous data loaded from MongoDB")
     warnings.filterwarnings(action="ignore")
