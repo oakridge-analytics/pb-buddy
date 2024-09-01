@@ -41,8 +41,9 @@ def flask_app():
     import dash_bootstrap_components as dbc
 
     external_stylesheets = [
-        dbc.themes.SLATE,
-        dbc.icons.BOOTSTRAP
+        # dbc.themes.SLATE,
+        dbc.themes.BOOTSTRAP,
+        dbc.icons.BOOTSTRAP,
     ]
     dash_app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
     import openai
@@ -174,13 +175,19 @@ def flask_app():
                         [
                             html.Div(
                                 children=[
-                            html.H3(
-                                "Enter used bike ad URL to parse and predict price :",
-                                id="h3-heading",
+                                    html.H3(
+                                        [
+                                            "Enter used bike ad URL* to parse and predict price :",
+                                        
+                                        ],
+                                        id="h3-heading",
+                                    ),
+                                ],
                             ),
-                            html.I(className="bi bi-info-circle-fill me-2")],
+                            dbc.Tooltip(
+                                "Supported platforms: Pinkbike, Buycycle. Other URL types will use slower screenshot parsing.",
+                                target="h3-heading",
                             ),
-                            dbc.Tooltip("Supported platforms: Pinkbike, Buycycle.", target="h3-heading"),
                             html.Br(),
                             dcc.Input(id="ad-url", placeholder="Enter URL", type="text"),
                             html.Br(),
@@ -191,7 +198,6 @@ def flask_app():
                                 className="mt-3",
                             ),
                             html.Br(),
-                            html.Div(id="parse-ad-info", children=[]),
                             html.Div(
                                 [
                                     dbc.Alert(
@@ -284,24 +290,6 @@ def flask_app():
             ),
         ]
     )
-
-    @dash_app.callback(
-        Output("parse-ad-info", "children"),
-        [Input("ad-url", "value")],
-    )
-    def update_parse_ad_info(ad_url):
-        if not isinstance(ad_url, str) or ad_url.strip() == "":
-            return ""
-
-        ad_type = determine_ad_type(ad_url)
-        if ad_type == AdType.OTHER:
-            return dbc.Alert(
-                "Pinkbike and Buycycle ads supported natively, other sites parsed from screenshots - can be slow, verify results.",
-                color="warning",
-                style={"opacity": 0.5},
-            )
-        else:
-            return ""
 
     @dash_app.callback(
         [
