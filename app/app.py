@@ -39,6 +39,12 @@ def flask_app():
 
     import dash
     import dash_bootstrap_components as dbc
+
+    external_stylesheets = [
+        dbc.themes.SLATE,
+        dbc.icons.BOOTSTRAP
+    ]
+    dash_app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
     import openai
     import pandas as pd
     import requests
@@ -47,11 +53,8 @@ def flask_app():
     from dash.dependencies import Input, Output, State
     from playwright.sync_api import sync_playwright
 
-    from pb_buddy.scraper import (
-        AdType,
-        parse_buysell_buycycle_ad,
-        parse_buysell_pinkbike_ad,
-    )
+    from pb_buddy.scraper import (AdType, parse_buysell_buycycle_ad,
+                                  parse_buysell_pinkbike_ad)
 
     dash_app = dash.Dash(__name__, external_stylesheets=[dbc.themes.SLATE])
 
@@ -139,12 +142,15 @@ def flask_app():
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a helpful assistant, for extracting information from a bike ad for calling a downstream function.",
+                    "content": "You are a helpful assistant, for extracting information from a bike ad for calling a downstream function. If you can't determine a value, just leave it blank.",
                 },
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": "Extract the information about the main ad on this page."},
+                        {
+                            "type": "text",
+                            "text": "Extract the information about the main ad in this image. If the image isn't about a bicycle ad, return blanks for all fields.",
+                        },
                         {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64_img}"}},
                     ],
                 },
@@ -152,7 +158,11 @@ def flask_app():
             tools=tools,
             tool_choice={"type": "function", "function": {"name": f"{tool_name}"}},
         )
-        return json.loads(response.choices[0].message.tool_calls[0].function.arguments), b64_img
+        parsed_ad = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
+        for key, value in parsed_ad.items():
+            if value == "Unknown":
+                parsed_ad[key] = None
+        return parsed_ad, b64_img
 
     current_year = pd.Timestamp.now().year
     dash_app.layout = dbc.Container(
@@ -162,7 +172,14 @@ def flask_app():
                 [
                     dbc.Col(
                         [
-                            html.H3("Enter used bike ad URL to parse and predict price:", id="h3-heading"),
+                            html.Div(
+                                children=[
+                            html.H3(
+                                "Enter used bike ad URL to parse and predict price :",
+                                id="h3-heading",
+                            ),
+                            html.I(className="bi bi-info-circle-fill me-2")],
+                            ),
                             dbc.Tooltip("Supported platforms: Pinkbike, Buycycle.", target="h3-heading"),
                             html.Br(),
                             dcc.Input(id="ad-url", placeholder="Enter URL", type="text"),
@@ -174,6 +191,7 @@ def flask_app():
                                 className="mt-3",
                             ),
                             html.Br(),
+                            html.Div(id="parse-ad-info", children=[]),
                             html.Div(
                                 [
                                     dbc.Alert(
@@ -268,6 +286,24 @@ def flask_app():
     )
 
     @dash_app.callback(
+        Output("parse-ad-info", "children"),
+        [Input("ad-url", "value")],
+    )
+    def update_parse_ad_info(ad_url):
+        if not isinstance(ad_url, str) or ad_url.strip() == "":
+            return ""
+
+        ad_type = determine_ad_type(ad_url)
+        if ad_type == AdType.OTHER:
+            return dbc.Alert(
+                "Pinkbike and Buycycle ads supported natively, other sites parsed from screenshots - can be slow, verify results.",
+                color="warning",
+                style={"opacity": 0.5},
+            )
+        else:
+            return ""
+
+    @dash_app.callback(
         [
             Output("submit-prediction", "disabled"),
             Output("submit-prediction", "color"),
@@ -345,6 +381,9 @@ def flask_app():
         else:
             parsed_ad["country"] = country_match.group(1)
 
+        if parsed_ad["original_post_date"] is None:
+            parsed_ad["original_post_date"] = pd.Timestamp.now()
+
         return (
             parsed_ad["model_year"],
             parsed_ad["ad_title"],
@@ -368,7 +407,8 @@ def flask_app():
     )
     def update_output(n_clicks, model_year, ad_title, ad_description, country, post_date):
         if n_clicks is None:
-            return html.H3("Please enter a URL to parse an ad, or enter manually - then click submit.")  # , go.Figure()
+            # return html.H3("Please enter a URL to parse an ad, or enter manually - then click submit.")
+            return html.H3("")
 
         # Single request
         data = [
@@ -384,7 +424,10 @@ def flask_app():
         response_data = response.json()
         kpi_value = response_data["predictions"][0]
         kpi_element = html.H3(f"Predicted Price: ${round(kpi_value, 2)} CAD", className="text-center")
+        return kpi_element
 
+    return dash_app.server
+        kpi_element = html.H3(f"Predicted Price: ${round(kpi_value, 2)} CAD", className="text-center")
         return kpi_element
 
     return dash_app.server
