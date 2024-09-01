@@ -39,19 +39,23 @@ def flask_app():
 
     import dash
     import dash_bootstrap_components as dbc
+
+    external_stylesheets = [
+        # dbc.themes.SLATE,
+        dbc.themes.BOOTSTRAP,
+        dbc.icons.BOOTSTRAP,
+    ]
+    dash_app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
     import openai
     import pandas as pd
     import requests
     from bs4 import BeautifulSoup
     from dash import dcc, html
     from dash.dependencies import Input, Output, State
+    from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
     from playwright.sync_api import sync_playwright
 
-    from pb_buddy.scraper import (
-        AdType,
-        parse_buysell_buycycle_ad,
-        parse_buysell_pinkbike_ad,
-    )
+    from pb_buddy.scraper import AdType, parse_buysell_buycycle_ad, parse_buysell_pinkbike_ad
 
     dash_app = dash.Dash(__name__, external_stylesheets=[dbc.themes.SLATE])
 
@@ -132,19 +136,26 @@ def flask_app():
                 },
             }
         ]
-        b64_img = get_page_screenshot(url)
+        try:
+            b64_img = get_page_screenshot(url)
+        except PlaywrightTimeoutError:
+            return {}, ""
+
         client = openai.Client()
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a helpful assistant, for extracting information from a bike ad for calling a downstream function.",
+                    "content": "You are a helpful assistant, for extracting information from a bike ad for calling a downstream function. If you can't determine a value, just leave it blank.",
                 },
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": "Extract the information about the main ad on this page."},
+                        {
+                            "type": "text",
+                            "text": "Extract the information about the main ad in this image. If the image isn't about a bicycle ad, return blanks for all fields.",
+                        },
                         {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64_img}"}},
                     ],
                 },
@@ -152,7 +163,11 @@ def flask_app():
             tools=tools,
             tool_choice={"type": "function", "function": {"name": f"{tool_name}"}},
         )
-        return json.loads(response.choices[0].message.tool_calls[0].function.arguments), b64_img
+        parsed_ad = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
+        for key, value in parsed_ad.items():
+            if value == "Unknown":
+                parsed_ad[key] = None
+        return parsed_ad, b64_img
 
     current_year = pd.Timestamp.now().year
     dash_app.layout = dbc.Container(
@@ -162,8 +177,20 @@ def flask_app():
                 [
                     dbc.Col(
                         [
-                            html.H3("Enter used bike ad URL to parse and predict price:", id="h3-heading"),
-                            dbc.Tooltip("Supported platforms: Pinkbike, Buycycle.", target="h3-heading"),
+                            html.Div(
+                                children=[
+                                    html.H3(
+                                        [
+                                            "Enter used bike ad URL* to parse and predict price :",
+                                        ],
+                                        id="h3-heading",
+                                    ),
+                                ],
+                            ),
+                            dbc.Tooltip(
+                                "Supported platforms: Pinkbike, Buycycle. Other URL types will use slower screenshot+LLM parsing.",
+                                target="h3-heading",
+                            ),
                             html.Br(),
                             dcc.Input(id="ad-url", placeholder="Enter URL", type="text"),
                             html.Br(),
@@ -187,65 +214,71 @@ def flask_app():
                                 id="alert-container",
                             ),
                             html.Hr(),
-                            dbc.Button(
-                                "Or Manually Enter/Edit ▼",
-                                id="collapse-button",
-                                className="mb-3",
-                                color="primary",
-                            ),
-                            html.Br(),
-                            dbc.Collapse(
-                                id="collapse-section",
-                                is_open=False,
-                                children=[
-                                    dbc.Label("Model Year", html_for="model-year"),
-                                    dcc.Dropdown(
-                                        id="model-year",
-                                        options=[
-                                            {"label": str(year), "value": year}
-                                            for year in range(current_year + 1, 2000, -1)
+                            dcc.Loading(
+                                [
+                                    dbc.Button(
+                                        "Or Manually Enter/Edit ▼",
+                                        id="collapse-button",
+                                        className="mb-3",
+                                        color="primary",
+                                    ),
+                                    html.Br(),
+                                    dbc.Collapse(
+                                        id="collapse-section",
+                                        is_open=False,
+                                        children=[
+                                            dbc.Label("Model Year", html_for="model-year"),
+                                            dcc.Dropdown(
+                                                id="model-year",
+                                                options=[
+                                                    {"label": str(year), "value": year}
+                                                    for year in range(current_year + 1, 2000, -1)
+                                                ],
+                                                placeholder="Select Model Year",
+                                            ),
+                                            html.Br(),
+                                            dbc.Label("Ad Title", html_for="ad-title"),
+                                            html.Br(),
+                                            dcc.Input(id="ad-title", type="text", placeholder="Enter Ad Title"),
+                                            html.Br(),
+                                            dbc.Label("Ad Description", html_for="ad-description"),
+                                            html.Br(),
+                                            dcc.Textarea(
+                                                id="ad-description",
+                                                placeholder="Enter Ad Description",
+                                                style={"height": 200, "width": "100%"},
+                                            ),
+                                            html.Br(),
+                                            dbc.Label("Country", html_for="country"),
+                                            dcc.Dropdown(
+                                                id="country",
+                                                options=[
+                                                    {"label": "Canada", "value": "Canada"},
+                                                    {"label": "United States", "value": "United States"},
+                                                ],
+                                                placeholder="Select Country",
+                                            ),
+                                            html.Br(),
+                                            dbc.Label("Post Date: ", html_for="post-date"),
+                                            html.Br(),
+                                            dcc.DatePickerSingle(
+                                                id="post-date",
+                                                date=str(pd.Timestamp.now()),
+                                                placeholder="Select Post Date",
+                                            ),
+                                            html.Br(),
                                         ],
-                                        placeholder="Select Model Year",
                                     ),
-                                    html.Br(),
-                                    dbc.Label("Ad Title", html_for="ad-title"),
-                                    html.Br(),
-                                    dcc.Input(id="ad-title", type="text", placeholder="Enter Ad Title"),
-                                    html.Br(),
-                                    dbc.Label("Ad Description", html_for="ad-description"),
-                                    html.Br(),
-                                    dcc.Textarea(
-                                        id="ad-description",
-                                        placeholder="Enter Ad Description",
-                                        style={"height": 200, "width": "100%"},
-                                    ),
-                                    html.Br(),
-                                    dbc.Label("Country", html_for="country"),
-                                    dcc.Dropdown(
-                                        id="country",
-                                        options=[
-                                            {"label": "Canada", "value": "Canada"},
-                                            {"label": "United States", "value": "United States"},
-                                        ],
-                                        placeholder="Select Country",
-                                    ),
-                                    html.Br(),
-                                    dbc.Label("Post Date: ", html_for="post-date"),
-                                    html.Br(),
-                                    dcc.DatePickerSingle(
-                                        id="post-date",
-                                        date=str(pd.Timestamp.now()),
-                                        placeholder="Select Post Date",
-                                    ),
-                                    html.Br(),
                                 ],
+                                type="dot",
                             ),
                             dbc.Button(
                                 "Submit for Prediction",
                                 id="submit-prediction",
-                                color="primary",
+                                color="secondary",
                                 className="mt-3",
                             ),
+                            dbc.Tooltip(id="submit-prediction-tooltip", target="submit-prediction"),
                             html.Br(),
                             html.Br(),
                             html.Br(),
@@ -255,9 +288,12 @@ def flask_app():
                     dbc.Col(
                         [
                             dcc.Loading(
-                                [html.Div(id="kpi"), html.Img(id="screenshot", src="")],
+                                [
+                                    html.Div(id="kpi"),
+                                ],
                                 type="dot",
-                            )
+                            ),
+                            html.Div(id="screenshot-container", children=""),
                         ],
                         md=8,
                         align="center",
@@ -271,6 +307,7 @@ def flask_app():
         [
             Output("submit-prediction", "disabled"),
             Output("submit-prediction", "color"),
+            Output("submit-prediction-tooltip", "children"),
         ],
         [
             Input("ad-title", "value"),
@@ -281,8 +318,8 @@ def flask_app():
     )
     def update_button_state(title, description, country, date):
         if not title or not description or not country or not date:
-            return True, "seconday"
-        return False, "success"
+            return True, "seconday", "Ensure all input fields are filled to submit for prediction"
+        return False, "success", ""
 
     @dash_app.callback(
         Output("collapse-section", "is_open"),
@@ -311,7 +348,7 @@ def flask_app():
             Output("post-date", "date"),
             Output("country", "value"),
             Output("url-alert", "is_open"),
-            Output("screenshot", "src"),
+            Output("screenshot-container", "children"),
         ],
         [Input("parse-ad", "n_clicks")],
         [State("ad-url", "value")],
@@ -345,6 +382,9 @@ def flask_app():
         else:
             parsed_ad["country"] = country_match.group(1)
 
+        if parsed_ad["original_post_date"] is None:
+            parsed_ad["original_post_date"] = pd.Timestamp.now()
+
         return (
             parsed_ad["model_year"],
             parsed_ad["ad_title"],
@@ -352,7 +392,9 @@ def flask_app():
             pd.to_datetime(parsed_ad["original_post_date"]).date(),
             parsed_ad["country"],
             False,
-            f"data:image/png;base64,{b64_img}" if ad_type == AdType.OTHER else "",
+            html.Details([html.Summary("Screenshot used"), html.Img(src=f"data:image/png;base64,{b64_img}")])
+            if ad_type == AdType.OTHER
+            else "",
         )
 
     @dash_app.callback(
@@ -368,7 +410,8 @@ def flask_app():
     )
     def update_output(n_clicks, model_year, ad_title, ad_description, country, post_date):
         if n_clicks is None:
-            return html.H3("Please enter a URL to parse an ad, or enter manually - then click submit.")  # , go.Figure()
+            # return html.H3("Please enter a URL to parse an ad, or enter manually - then click submit.")
+            return html.H3("")
 
         # Single request
         data = [
@@ -384,7 +427,6 @@ def flask_app():
         response_data = response.json()
         kpi_value = response_data["predictions"][0]
         kpi_element = html.H3(f"Predicted Price: ${round(kpi_value, 2)} CAD", className="text-center")
-
         return kpi_element
 
     return dash_app.server
