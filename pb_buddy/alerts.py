@@ -8,7 +8,6 @@ class AlertHandler:
     PREFIX = "alerts"
 
     def __init__(self):
-        self.s3 = boto3.client("s3")
         self.conn = duckdb.connect(":memory:")
         self.conn.execute("INSTALL aws; LOAD aws")
         self.conn.execute(f"""
