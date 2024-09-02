@@ -1,6 +1,4 @@
 # %%
-import json
-import os
 
 import pandas as pd
 import requests
@@ -10,10 +8,13 @@ import pb_buddy.data_processors as dt
 # Custom code
 import pb_buddy.emailer as et
 import pb_buddy.utils as ut
+from pb_buddy.alerts import AlertHandler
 
 # %%
 # Get rules to check and email for each
-alerts = json.load(open(os.path.join("alerts", "alerts.json")))
+alert_handler = AlertHandler()
+alert_handler.load_alerts()
+alerts = alert_handler.get_alerts()
 changes = dt.get_dataset(-1, data_type="changes")
 api_url = "https://dbandrews--bike-buddy-api-autogluonmodelinference-predict.modal.run"
 email_cols = [
@@ -36,7 +37,7 @@ api_cols = [
 ]
 
 # %%
-for alert in alerts["alerts"]:
+for alert in alerts.to_dict(orient="records"):
     df = dt.get_dataset(alert["category_num"], data_type="base", region_code=3)
     last_check_dt = pd.to_datetime(alert["last_checked"], utc=True).tz_convert("US/Mountain")
 
@@ -104,8 +105,7 @@ for alert in alerts["alerts"]:
         )
 
     # Update last_checked so we only send new ads
-    alert["last_checked"] = timestamp
+    alert_handler.update_alert_datetime(uuid=alert["uuid"])
 
 # Save out just in case last_checked updated:
-with open(os.path.join("alerts", "alerts.json"), "w") as out:
-    json.dump(alerts, out, indent=4)
+alert_handler.write_alerts()
