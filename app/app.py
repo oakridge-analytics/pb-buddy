@@ -55,7 +55,11 @@ def flask_app():
     from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
     from playwright.sync_api import sync_playwright
 
-    from pb_buddy.scraper import AdType, parse_buysell_buycycle_ad, parse_buysell_pinkbike_ad
+    from pb_buddy.scraper import (
+        AdType,
+        parse_buysell_buycycle_ad,
+        parse_buysell_pinkbike_ad,
+    )
 
     dash_app = dash.Dash(__name__, external_stylesheets=[dbc.themes.SLATE])
 
@@ -278,7 +282,6 @@ def flask_app():
                                 color="secondary",
                                 className="mt-3",
                             ),
-                            dbc.Tooltip(id="submit-prediction-tooltip", target="submit-prediction"),
                             html.Br(),
                             html.Br(),
                             html.Br(),
@@ -287,13 +290,13 @@ def flask_app():
                     ),
                     dbc.Col(
                         [
+                            html.Div(id="screenshot-container", children=""),
                             dcc.Loading(
                                 [
                                     html.Div(id="kpi"),
                                 ],
                                 type="dot",
                             ),
-                            html.Div(id="screenshot-container", children=""),
                         ],
                         md=8,
                         align="center",
@@ -307,7 +310,6 @@ def flask_app():
         [
             Output("submit-prediction", "disabled"),
             Output("submit-prediction", "color"),
-            Output("submit-prediction-tooltip", "children"),
         ],
         [
             Input("ad-title", "value"),
@@ -318,8 +320,8 @@ def flask_app():
     )
     def update_button_state(title, description, country, date):
         if not title or not description or not country or not date:
-            return True, "seconday", "Ensure all input fields are filled to submit for prediction"
-        return False, "success", ""
+            return True, "seconday"
+        return False, "success"
 
     @dash_app.callback(
         Output("collapse-section", "is_open"),
