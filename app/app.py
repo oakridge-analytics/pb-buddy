@@ -145,13 +145,18 @@ def flask_app():
         except PlaywrightTimeoutError:
             return {}, ""
 
+        current_date = pd.Timestamp.now().date().strftime("%Y-%m-%d")
         client = openai.Client()
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a helpful assistant, for extracting information from a bike ad for calling a downstream function. If you can't determine a value, just leave it blank.",
+                    "content": (
+                        "You are a helpful assistant, for extracting information from a bike ad"
+                        " for calling a downstream function. If you can't determine a value, just leave it blank."
+                        f" The current date is {current_date} if it's a relative date."
+                    ),
                 },
                 {
                     "role": "user",
@@ -372,11 +377,10 @@ def flask_app():
         if not parsed_ad:
             return [None, None, None, str(pd.Timestamp.now()), None, True, ""]
 
-        year_match = re.search(r"((?:19|20)\d{2})", parsed_ad["ad_title"])
-        if year_match:
-            parsed_ad["model_year"] = year_match.group(1)
-        else:
-            parsed_ad["model_year"] = None
+        if parsed_ad["model_year"] is None:
+            year_match = re.search(r"((?:19|20)\d{2})", parsed_ad["ad_title"])
+            if year_match:
+                parsed_ad["model_year"] = year_match.group(1)
 
         country_match = re.search(r"((Canada)|(United States))", parsed_ad["location"])
         if country_match is None:
