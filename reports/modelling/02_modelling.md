@@ -140,9 +140,8 @@ df_modelling = (
     #     model_threshold=80,
     # )
     # .dropna(subset=["spec_url"])
-    .query("age_at_post>-365 and (country=='Canada' or country=='United States')").drop(
-        columns=["age_at_post", "country"]
-    )
+    .query("age_at_post>-365 and (country=='Canada' or country=='United States')")
+    .drop(columns=["age_at_post", "country"])
 )
 ```
 
@@ -188,9 +187,7 @@ sns.set_theme()
 ```
 
 ```python
-print(
-    f"Train set size: {X_train.shape[0]}, valid set size: {X_valid.shape[0]}, test set size: {X_test.shape[0]}"
-)
+print(f"Train set size: {X_train.shape[0]}, valid set size: {X_valid.shape[0]}, test set size: {X_test.shape[0]}")
 ```
 
 ```python
@@ -219,6 +216,9 @@ torch.cuda.is_available()
 # otherwise, we don't want to include periods as part of tokens
 # as end of sentence words will get treated as a different token
 # with a period on the end.
+from sklearn.feature_extraction import FeatureHasher
+
+
 token_pattern = "[a-zA-Z0-9$&+,:;=?@#|<>^%!]+|[0-9$&+,.:;=?@#|<>^%!]+"
 
 transformer = Pipeline(
@@ -298,14 +298,14 @@ transformer = Pipeline(
                             "suspension_summary",
                         ],
                     ),
-                    (
-                        "specs_data_high_cardinality",
-                        TargetEncoder(target_type="continuous"),
-                        [
-                            "groupset_summary",
-                            "fork_summary",
-                        ],
-                    ),
+                    # (
+                    #     "specs_data_high_cardinality",
+                    #     FeatureHasher(n_features=50, input_type="string"),
+                    #     [
+                    #         "groupset_summary",
+                    #         "fork_summary",
+                    #     ],
+                    # ),
                     (
                         "specs_data_numerical",
                         SimpleImputer(strategy="median"),
@@ -438,9 +438,7 @@ isolation_pipe = Pipeline(
         ("preprocess", outlier_transformer),
         (
             "isoforest",
-            IsolationForest(
-                n_estimators=1000, max_samples=10000, n_jobs=30, contamination=0.01
-            ),
+            IsolationForest(n_estimators=1000, max_samples=10000, n_jobs=30, contamination=0.01),
         ),
     ]
 )
@@ -465,9 +463,7 @@ X_train_outlier_scored.query("outlier_flag==-1").outlier_score.hist(bins=100)
 
 ```python
 (
-    X_train_outlier_scored.assign(
-        price_cpi_adjusted_CAD=df_modelling.price_cpi_adjusted_CAD
-    )
+    X_train_outlier_scored.assign(price_cpi_adjusted_CAD=df_modelling.price_cpi_adjusted_CAD)
     .query("outlier_flag == -1")
     .sort_values("outlier_score", ascending=True)
     .head(20)[
@@ -495,6 +491,7 @@ We'll first do some baselines - first a simple bag of words, with dummy regresso
 # -1 indicates train set, 0 is valid set
 split_mask = np.vstack((np.ones((len(X_train), 1)) * -1, np.zeros((len(X_valid), 1))))
 cv_strat = PredefinedSplit(test_fold=split_mask)
+scoring = "neg_mean_absolute_percentage_error"
 ```
 
 ```python
@@ -514,7 +511,7 @@ base_grid_search = GridSearchCV(
     base_pipe,
     param_grid=hparams,
     cv=cv_strat,
-    scoring="neg_root_mean_squared_error",
+    scoring=scoring,
     n_jobs=4,
     error_score="raise",
 )
@@ -546,9 +543,7 @@ def predefined_grid_search(
     - Return grid search validation set results, fitted best estimator
     """
     pipeline = clone(pipeline)
-    grid = GridSearchCV(
-        estimator=pipeline, param_grid=hyperparams, refit=False, cv=cv, **kwargs
-    )
+    grid = GridSearchCV(estimator=pipeline, param_grid=hyperparams, refit=False, cv=cv, **kwargs)
     grid.fit(X_train_valid, y_train_valid)
 
     # Refit to just train set:
@@ -595,15 +590,13 @@ svr_results, svr_estimator = predefined_grid_search(
     hparams,
     cv=cv_strat,
     scoring="neg_root_mean_squared_error",
-    n_jobs=4,  # Keep as 1 if using large tfidf matrices due to RAM limits
+    n_jobs=12,  # Keep as 1 if using large tfidf matrices due to RAM limits
     verbose=3,
 )
 ```
 
 ```python
-results["linear_svr"] = pd.DataFrame(svr_results).drop(
-    columns=[c for c in svr_results.keys() if "param_" in c]
-)
+results["linear_svr"] = pd.DataFrame(svr_results).drop(columns=[c for c in svr_results.keys() if "param_" in c])
 pd.DataFrame(svr_results).sort_values("split0_test_score", ascending=False)
 ```
 
@@ -613,7 +606,7 @@ pd.DataFrame(svr_results).sort_values("split0_test_score", ascending=False)
 catboost_pipe = Pipeline(
     steps=[
         ("transform", transformer),
-        ("model", CatBoostRegressor(verbose=False, task_type="GPU")),
+        ("model", CatBoostRegressor(verbose=False, task_type="CPU")),
     ]
 )
 
@@ -656,9 +649,7 @@ catboost_results, catboost_estimator = predefined_grid_search(
     verbose=3,
 )
 
-results["catboost"] = pd.DataFrame(catboost_results).drop(
-    columns=[c for c in catboost_results.keys() if "param_" in c]
-)
+results["catboost"] = pd.DataFrame(catboost_results).drop(columns=[c for c in catboost_results.keys() if "param_" in c])
 pd.DataFrame(catboost_results)
 ```
 
@@ -819,9 +810,12 @@ for year in range(2010, 2030):
     )[["original_post_date", "ad_title", "pred"]]
     year_sweep = pd.concat([year_sweep, new_result])
 
-year_sweep.plot(
-    x="original_post_date", y="pred", marker="o", title=sample_data.ad_title.iloc[0]
-)
+year_sweep.plot(x="original_post_date", y="pred", marker="o", title=sample_data.ad_title.iloc[0])
+plt.legend()
+plt.show()
+input_features = X_train.columns.tolist()
+input_features_table = pd.DataFrame({'Input Features': input_features})
+input_features_table
 ```
 
 ```python
@@ -835,9 +829,7 @@ for month in range(1, 13):
     )[["original_post_date", "month_of_sale", "ad_title", "pred"]]
     month_sweep = pd.concat([month_sweep, new_result])
 
-month_sweep.plot(
-    x="month_of_sale", y="pred", marker="o", title=sample_data.ad_title.iloc[0]
-)
+month_sweep.plot(x="month_of_sale", y="pred", marker="o", title=sample_data.ad_title.iloc[0])
 ```
 
 ```python
@@ -852,9 +844,7 @@ pd.set_option("display.max_colwidth", None)
 df_valid_inspection = pd.concat([X_valid, y_valid], axis=1).assign(
     pred=lambda _df: catboost_estimator.predict(_df),
     residual=lambda _df: _df.price_cpi_adjusted_CAD - _df.pred,
-    price_in_description=lambda _df: _df.description.str.contains(
-        "[$][0-9]+[.]", regex=True
-    ),
+    price_in_description=lambda _df: _df.description.str.contains("[$][0-9]+[.]", regex=True),
     month=lambda _df: _df.original_post_date.dt.month,
     condition=lambda _df: _df.condition.str.strip(),
     shipping_restrictions=lambda _df: np.select(
@@ -913,14 +903,10 @@ model_name = "roberta-large"
 ```python
 # Need columns of "text" and "label" for typical datasets usage
 hf_train_dataset = Dataset.from_pandas(
-    df_train.rename(
-        columns={"ad_title_description": "text", "price_cpi_adjusted_CAD": "label"}
-    )
+    df_train.rename(columns={"ad_title_description": "text", "price_cpi_adjusted_CAD": "label"})
 )
 hf_valid_dataset = Dataset.from_pandas(
-    df_valid.rename(
-        columns={"ad_title_description": "text", "price_cpi_adjusted_CAD": "label"}
-    )
+    df_valid.rename(columns={"ad_title_description": "text", "price_cpi_adjusted_CAD": "label"})
 )
 
 tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -1134,9 +1120,7 @@ predictor.fit_summary()
 ## Model Load and Results Inspection
 
 ```python
-predictor = MultiModalPredictor.load(
-    "tmp/09c893891b0c42768943590f07f638cb-auto_mm_bikes"
-)
+predictor = MultiModalPredictor.load("tmp/3fa3716e7a524170a0d564646ed185cd-auto_mm_bikes")
 ```
 
 ```python
@@ -1144,21 +1128,29 @@ predictor = MultiModalPredictor.load(
 predictor._config.env.per_gpu_batch_size = 70
 
 df_gluon_inspection = pd.DataFrame(
-    data=gluon_transformer.transform(pd.concat([df_valid, df_train])),
+    data=gluon_transformer.transform(pd.concat([df_valid])),
     columns=gluon_transformer.fit(df_valid).get_feature_names_out().tolist(),
 ).assign(pred=lambda _df: predictor.predict(_df))
+```
+
+```python
+# pytorch relates imports
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+# imports from captum library
+from captum.attr import LayerConductance, LayerActivation, LayerIntegratedGradients
+from captum.attr import IntegratedGradients, DeepLift, GradientShap, NoiseTunnel, FeatureAblation
+
 ```
 
 ```python
 # Augment with all initial columns in dataset
 df_gluon_inspection = pd.concat(
     [
-        df_gluon_inspection.assign(
-            resid=lambda _df: _df.price__price_cpi_adjusted_CAD - _df.pred
-        ),
-        pd.concat(
-            [df_valid.assign(split="valid"), df_train.assign(split="train")]
-        ).reset_index(),
+        df_gluon_inspection.assign(resid=lambda _df: _df.price__price_cpi_adjusted_CAD - _df.pred),
+        pd.concat([df_valid.assign(split="valid")]).reset_index(),
     ],
     axis=1,
 )
@@ -1170,8 +1162,49 @@ print(
 )
 ```
 
+# Captum Interpretation
+
+
+
+```python
+from autogluon.multimodal.data.datamodule import BaseDataModule
+```
+
+```python
+base_data_set = BaseDataModule(train_data=df_valid_gluon, df_preprocessor=predictor._df_preprocessor, data_processors=predictor._data_processors,per_gpu_batch_size=10, num_workers=10)
+base_data_set.set_dataset("train")
+predict_dataloader = base_data_set.train_dataloader()
+
+df_train_tensor = {"text_token_ids":[], "text_segment_ids":[], "text_valid_length":[]}
+for item in predict_dataloader:
+    df_train_tensor["text_token_ids"].append(item["hf_text_text_token_ids"])
+    df_train_tensor["text_segment_ids"].append(item["hf_text_text_segment_ids"])
+    df_train_tensor["text_valid_length"].append(item["hf_text_text_valid_length"])
+    break
+```
+
+```python
+torch.cat(df_train_tensor["text_token_ids"], dim=0).long().to("cuda").shape
+```
+
+```python
+ig = IntegratedGradients(predictor._model.model[0])
+ig_attrs = ig.attribute(
+    (torch.cat(df_train_tensor["text_token_ids"], dim=0).long().to("cuda"), 
+     torch.cat(df_train_tensor["text_segment_ids"], dim=0).long().to("cuda"), 
+     torch.cat(df_train_tensor["text_valid_length"], dim=0).long().to("cuda"))
+     )
+```
+
+```python
+
+```
+
 ## Sweep Over Features
 
+```python
+
+```
 
 ### Depreciation Curves
 
@@ -1213,12 +1246,7 @@ display(initial_df.head(1))
 # Display a table of all "specs_" columns below,
 # with a text wrapped print out of description_text__description
 plt.show()
-display(
-    initial_df[[c for c in initial_df.columns if "specs_" in c]]
-    .head(1)
-    .transpose()
-    .style
-)
+display(initial_df[[c for c in initial_df.columns if "specs_" in c]].head(1).transpose().style)
 
 # Wrap text to 20 words wide in description_text__description
 # Using a loop
@@ -1265,9 +1293,7 @@ sample_df = pd.concat(
         initial_df.assign(
             add_covid_flag__covid_flag=0,
             title_text__ad_title=lambda _df: str(x)
-            + _df.title_text__ad_title.str.replace(
-                r"((?:19|20)\d{2})", "", regex=True
-            ).iloc[0],
+            + _df.title_text__ad_title.str.replace(r"((?:19|20)\d{2})", "", regex=True).iloc[0],
             model_year=x,
         )
         for x in range(2010, 2024)
@@ -1427,9 +1453,7 @@ g.fig.suptitle("Price vs. Age of Ad")
 ```
 
 ```python
-predictor_old = MultiModalPredictor.load(
-    "tmp/7c6aeb0363614859bbb52ba01c177c21-auto_mm_bikes"
-)
+predictor_old = MultiModalPredictor.load("tmp/7c6aeb0363614859bbb52ba01c177c21-auto_mm_bikes")
 predictor_old._config.env.per_gpu_batch_size = 70
 
 from pb_buddy.scraper import parse_buysell_ad
@@ -1438,9 +1462,7 @@ ad_url = "https://www.pinkbike.com/buysell/3892662/"
 
 ad_data = pd.DataFrame(
     data=gluon_transformer.transform(
-        pd.DataFrame.from_dict(
-            parse_buysell_ad(ad_url, delay_s=1), orient="index"
-        ).T.assign(price_cpi_adjusted_CAD=0),
+        pd.DataFrame.from_dict(parse_buysell_ad(ad_url, delay_s=1), orient="index").T.assign(price_cpi_adjusted_CAD=0),
     ),
     columns=gluon_transformer.get_feature_names_out(),
 )
@@ -1453,32 +1475,73 @@ old_pred, new_pred
 ```
 
 ```python
-df_gluon_inspection = df_gluon_inspection.assign(
-    old_pred=lambda _df: predictor_old.predict(_df)
-)
+df_gluon_inspection = df_gluon_inspection.assign(old_pred=lambda _df: predictor_old.predict(_df))
 ```
 
 ```python
+import matplotlib.pyplot as plt
+
+
+def plot_with_confidence_band(_df):
+    fig, ax = plt.subplots()
+    _df.plot(
+        x="year_month",
+        y="median_diff",
+        marker="o",
+        ax=ax,
+        title=f"Median difference in prediction between old and new model for {_df.name}",
+    )
+    ax.fill_between(_df.year_month, _df.p10, _df.p90, color="b", alpha=0.1)
+    # Leave 4 extra months on right side of plot
+    ax.set_xlim(_df.year_month.min(), _df.year_month.max() + 4)
+
+
 (
     df_gluon_inspection.assign(
         diff_in_pred=lambda _df: _df.pred - _df.old_pred,
+        country=lambda _df: _df.location.str.split(",").str[1],
     )
-    .query("split == 'valid'")
-    # add a col for year-month
+    .query("split == 'valid' and country.str.len() > 2")
     .assign(year_month=lambda _df: _df.original_post_date.dt.to_period("M"))
-    .groupby("year_month")
+    .groupby(["year_month", "country"])
     .agg(
-        mean_diff_in_pred=("diff_in_pred", "mean"),
+        median_diff=("diff_in_pred", "median"),
+        p10=("diff_in_pred", lambda x: x.quantile(0.10)),
+        p90=("diff_in_pred", lambda x: x.quantile(0.90)),
         mean_resid=("resid", "mean"),
         count=("resid", "count"),
     )
     .reset_index()
-    .plot(
-        x="year_month",
-        y="mean_diff_in_pred",
-        marker="o",
-        title="Mean difference in prediction between old and new model",
+    .groupby("country")
+    .apply(plot_with_confidence_band)
+)
+```
+
+```python
+# Plot all residuals from old_pred, for dates > May 2023
+df_gluon_inspection
+
+(
+    df_gluon_inspection.assign(
+        diff_in_pred=lambda _df: _df.pred - _df.old_pred,
+        country=lambda _df: _df.location.str.split(",").str[1],
     )
+    .query("original_post_date > '2010-05-01'")
+    .assign(
+        old_resid=lambda _df: _df.price_cpi_adjusted_CAD - _df.old_pred,
+    )
+    .assign(year_month=lambda _df: _df.original_post_date.dt.to_period("M"))
+    .groupby(["year_month", "country"])
+    .agg(
+        median_diff=("old_resid", "median"),
+        p10=("old_resid", lambda x: x.quantile(0.10)),
+        p90=("old_resid", lambda x: x.quantile(0.90)),
+        mean_resid=("resid", "mean"),
+        count=("old_resid", "count"),
+    )
+    .reset_index()
+    .groupby("country")
+    .apply(plot_with_confidence_band)
 )
 ```
 
