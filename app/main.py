@@ -16,7 +16,7 @@ image = (
         "github.com/pb-buddy/pb-buddy@master",
         git_user="dbandrews",
         secrets=[Secret.from_name("pb-buddy-github")],
-        # force_build=True,
+        force_build=True,
     )
     .pip_install(
         [
