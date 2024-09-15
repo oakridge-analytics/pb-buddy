@@ -144,9 +144,27 @@ def parse_other_buysell_ad(url: str) -> tuple[dict, str]:
             parsed_ad[key] = None
     return parsed_ad, b64_img
 
+def convert_currency_symbol(symbol: str) -> str:
+    currency_symbols = {
+        "$": "USD",
+        "€": "EUR",
+        "£": "GBP",
+        "¥": "JPY",
+        "₣": "CHF",
+        "C$": "CAD",
+        "A$": "AUD",
+        "kr": "SEK",
+        "₹": "INR",
+        "₽": "RUB",
+    }
+    return currency_symbols.get(symbol, symbol)
+
 def convert_currency(amount: float, from_currency: str, to_currency: str) -> float:
     if from_currency == to_currency:
         return amount
+    
+    from_currency = convert_currency_symbol(from_currency)
+    to_currency = convert_currency_symbol(to_currency)
     
     ticker = f"{from_currency}{to_currency}=X"
     exchange_rate = yf.Ticker(ticker).info['regularMarketPreviousClose']
@@ -420,7 +438,7 @@ def update_ad_fields(n_clicks, ad_url):
         else "",
         "Edit ▼",
         parsed_ad["price"],
-        parsed_ad["currency"],
+        convert_currency_symbol(parsed_ad["currency"]),
     )
 
 @dash_app.callback(
@@ -456,6 +474,7 @@ def update_output(n_clicks, model_year, ad_title, ad_description, country, post_
     kpi_value = response_data["predictions"][0]  # Assuming this is in CAD
 
     if ad_price is not None:
+        ad_price = float(ad_price)
         ad_price_cad = convert_currency(ad_price, price_currency, "CAD")
         price_difference_cad = ad_price_cad - kpi_value
         price_difference_original = convert_currency(price_difference_cad, "CAD", price_currency)
