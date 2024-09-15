@@ -336,28 +336,71 @@ def parse_buysell_buycycle_ad(page_content: BeautifulSoup) -> dict:
 
     ad_title = soup.find("h1", class_="text-3xl font-500 content-primary mb-1").text
     ad_title = " ".join(ad_title.split())
-    price_text = soup.find("p", class_="text-3xl font-500 mb-0 content-sale").text
-    price = price_text.split()[0].replace(".", "")
-    currency = price_text.split()[1]
+    price_element = soup.find("p", class_="text-3xl font-500 mb-0 content-sale")
+    if price_element:
+        price_text = price_element.text.strip()
+        price_match = re.search(r'([\D]*)(\d[\d.,]*)([\D]*)', price_text)
+        if price_match:
+            pre_text, price, post_text = price_match.groups()
+            price = price.replace('.', '').replace(',', '')
+            currency = pre_text.strip() if pre_text else post_text.strip()
+        else:
+            price = None
+            currency = None
+    else:
+        price = None
+        currency = None
     # No post date found on site, so using current date
     original_post_date = str(pd.Timestamp.today(tz="US/Mountain"))
     country = soup.find("p", class_="text-sm content-tertiary mb-0").text.strip()
-    details_divs = soup.find_all("div", class_="pdp-modal-content")
-    for div in details_divs:
-        if "Condition & details" in div.text:
-            # # Remove occurences of multiple whitespace in a row
-            # # with a single occurence of respective whitespace
-            details = re.sub(r" +", " ", div.text)
-            details = re.sub(r"\n +", r"\n", details)
-            details = re.sub(r"\n+", r"\n", details)
-            # Remove the newline before each colon, and then add a newline after each colon
-            details = re.sub(r"\n:", ":", details)
-            details = re.sub(r":", ":\n", details)
+    details = []
+    
+    # Extract brand and model
+    brand_model = soup.find("div", class_="py-3")
+    if brand_model:
+        brand = brand_model.find("span", class_="text-sm primary d-block")
+        model = brand_model.find("strong", class_="text-lg primary d-block font-500")
+        if brand:
+            details.append(f"Brand: {brand.text.strip()}")
+        if model:
+            details.append(f"Model: {model.text.strip()}")
+    
+    # Extract condition and details
+    condition_details = soup.find("ul", class_="pdp-modal-bike-info-list")
+    if condition_details:
+        for li in condition_details.find_all("li"):
+            strong = li.find("strong")
+            span = li.find("span", class_="secondary-3")
+            if strong and span:
+                details.append(f"{strong.text.strip().rstrip(':').rstrip()}: {span.text.strip()}")
+    
+    # Extract components
+    components = soup.find("div", class_="pdp-modal-bike-components-list")
+    if components:
+        for div in components.find_all("div", class_="pb-2 text-sm"):
+            component = div.find("p", class_="d-flex align-items-center primary gap-1 mb-1")
+            value = div.find("div", class_="content-secondary")
+            if component and value:
+                component_text = component.text.strip().rstrip(':').rstrip().rstrip('\n')
+                value_text = value.text.strip()
+                if value_text and value_text != '-':
+                    details.append(f"{component_text}: {value_text}")
+    
+    # Extract additional details
+    additional_details = soup.find("div", class_="pdp-modal-bike-other")
+    if additional_details:
+        info_div = additional_details.find("div", class_="text-sm content-secondary mb-0 info-div-content")
+        if info_div:
+            details.append(f"Additional Details: {info_div.text.strip()}")
+    
+    details_text = " ".join(details)
+    details_text = re.sub(r'\s+', ' ', details_text).strip()
+            
     data_dict["ad_title"] = ad_title
     data_dict["price"] = price
     data_dict["currency"] = currency
     data_dict["original_post_date"] = original_post_date
     data_dict["location"] = country
-    data_dict["description"] = details
+    data_dict["description"] = details_text
 
     return data_dict
