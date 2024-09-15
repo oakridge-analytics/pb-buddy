@@ -364,6 +364,12 @@ def parse_buysell_buycycle_ad(page_content: BeautifulSoup) -> dict:
             details.append(f"Brand: {brand.text.strip()}")
         if model:
             details.append(f"Model: {model.text.strip()}")
+
+    # Extract summary information
+    summary_info = soup.find("p", class_="text-sm content-secondary")
+    if summary_info:
+        summary_text = summary_info.text.strip()
+        details.append(f"Summary: {summary_text}")
     
     # Extract condition and details
     condition_details = soup.find("ul", class_="pdp-modal-bike-info-list")

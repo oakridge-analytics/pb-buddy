@@ -34,13 +34,15 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 user_agents_opts = [
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/91.0.4472.80 Mobile/15E148 Safari/604.1",
-    "Mozilla/5.0 (iPad; CPU OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/91.0.4472.80 Mobile/15E148 Safari/604.1",
-    "Mozilla/5.0 (Linux; Android 11; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36",
-    "Mozilla/5.0 (X11; CrOS x86_64 13982.82.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.157 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 ]
 
 # Need to use playwright to evade Cloudflare's bot detection
@@ -62,7 +64,6 @@ def get_page_screenshot(url: str) -> str:
         page = browser.new_page()
         page.set_extra_http_headers({"User-Agent": random.choice(user_agents_opts)})
         page.goto(url)
-        # page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
         screenshot = page.screenshot(full_page=True)
         browser.close()
     return base64.b64encode(screenshot).decode("utf-8")
@@ -102,8 +103,18 @@ def parse_other_buysell_ad(url: str) -> tuple[dict, str]:
                             "title": "Original Post Date",
                             "type": "string",
                         },
+                        "price": {
+                            "description": "The price of the bike",
+                            "title": "Price",
+                            "type": "number",
+                        },
+                        "currency": {
+                            "description": "The currency of the price",
+                            "title": "Currency",
+                            "type": "string",
+                        },
                     },
-                    "required": ["model_year", "ad_title", "description", "location", "original_post_date"],
+                    "required": ["model_year", "ad_title", "description", "location", "original_post_date", "price", "currency"],
                 },
             },
         }
@@ -415,9 +426,11 @@ def update_ad_fields(n_clicks, ad_url):
         return [None, None, None, str(pd.Timestamp.now()), None, True, "", "Or Manually Enter/Edit ▼", None, "CAD"]
 
     if parsed_ad.get("model_year") is None:
-        year_match = re.search(r"((?:19|20)\d{2})", parsed_ad["ad_title"])
+        year_match = re.search(r"((?:19|20)\d{2})", f'{parsed_ad["ad_title"]}: {parsed_ad["description"]}')
         if year_match:
             parsed_ad["model_year"] = year_match.group(1)
+        else:
+            parsed_ad["model_year"] = None  
 
     country_match = re.search(r"((Canada)|(United States)|(United Kingdom))", parsed_ad["location"])
     if country_match is None:
