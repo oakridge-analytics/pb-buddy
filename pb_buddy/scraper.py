@@ -404,7 +404,12 @@ def parse_buysell_buycycle_ad(page_content: BeautifulSoup) -> dict:
             
     data_dict["ad_title"] = ad_title
     data_dict["price"] = price
-    data_dict["currency"] = currency
+    currency_mapping = {
+        "\u20ac": "EUR",  # Euro
+        "\u00a3": "GBP",  # British Pound
+        "$": "USD",       # US Dollar (assuming $ is always USD)
+    }
+    data_dict["currency"] = currency_mapping.get(currency, currency)
     data_dict["original_post_date"] = original_post_date
     data_dict["location"] = country
     data_dict["description"] = details_text
