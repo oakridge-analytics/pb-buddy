@@ -12,18 +12,18 @@ else:
 app = App("bike-buddy-ui")
 image = (
     Image.debian_slim(python_version="3.9")
-    .pip_install_private_repos(
-        "github.com/pb-buddy/pb-buddy@master",
-        git_user="dbandrews",
-        secrets=[Secret.from_name("pb-buddy-github")],
-        # force_build=True,
-    )
     .pip_install(
         [
             "dash==2.9.1",
             "dash-bootstrap-components==1.4.1",
             "yfinance==0.2.43",
         ],
+        # force_build=True,
+    )
+    .pip_install_private_repos(
+        "github.com/pb-buddy/pb-buddy@master",
+        git_user="dbandrews",
+        secrets=[Secret.from_name("pb-buddy-github")],
         # force_build=True,
     )
     .run_commands("playwright install-deps")
