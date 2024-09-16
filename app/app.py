@@ -183,6 +183,13 @@ def convert_currency(amount: float, from_currency: str, to_currency: str) -> flo
 
 
 current_year = pd.Timestamp.now().year
+SAMPLE_URLS = [
+    "https://buycycle.com/en-ca/bike/megatower-s-carbon-c-29-2019-60199",
+    "https://www.pinkbike.com/buysell/3924063/",
+    "https://www.pinkbike.com/buysell/3896775/",
+    "https://www.pinkbike.com/buysell/3905160/",
+]
+
 dash_app.layout = dbc.Container(
     [
         html.H1("Bike Buddy", className="text-center mb-4"),
@@ -205,7 +212,19 @@ dash_app.layout = dbc.Container(
                             target="h3-heading",
                         ),
                         html.Br(),
-                        dcc.Input(id="ad-url", placeholder="Enter URL", type="text"),
+                        dcc.Dropdown(
+                            id="sample-urls",
+                            options=[{"label": url, "value": url} for url in SAMPLE_URLS],
+                            placeholder="Select a sample URL or enter your own below",
+                            style={'width': '100%'}
+                        ),
+                        html.Br(),
+                        dcc.Input(
+                            id="ad-url",
+                            placeholder="Enter URL",
+                            type="text",
+                            style={'width': '100%'}
+                        ),
                         html.Br(),
                         dbc.Button(
                             "Parse Ad",
@@ -389,7 +408,13 @@ def determine_ad_type(url: str) -> AdType:
     else:
         return AdType.OTHER
 
-# Callback function
+@dash_app.callback(
+    Output("ad-url", "value"),
+    Input("sample-urls", "value")
+)
+def update_url_input(sample_url):
+    return sample_url
+
 @dash_app.callback(
     [
         Output("model-year", "value"),
@@ -404,11 +429,15 @@ def determine_ad_type(url: str) -> AdType:
         Output("price-currency", "value"),
     ],
     [Input("parse-ad", "n_clicks")],
-    [State("ad-url", "value")],
+    [State("ad-url", "value"), State("sample-urls", "value")],
 )
-def update_ad_fields(n_clicks, ad_url):
-    if n_clicks is None or ad_url is None:
+def update_ad_fields(n_clicks, custom_url, sample_url):
+    if n_clicks is None:
         return [None, None, None, str(pd.Timestamp.now()), None, False, "", "Or Manually Enter/Edit ▼", None, "CAD"]
+
+    ad_url = custom_url or sample_url
+    if ad_url is None:
+        return [None, None, None, str(pd.Timestamp.now()), None, True, "", "Or Manually Enter/Edit ▼", None, "CAD"]
 
     ad_type = determine_ad_type(ad_url)
     page_content = get_page_from_playwright_scraper(ad_url)
