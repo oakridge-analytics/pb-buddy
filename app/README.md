@@ -16,3 +16,10 @@ modal serve app/main.py
 modal deploy app/main.py
 ```
 
+To run locally, install app specific dependencies into `pb-buddy` environment with `pip` then run:
+
+```console
+pip install -r app/requirements.txt
+python app/app.py
+```
+
