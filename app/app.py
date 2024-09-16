@@ -36,13 +36,6 @@ logger = logging.getLogger(__name__)
 user_agents_opts = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 ]
 
 # Need to use playwright to evade Cloudflare's bot detection
@@ -51,11 +44,16 @@ def get_page_from_playwright_scraper(url: str) -> str:
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page()
-        page.set_extra_http_headers({"User-Agent": random.choice(user_agents_opts)})
-        page.goto(url)
+        user_agent = random.choice(user_agents_opts)
+        logger.info(f"Using user agent: {user_agent}")
+        page.set_extra_http_headers({"User-Agent": user_agent})
+        response = page.goto(url)
+        if response.status == 403:
+            logger.warning(f"Received 403 Forbidden status for URL: {url}")
         page_content = page.content()
+
         browser.close()
-        # logger.info(f"Page content: {page_content}")
+
     return page_content
 
 def get_page_screenshot(url: str) -> str:
@@ -306,6 +304,7 @@ dash_app.layout = dbc.Container(
                                                         {"label": "CAD", "value": "CAD"},
                                                         {"label": "USD", "value": "USD"},
                                                         {"label": "GBP", "value": "GBP"},
+                                                        {"label": "EUR", "value": "EUR"},
                                                     ],
                                                     value="CAD",
                                                     style={"width": "100%"}
