@@ -1134,18 +1134,6 @@ df_gluon_inspection = pd.DataFrame(
 ```
 
 ```python
-# pytorch relates imports
-import torch
-import torch.nn as nn
-import torch.optim as optim
-
-# imports from captum library
-from captum.attr import LayerConductance, LayerActivation, LayerIntegratedGradients
-from captum.attr import IntegratedGradients, DeepLift, GradientShap, NoiseTunnel, FeatureAblation
-
-```
-
-```python
 # Augment with all initial columns in dataset
 df_gluon_inspection = pd.concat(
     [
@@ -1171,12 +1159,37 @@ from autogluon.multimodal.data.datamodule import BaseDataModule
 ```
 
 ```python
-base_data_set = BaseDataModule(train_data=df_valid_gluon, df_preprocessor=predictor._df_preprocessor, data_processors=predictor._data_processors,per_gpu_batch_size=10, num_workers=10)
+# pytorch relates imports
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+# imports from captum library
+from captum.attr import (
+    IntegratedGradients,
+    LayerIntegratedGradients,
+    TokenReferenceBase,
+    configure_interpretable_embedding_layer,
+    remove_interpretable_embedding_layer,
+    visualization
+)
+from captum.attr._utils.input_layer_wrapper import ModelInputWrapper
+
+```
+
+```python
+base_data_set = BaseDataModule(
+    train_data=df_valid_gluon,
+    df_preprocessor=predictor._df_preprocessor,
+    data_processors=predictor._data_processors,
+    per_gpu_batch_size=10, num_workers=10
+    )
 base_data_set.set_dataset("train")
 predict_dataloader = base_data_set.train_dataloader()
 
 df_train_tensor = {"text_token_ids":[], "text_segment_ids":[], "text_valid_length":[]}
 for item in predict_dataloader:
+    # print(f"Concatenating item of shape: {item['hf_text_text_segment_ids'].shape}")
     df_train_tensor["text_token_ids"].append(item["hf_text_text_token_ids"])
     df_train_tensor["text_segment_ids"].append(item["hf_text_text_segment_ids"])
     df_train_tensor["text_valid_length"].append(item["hf_text_text_valid_length"])
@@ -1184,11 +1197,34 @@ for item in predict_dataloader:
 ```
 
 ```python
-torch.cat(df_train_tensor["text_token_ids"], dim=0).long().to("cuda").shape
+# predictor._model.model[0]
 ```
 
 ```python
-ig = IntegratedGradients(predictor._model.model[0])
+
+```
+
+```python
+from torch import nn
+
+class MultiModalTextModel(nn.Module):
+    def __init__(self, model: nn.ModuleList, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.model = model
+    
+    def forward(self, *args, **kwargs):
+        return nn.Sequential(*self.model)(*args, **kwargs)
+
+mm_text_model = MultiModalTextModel(predictor._model.model)
+```
+
+```python
+LayerIntegratedGradients()
+```
+
+```python
+# ig = IntegratedGradients(mm_text_model.forward)
+ig = IntegratedGradients(predictor._model.model[0].forward)
 ig_attrs = ig.attribute(
     (torch.cat(df_train_tensor["text_token_ids"], dim=0).long().to("cuda"), 
      torch.cat(df_train_tensor["text_segment_ids"], dim=0).long().to("cuda"), 
