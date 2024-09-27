@@ -79,7 +79,7 @@ with ThreadPoolExecutor() as executor:
 ```
 
 ```python
-existing_categories = df_historical_sold["category"].unique() + df_current_sold["category"].unique()
+existing_categories = df_historical_sold["category"].unique().tolist() + df_current_sold["category"].unique().tolist()
 ```
 
 ```python
@@ -99,10 +99,9 @@ bike_category_labels = candidate_categories
 
 ```python
 # Add in category num for each category, and clean up datatypes.
-df_historical_sold_NA = (
+df_historical_sold_world = (
     pd.concat([df_historical_sold, df_current_sold], sort=False)
     .query("still_for_sale.str.contains('Sold')")
-    .query("currency.isin(['CAD','USD'])")
     .assign(
         original_post_date=lambda x: pd.to_datetime(x["original_post_date"]),
         last_repost_date=lambda x: pd.to_datetime(x["last_repost_date"]),
@@ -120,20 +119,20 @@ We'll first check how many ads we have that can be used for modelling bike price
 ```python
 # Check dataset size to model North American Pricing
 (
-    df_historical_sold_NA.groupby(["category"], as_index=False)
+    df_historical_sold_world.groupby(["category"], as_index=False)
     .count()
     .query("category.isin(@bike_category_labels)")[["category", "original_post_date"]]
     .rename(columns={"original_post_date": "count_ads"})
     .sort_values("count_ads", ascending=False)
     .style.hide(axis="index")
-    .set_caption("Bike Ads by Category - North America Scraped Data")
+    .set_caption("Bike Ads by Category - World Wide Scraped Data")
 )
 ```
 
 ```python
 # for bikes ads - check how often each field is filled. This metadata couldn't have been entered all along
 (
-    df_historical_sold_NA.query("category.isin(@bike_category_labels)")
+    df_historical_sold_world.query("category.isin(@bike_category_labels)")
     .dropna(axis=1, thresh=100)  # Drop cols never used for bikes
     .notnull()
     .sum()  # Sum TRUES for count
@@ -145,7 +144,7 @@ We'll first check how many ads we have that can be used for modelling bike price
 It appears we have good data for the standard ad title, description, frame size and wheel size. Otherwise the other columns aren't fully in use otherwise we could use front travel, rear travel more heavily to model mountain bikes more accurately potentially. Material also isn't fully utilized - otherwise this would be another valuable indicator. Finally, condition also isn't fully utilized - this could have potential as another indicator but ~ < 1/3 have this filled out.
 
 ```python
-df_sold_bikes = df_historical_sold_NA.query("category.isin(@bike_category_labels)")
+df_sold_bikes = df_historical_sold_world.query("category.isin(@bike_category_labels)")
 ```
 
 Next, we check the quality of key columns for outliers. Here's the findings:
