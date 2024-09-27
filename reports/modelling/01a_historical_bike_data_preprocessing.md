@@ -8,7 +8,7 @@ jupyter:
       format_version: '1.3'
       jupytext_version: 1.14.6
   kernelspec:
-    display_name: Python 3.9.2 ('pb-buddy-BzHdUS67-py3.9')
+    display_name: pb-buddy
     language: python
     name: python3
 ---
@@ -17,13 +17,16 @@ jupyter:
 
 
 ```python
+from concurrent.futures import ThreadPoolExecutor
+
 import pandas as pd
 import matplotlib.pyplot as plt
 from IPython.display import Markdown
 import seaborn as sns
 import pb_buddy.data_processors as dt
+
 import pb_buddy.utils as ut
-from pb_buddy.scraper import get_category_list
+from pb_buddy.scraper import get_category_list, PlaywrightScraper
 
 %load_ext autoreload
 %autoreload 2
@@ -38,9 +41,20 @@ file_stub = "_adjusted_bike_ads"
 ```
 
 ```python
-df_historical_sold = dt.stream_parquet_to_dataframe(
-    "historical_data.parquet.gzip", "pb-buddy-historical"
+# df_historical_sold = dt.stream_parquet_to_dataframe("historical_data.parquet.gzip", "pb-buddy-historical")
+```
+
+```python
+df_historical_sold = pd.concat(
+    [
+        pd.read_parquet("s3://bike-buddy/data/historical/raw/historical_sold.parquet.gzip"),
+        pd.read_parquet("s3://bike-buddy/data/historical/raw/historical_sold_v2.parquet.gzip"),
+    ]
 )
+```
+
+```python
+df_historical_sold.shape
 ```
 
 ```python
@@ -48,42 +62,39 @@ df_current_sold = dt.get_dataset(-1, data_type="sold")
 ```
 
 ```python
-{category: num for category, num in category_dict.items() if "Bike" in category}
+headers = {
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"
+}
+
+
+def run_playwright():
+    playwright = PlaywrightScraper()
+    category_dict = get_category_list(playwright)
+    return category_dict
+
+
+with ThreadPoolExecutor() as executor:
+    future = executor.submit(run_playwright)
+    category_dict = future.result()
 ```
 
 ```python
-category_dict = get_category_list()
-bike_category_labels = [
-    "DH Bikes",
-    "Downhill Bikes",
-    "All Mountain/Enduro Bikes",
-    "Enduro Bikes",
-    "Trail Bikes",
-    "Dirt Jump Bikes",
-    "Kids Bikes",
-    "BMX Bikes",
-    "Road Bikes",
-    "Trials Bikes",
-    "E-Bikes Urban/Commuter",
-    "E-Bikes Road/Gravel",
-    "Fat Bikes",
-    "Fat Bike Frames",
-    "E-Bikes MTB",
-    "XC Bikes",
-    "Gravel/CX Bikes",
-    "Gravel/CX Complete Bikes",
-    "Vintage Bikes",
-    "Enduro Bikes",
-    "Road Complete Bikes",
-    "XC / Cross Country Bikes",
-    "Downhill Bikes",
-    "Gravel/CX Complete Bikes",
-    "Fat Complete Bikes",
-    "Trail Bikes",
-    "BMX Complete Bikes",
-    "Triathlon Complete Bikes",
-    " Vintage Bikes ",
-]
+existing_categories = df_historical_sold["category"].unique() + df_current_sold["category"].unique()
+```
+
+```python
+exclude_keywords = ["parts", "frames", "bags", "racks", "stands", "rims", "mx"]
+
+candidate_categories = []
+for k in set(list(category_dict.keys()) + list(existing_categories)):
+    if "bike" in k.lower() and not any(keyword in k.lower() for keyword in exclude_keywords):
+        candidate_categories.append(k)
+
+sorted(candidate_categories)
+```
+
+```python
+bike_category_labels = candidate_categories
 ```
 
 ```python
@@ -151,19 +162,13 @@ df_sold_bikes_model = (
     .query("description.str.lower().str.contains('stolen') == False")
     .query("description.str.lower().str.contains('looking for') == False")
     .query("price != 1234 and price != 12345 and price !=123")
-    .assign(
-        last_repost_month=lambda x: (
-            x["last_repost_date"] + pd.offsets.Day(1) + pd.offsets.MonthBegin(-1)
-        ).dt.date
-    )
+    .assign(last_repost_month=lambda x: (x["last_repost_date"] + pd.offsets.Day(1) + pd.offsets.MonthBegin(-1)).dt.date)
 )
 ```
 
 ```python
 top_n = 10
-top_bike_categories = (
-    df_sold_bikes_model.category.value_counts().index[0:top_n].tolist()
-)
+top_bike_categories = df_sold_bikes_model.category.value_counts().index[0:top_n].tolist()
 (
     df_sold_bikes_model.query("category.isin(@top_bike_categories)")
     .groupby(["last_repost_month", "category"])
@@ -293,9 +298,9 @@ current_year_cpi = pd.DataFrame(
 
 ```python
 # Join on all CPI data per currency and adjust historical dollars to most recent year
-df_cpi_data_combined = pd.concat(
-    [df_us_cpi_data, df_can_cpi_data, current_year_cpi]
-).drop_duplicates(subset=["year", "currency"])
+df_cpi_data_combined = pd.concat([df_us_cpi_data, df_can_cpi_data, current_year_cpi]).drop_duplicates(
+    subset=["year", "currency"]
+)
 
 df_sold_bikes_model_adjusted = df_sold_bikes_model.merge(
     df_cpi_data_combined,
@@ -336,9 +341,7 @@ df_fx = (
     fx_reader.read()
     .reset_index()
     .assign(
-        fx_month=lambda x: (
-            pd.to_datetime(x.Date) + pd.offsets.Day(1) + pd.offsets.MonthBegin(-1)
-        ),
+        fx_month=lambda x: (pd.to_datetime(x.Date) + pd.offsets.Day(1) + pd.offsets.MonthBegin(-1)),
         currency=lambda x: np.where(x.PairCode == "CAD", "USD", "CAD"),
     )
     .rename(columns={"Close": "fx_rate_USD_CAD"})
@@ -385,9 +388,8 @@ df_sold_bikes_model_adjusted_CAD = df_sold_bikes_model_adjusted.merge(
 
 ```python
 (
-    df_sold_bikes_model_adjusted_CAD.groupby(["last_repost_month"]).mean(
-        numeric_only=True
-    )[["price", "price_cpi_adjusted", "price_cpi_adjusted_CAD"]]
+    df_sold_bikes_model_adjusted_CAD.groupby(["last_repost_month"])
+    .mean(numeric_only=True)[["price", "price_cpi_adjusted", "price_cpi_adjusted_CAD"]]
     # .unstack(1)
     .plot(figsize=(12, 8), title="Inflation Adjusted Average Prices")
 )
@@ -399,9 +401,7 @@ g = (
     df_sold_bikes_model_adjusted_CAD.assign(
         last_repost_month=lambda x: x.last_repost_date.dt.month,
         last_repost_year=lambda x: x.last_repost_date.dt.year,
-        count_in_month=lambda x: x.groupby(["last_repost_month", "last_repost_year"])[
-            "url"
-        ].transform(len),
+        count_in_month=lambda x: x.groupby(["last_repost_month", "last_repost_year"])["url"].transform(len),
     )
     .query("count_in_month > 10")
     .reset_index()
@@ -422,9 +422,7 @@ g.fig.suptitle("Average Adjusted Price by Year - 95% CI Denoted")
 ```python
 sns.lineplot(
     data=df_sold_bikes_model_adjusted_CAD.assign(
-        original_post_month=lambda _df: _df.original_post_date.dt.to_period(
-            "M"
-        ).dt.to_timestamp()
+        original_post_month=lambda _df: _df.original_post_date.dt.to_period("M").dt.to_timestamp()
     ),
     x="original_post_month",
     y="price_cpi_adjusted_CAD",
@@ -434,16 +432,12 @@ sns.lineplot(
 
 ```python
 (
-    df_sold_bikes_model_adjusted_CAD.assign(
-        last_repost_month=lambda x: pd.to_datetime(x.last_repost_month)
-    )
+    df_sold_bikes_model_adjusted_CAD.assign(last_repost_month=lambda x: pd.to_datetime(x.last_repost_month))
     .groupby(["last_repost_month", "currency"])
     .count()[["category"]]
     .reset_index()
     .assign(
-        count_in_month=lambda x: x.groupby("last_repost_month")["category"].transform(
-            sum
-        ),
+        count_in_month=lambda x: x.groupby("last_repost_month")["category"].transform(sum),
         fraction_by_currency=lambda x: (x.category / x.count_in_month),
     )
     .pivot(index="last_repost_month", columns="currency", values="fraction_by_currency")
@@ -463,9 +457,7 @@ Due to people appearing to mark an ad as "Sold" and then reopening it later at a
 df_sold_bikes_model_adjusted_CAD = df_sold_bikes_model_adjusted_CAD.assign(
     last_repost_date=lambda x: pd.to_datetime(x.last_repost_date),
     datetime_scraped=lambda x: pd.to_datetime(x.datetime_scraped, utc=True),
-    url_rank=lambda x: x.groupby("url")["last_repost_date"].rank(
-        "dense", ascending=False
-    ),
+    url_rank=lambda x: x.groupby("url")["last_repost_date"].rank("dense", ascending=False),
     scrape_rank=lambda x: x.groupby("url")["datetime_scraped"].rank(
         "dense", ascending=False
     ),  # Sometimes I have multiple scrapes of same sold ad!
@@ -493,14 +485,14 @@ Markdown(
 ```
 
 ```python
-# Save out versioned file for modelling
-timestamp = pd.Timestamp.now().strftime("%Y-%m-%d_%H_%M_%S")
-filename = f"{timestamp}_{file_stub}.parquet.gzip"
-dt.stream_parquet_to_blob(
-    df_sold_bikes_model_adjusted_CAD,
-    blob_name=filename,
-    blob_container=container_to_write_to,
-)
+# # Save out versioned file for modelling
+# timestamp = pd.Timestamp.now().strftime("%Y-%m-%d_%H_%M_%S")
+# filename = f"{timestamp}_{file_stub}.parquet.gzip"
+# dt.stream_parquet_to_blob(
+#     df_sold_bikes_model_adjusted_CAD,
+#     blob_name=filename,
+#     blob_container=container_to_write_to,
+# )
 ```
 
 ```python
