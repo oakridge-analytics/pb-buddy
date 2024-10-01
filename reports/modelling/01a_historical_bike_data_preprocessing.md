@@ -19,14 +19,14 @@ jupyter:
 ```python
 from concurrent.futures import ThreadPoolExecutor
 
-import pandas as pd
 import matplotlib.pyplot as plt
-from IPython.display import Markdown
+import pandas as pd
 import seaborn as sns
-import pb_buddy.data_processors as dt
+from IPython.display import Markdown
 
+import pb_buddy.data_processors as dt
 import pb_buddy.utils as ut
-from pb_buddy.scraper import get_category_list, PlaywrightScraper
+from pb_buddy.scraper import PlaywrightScraper, get_category_list
 
 %load_ext autoreload
 %autoreload 2
@@ -109,6 +109,20 @@ df_historical_sold_world = (
         last_repost_year=lambda x: x.last_repost_date.dt.year,
         price=lambda x: x["price"].astype(float),
     )
+)
+```
+
+```python
+df_historical_sold_world.currency.value_counts()
+```
+
+```python
+(
+    df_historical_sold_world.assign(country=lambda _df: _df["location"].str.split(",").str[-1].str.strip())
+    .groupby(["country", "currency"])
+    .size()
+    .sort_values(ascending=False)
+    .head(30)
 )
 ```
 
@@ -237,6 +251,65 @@ To enable consistent pricing for modelling - we need to adjust for the USD -> CA
 As a first attempt - we'll look at "All Items" level inflation to adjust our prices. There is most likely a more relevant index that is available - but this will be good enough for now. We need to find Canadian data and US Data separately.
 
 ```python
+# Create a mapping of country to which CPI adjustment to use:
+# US -> US CPI data
+# Canada -> Canada CPI data
+# United Kingdom -> UK CPI data
+# Rest of Europe -> eu CPI data
+
+country_to_cpi = {
+    "United States": "united-states",
+    "Canada": "canada",
+    "United Kingdom": "uk",
+    "Wales": "uk",
+    "Ireland": "uk",
+    "Scotland": "uk",
+    "Germany": "eu",
+    "France": "eu",
+    "Spain": "eu",
+    "Italy": "eu",
+    "Netherlands": "eu",
+    "Belgium": "eu",
+    "Austria": "eu",
+    "Portugal": "eu",
+    "Greece": "eu",
+    "Sweden": "eu",
+    "Denmark": "eu",
+    "Finland": "eu",
+    "Luxembourg": "eu",
+    "Slovenia": "eu",
+    "Slovakia": "eu",
+    "Estonia": "eu",
+    "Cyprus": "eu",
+    "Malta": "eu",
+    "Latvia": "eu",
+    "Lithuania": "eu",
+    "Czech Republic": "eu",
+    "Poland": "eu",
+    "Hungary": "eu",
+    "Romania": "eu",
+    "Bulgaria": "eu",
+    "Croatia": "eu",
+    "Norway": "eu",
+    "Switzerland": "eu",
+    "Iceland": "eu",
+    "Liechtenstein": "eu",
+}
+```
+
+```python
+# Build cpi datasets
+from pb_buddy.modelling.normalization import CPISourceFactory
+
+cpi_data = []
+for region in ["united-states", "canada", "uk", "eu"]:
+    cpi = CPISourceFactory().get_source(region).get_cpi_data()
+    cpi_data.append(cpi)
+
+pd.concat(cpi_data).head(40)
+```
+
+```python
 # Canada data
 start_year = str(df_sold_bikes_model.last_repost_year.min())
 end_year = str(df_sold_bikes_model.last_repost_year.max())
@@ -282,6 +355,10 @@ df_us_cpi_data = (
 ```
 
 ```python
+df_us_cpi_data
+```
+
+```python
 # Add records for current year carrying forward prior year CPI values
 canadian_current_cpi = df_can_cpi_data.most_recent_cpi.iloc[-1]
 us_current_cpi = df_us_cpi_data.most_recent_cpi.iloc[-1]
@@ -322,8 +399,8 @@ df_sold_bikes_model_adjusted = df_sold_bikes_model.merge(
 
 ```python
 # Use Yahoo Finance API through pandas_datareader
-from pandas_datareader.yahoo.fx import YahooFXReader
 import numpy as np
+from pandas_datareader.yahoo.fx import YahooFXReader
 
 fx_reader = YahooFXReader(
     symbols=["CAD"],
