@@ -1,3 +1,4 @@
+import csv
 import gzip
 import io
 from abc import ABC, abstractmethod
@@ -99,13 +100,31 @@ class EuroCPISource(CPISource):
         response = requests.get(url)
         with gzip.GzipFile(fileobj=io.BytesIO(response.content)) as f:
             df_eurostat = pd.read_csv(f, delimiter="\t")
-
         return (
             # Filter to Euro area, from 2015-2022 that had 19 countries
-            df_eurostat.query("region == 'A,INX_A_AVG,CP00,EA19'")
+            df_eurostat.rename(columns={"freq,unit,coicop,geo\TIME_PERIOD": "region"})
+            .query("region == 'A,INX_A_AVG,CP00,EA19'")
             .melt(id_vars=["region"], var_name="year", value_name="cpi")
             .assign(currency="EUR", most_recent_cpi=lambda _df: _df.loc[_df["cpi"].last_valid_index()]["cpi"])
             .drop(columns=["region"])
+        )
+
+
+class UKCPISource(CPISource):
+    def get_cpi_data(self) -> pd.DataFrame:
+        response = requests.get(
+            "https://www.ons.gov.uk/generator?format=csv&uri=/economy/inflationandpriceindices/timeseries/d7bt/mm23"
+        )
+        data = list(csv.reader(io.StringIO(response.text)))
+        df = pd.DataFrame(data[1:], columns=data[0])
+        # Find first row where "Important notes" is mentioned
+        important_notes = df[df["Title"] == "Important notes"]
+        # Find first index where "Title" column has a "Q" in it
+        quarterly_data = df[df["Title"].str.contains("Q")]
+        return (
+            df.loc[important_notes.index[0] + 1 : quarterly_data.index[0] - 1]
+            .rename(columns={"Title": "year", "CPI INDEX 00: ALL ITEMS 2015=100": "cpi"})
+            .assign(currency="GBP", most_recent_cpi=lambda _df: _df.loc[_df["cpi"].last_valid_index()]["cpi"])
         )
 
 
@@ -114,6 +133,7 @@ class CPISourceFactory:
         "united-states": USCPISource,
         "canada": CanadaCPISource,
         "eu": EuroCPISource,
+        "uk": UKCPISource,
     }
 
     def get_source(self, region: str) -> CPISource:
