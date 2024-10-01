@@ -304,94 +304,52 @@ from pb_buddy.modelling.normalization import CPISourceFactory
 cpi_data = []
 for region in ["united-states", "canada", "uk", "eu"]:
     cpi = CPISourceFactory().get_source(region).get_cpi_data()
+    cpi["region"] = region
     cpi_data.append(cpi)
 
-pd.concat(cpi_data).head(40)
-```
+df_cpi_data = pd.concat(cpi_data)
 
-```python
-# Canada data
-start_year = str(df_sold_bikes_model.last_repost_year.min())
-end_year = str(df_sold_bikes_model.last_repost_year.max())
-df_can_cpi_data = pd.read_csv(
-    f"https://www150.statcan.gc.ca/t1/tbl1/en/dtl!downloadDbLoadingData-nonTraduit.action?pid=1810000501&latestN=0&startDate={start_year}0101&endDate={end_year}0101&csvLocale=en&selectedMembers=%5B%5B2%5D%2C%5B2%2C3%2C79%2C96%2C139%2C176%2C184%2C201%2C219%2C256%2C274%2C282%2C285%2C287%2C288%5D%5D&checkedLevels="
-)
 
-df_can_cpi_data = (
-    df_can_cpi_data.query("`Products and product groups`=='All-items'")
-    .filter(["REF_DATE", "VALUE"])
-    .rename(columns={"REF_DATE": "year", "VALUE": "cpi"})
-    .assign(most_recent_cpi=lambda x: x.loc[x.year.idxmax(), "cpi"], currency="CAD")
-)
-```
+# Ensure 'year' column is of integer type
+df_cpi_data["year"] = df_cpi_data["year"].astype(int)
 
-```python
-# US Data
-headers = {
-    "Host": "download.bls.gov",
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/113.0",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-    "Accept-Language": "en-CA,en-US;q=0.7,en;q=0.3",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Referer": "https://download.bls.gov/pub/time.series/cu/",
-}
-# Based on links found here: https://github.com/palewire/cpi/blob/master/cpi/download.py
-df_us_cpi_data = (
-    pd.read_csv(
-        "https://download.bls.gov/pub/time.series/cu/cu.data.1.AllItems",
-        sep="\t",
-        header=None,
-        skiprows=1,
-        names=["series_id", "year", "period", "cpi", "footnote"],
-        storage_options=headers,
-    )
-    .assign(series_id=lambda _df: _df.series_id.str.strip())
-    .filter(["year", "cpi", "series_id"])
-    .query("series_id == 'CUSR0000SA0'")
-    .groupby("year", as_index=False)
-    .mean()
-    .assign(most_recent_cpi=lambda x: x.loc[x.year.idxmax(), "cpi"], currency="USD")
-)
-```
+# Get the current year
+current_year = pd.Timestamp.now().year
 
-```python
-df_us_cpi_data
-```
+# Create an index with all combinations of regions and years up to the current year
+regions = df_cpi_data["region"].unique()
+years = range(df_cpi_data["year"].min(), current_year + 1)
+idx = pd.MultiIndex.from_product([regions, years], names=["region", "year"])
 
-```python
-# Add records for current year carrying forward prior year CPI values
-canadian_current_cpi = df_can_cpi_data.most_recent_cpi.iloc[-1]
-us_current_cpi = df_us_cpi_data.most_recent_cpi.iloc[-1]
-current_year_cpi = pd.DataFrame(
-    data={
-        "year": [df_sold_bikes_model.last_repost_year.max()] * 2,
-        "cpi": [canadian_current_cpi, us_current_cpi],
-        "most_recent_cpi": [canadian_current_cpi, us_current_cpi],
-        "currency": ["CAD", "USD"],
-    }
-)
+# Reindex the DataFrame and forward-fill missing values
+df_cpi_data = df_cpi_data.set_index(["region", "year"]).reindex(idx).groupby(level=0).ffill().reset_index()
 ```
 
 ```python
 # Join on all CPI data per currency and adjust historical dollars to most recent year
-df_cpi_data_combined = pd.concat([df_us_cpi_data, df_can_cpi_data, current_year_cpi]).drop_duplicates(
-    subset=["year", "currency"]
-)
 
-df_sold_bikes_model_adjusted = df_sold_bikes_model.merge(
-    df_cpi_data_combined,
-    how="left",
-    left_on=["last_repost_year", "currency"],
-    right_on=["year", "currency"],
-).assign(price_cpi_adjusted=lambda x: (x.price * (x.most_recent_cpi / x.cpi)))
+df_sold_bikes_model_adjusted = (
+    df_sold_bikes_model.assign(
+        country=lambda x: x["location"].str.split(",").str[-1].str.strip(),
+        cpi_region=lambda x: x["country"].map(country_to_cpi),
+    )
+    .merge(
+        df_cpi_data,
+        how="left",
+        left_on=["last_repost_year", "cpi_region"],
+        right_on=["year", "region"],
+    )
+    .assign(price_cpi_adjusted=lambda x: (x.price * (x.most_recent_cpi / x.cpi)))
+)
 ```
 
 ```python
-(
-    df_sold_bikes_model_adjusted.groupby(["last_repost_month"])
-    .mean(numeric_only=True)[["price", "price_cpi_adjusted"]]
-    .plot(figsize=(12, 8), title="Inflation Adjusted Average Prices")
-)
+for region, group in df_sold_bikes_model_adjusted.groupby("cpi_region"):
+    (
+        group.groupby("last_repost_month")
+        .mean(numeric_only=True)[["price", "price_cpi_adjusted"]]
+        .plot(figsize=(12, 8), title=f"Inflation Adjusted Average Prices in {region}")
+    )
 ```
 
 
