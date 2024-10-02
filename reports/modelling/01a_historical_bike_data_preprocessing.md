@@ -104,16 +104,12 @@ df_historical_sold_world = (
     .query("still_for_sale.str.contains('Sold')")
     .assign(
         original_post_date=lambda x: pd.to_datetime(x["original_post_date"]),
-        last_repost_date=lambda x: pd.to_datetime(x["last_repost_date"]),
+        last_repost_date=lambda x: pd.to_datetime(x["last_repost_date"]).astype("datetime64[ns]"),
         category=lambda x: x.category.str.strip(),
         last_repost_year=lambda x: x.last_repost_date.dt.year,
         price=lambda x: x["price"].astype(float),
     )
 )
-```
-
-```python
-df_historical_sold_world.currency.value_counts()
 ```
 
 ```python
@@ -175,7 +171,11 @@ df_sold_bikes_model = (
     .query("description.str.lower().str.contains('stolen') == False")
     .query("description.str.lower().str.contains('looking for') == False")
     .query("price != 1234 and price != 12345 and price !=123")
-    .assign(last_repost_month=lambda x: (x["last_repost_date"] + pd.offsets.Day(1) + pd.offsets.MonthBegin(-1)).dt.date)
+    .assign(
+        last_repost_month=lambda x: (
+            x["last_repost_date"] + pd.offsets.Day(1) + pd.offsets.MonthBegin(-1)
+        ).dt.date.astype("datetime64[ns]")
+    )
 )
 ```
 
@@ -263,6 +263,7 @@ country_to_cpi = {
     "United Kingdom": "uk",
     "Wales": "uk",
     "Ireland": "uk",
+    "Northern Ireland": "uk",
     "Scotland": "uk",
     "Germany": "eu",
     "France": "eu",
@@ -294,6 +295,8 @@ country_to_cpi = {
     "Switzerland": "eu",
     "Iceland": "eu",
     "Liechtenstein": "eu",
+    "Poland": "eu",
+    "Ukraine": "eu",
 }
 ```
 
@@ -334,7 +337,7 @@ df_sold_bikes_model_adjusted = (
         cpi_region=lambda x: x["country"].map(country_to_cpi),
     )
     .merge(
-        df_cpi_data,
+        df_cpi_data.drop(columns=["currency"]),
         how="left",
         left_on=["last_repost_year", "cpi_region"],
         right_on=["year", "region"],
@@ -353,7 +356,7 @@ for region, group in df_sold_bikes_model_adjusted.groupby("cpi_region"):
 ```
 
 
-### Exchange Rates - USD -> CAD
+### Exchange Rates - USD/EUR/GBP -> CAD
 
 ```python
 # Use Yahoo Finance API through pandas_datareader
@@ -361,7 +364,7 @@ import numpy as np
 from pandas_datareader.yahoo.fx import YahooFXReader
 
 fx_reader = YahooFXReader(
-    symbols=["CAD"],
+    symbols=["USDCAD", "EURCAD", "GBPCAD"],
     start="01-JAN-2010",
     end=df_sold_bikes_model.last_repost_date.max(),
     interval="mo",
@@ -376,34 +379,37 @@ df_fx = (
     .reset_index()
     .assign(
         fx_month=lambda x: (pd.to_datetime(x.Date) + pd.offsets.Day(1) + pd.offsets.MonthBegin(-1)),
-        currency=lambda x: np.where(x.PairCode == "CAD", "USD", "CAD"),
+        currency=lambda x: x["PairCode"].str.replace("CAD", ""),
     )
-    .rename(columns={"Close": "fx_rate_USD_CAD"})
-    .filter(["fx_month", "currency", "fx_rate_USD_CAD"])
-    .groupby("fx_month", as_index=False)
+    .rename(columns={"Close": "fx_rate_CAD"})
+    .filter(["fx_month", "currency", "fx_rate_CAD", "PairCode"])
+    .groupby(["currency", "fx_month"], as_index=False)
     .mean(numeric_only=True)
     .set_index("fx_month")
+    .groupby("currency")
     .resample("MS")
-    .mean()
+    .mean(numeric_only=True)
     .ffill()
     .reset_index()
-    .assign(
-        currency="USD", fx_month=lambda x: x.fx_month.dt.date
-    )  # Need to extend series to carry forward last fx rate.
     .merge(
-        df_sold_bikes_model["last_repost_month"].drop_duplicates(),
+        df_sold_bikes_model[["last_repost_month", "currency"]]
+        .assign(last_repost_month=lambda x: x.last_repost_month.astype("datetime64[ns]"))
+        .drop_duplicates(),
         how="right",
-        left_on="fx_month",
-        right_on="last_repost_month",
+        left_on=["fx_month", "currency"],
+        right_on=["last_repost_month", "currency"],
+    )
+    .assign(
+        fx_month=lambda x: np.where(x.currency == "CAD", x.last_repost_month, x.fx_month),
+        fx_rate_CAD=lambda x: np.where(x.currency == "CAD", 1, x.fx_rate_CAD),
     )
     .sort_values("last_repost_month")
-    .assign(
-        fx_rate_USD_CAD=lambda x: x.fx_rate_USD_CAD.ffill(),
-        currency=lambda x: x.currency.ffill(),
-        fx_month=lambda x: x.last_repost_month,
-    )
+    .groupby("currency")
+    .apply(lambda group: group.ffill())
+    .reset_index(drop=True)
     .drop(columns=["last_repost_month"])
 )
+# df_fx  # .query("currency=='CAD'")
 ```
 
 ```python
@@ -415,9 +421,12 @@ df_sold_bikes_model_adjusted_CAD = df_sold_bikes_model_adjusted.merge(
     right_on=["fx_month", "currency"],
 ).assign(
     fx_month=lambda x: x.fx_month.where(~x.fx_month.isna(), other=x.last_repost_month),
-    fx_rate_USD_CAD=lambda x: x.fx_rate_USD_CAD.where(x.currency == "USD", other=1.00),
-    price_cpi_adjusted_CAD=lambda x: x.price_cpi_adjusted * x.fx_rate_USD_CAD,
+    price_cpi_adjusted_CAD=lambda x: x.price_cpi_adjusted * x.fx_rate_CAD,
 )
+```
+
+```python
+df_sold_bikes_model_adjusted_CAD.query("price_cpi_adjusted_CAD.isna()").country.value_counts()
 ```
 
 ```python
