@@ -295,7 +295,6 @@ country_to_cpi = {
     "Switzerland": "eu",
     "Iceland": "eu",
     "Liechtenstein": "eu",
-    "Poland": "eu",
     "Ukraine": "eu",
 }
 ```
@@ -334,7 +333,7 @@ df_cpi_data = df_cpi_data.set_index(["region", "year"]).reindex(idx).groupby(lev
 df_sold_bikes_model_adjusted = (
     df_sold_bikes_model.assign(
         country=lambda x: x["location"].str.split(",").str[-1].str.strip(),
-        cpi_region=lambda x: x["country"].map(country_to_cpi),
+        cpi_region=lambda x: x["country"].str.strip().map(country_to_cpi),
     )
     .merge(
         df_cpi_data.drop(columns=["currency"]),
@@ -404,7 +403,7 @@ df_fx = (
         fx_rate_CAD=lambda x: np.where(x.currency == "CAD", 1, x.fx_rate_CAD),
     )
     .sort_values("last_repost_month")
-    .groupby("currency")
+    .groupby("currency", group_keys=False)
     .apply(lambda group: group.ffill())
     .reset_index(drop=True)
     .drop(columns=["last_repost_month"])
@@ -426,7 +425,7 @@ df_sold_bikes_model_adjusted_CAD = df_sold_bikes_model_adjusted.merge(
 ```
 
 ```python
-df_sold_bikes_model_adjusted_CAD.query("price_cpi_adjusted_CAD.isna()").country.value_counts()
+df_sold_bikes_model_adjusted_CAD.shape
 ```
 
 ```python
