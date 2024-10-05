@@ -35,7 +35,7 @@ from pb_buddy.scraper import PlaywrightScraper, get_category_list
 ```python
 # ------------------- SETTINGS ----------------------
 # Where processed data will get written to
-container_to_write_to = "pb-buddy-historical"
+path_out = "s3://bike-buddy/data/historical/adjusted/"
 file_stub = "_adjusted_bike_ads"
 # ----------------------------------------------------
 ```
@@ -528,19 +528,13 @@ Markdown(
 
 ```python
 # # Save out versioned file for modelling
-# timestamp = pd.Timestamp.now().strftime("%Y-%m-%d_%H_%M_%S")
-# filename = f"{timestamp}_{file_stub}.parquet.gzip"
-# dt.stream_parquet_to_blob(
-#     df_sold_bikes_model_adjusted_CAD,
-#     blob_name=filename,
-#     blob_container=container_to_write_to,
-# )
+timestamp = pd.Timestamp.now().strftime("%Y-%m-%d_%H_%M_%S")
+filename = f"{timestamp}_{file_stub}.parquet.gzip"
+df_sold_bikes_model_adjusted_CAD.to_parquet(f"{path_out}{filename}", compression="gzip")
 ```
 
 ```python
-Markdown(
-    f"The processed and adjusted data has been written to container: { container_to_write_to } with filename: {filename}"
-)
+Markdown(f"The processed and adjusted data has been written to container: { path_out } with filename: {filename}")
 ```
 
 ```python
