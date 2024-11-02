@@ -15,7 +15,6 @@ from autogluon.multimodal import MultiModalPredictor
 
 # Other models -----------
 from joblib import dump
-from ray import tune
 
 # Transformers modelling ---------------
 # from datasets import Dataset
@@ -57,7 +56,8 @@ if __name__ == "__main__":
     # In[3]:
 
     # Get dataset from blob storage, unless already found in data folder
-    local_cache_file_path = os.path.join("data", f"{input_file_name.split('.')[0]}.csv")
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    local_cache_file_path = os.path.join(script_dir, "data", f"{input_file_name.split('.')[0]}.csv")
     if os.path.exists(local_cache_file_path):
         df_modelling = pd.read_csv(local_cache_file_path, index_col=None)
     else:
@@ -83,6 +83,7 @@ if __name__ == "__main__":
             age_at_post=lambda _df: add_age(_df).fillna(-1000),
             country=lambda _df: add_country(_df),
             ad_title_description=lambda _df: _df.ad_title + " " + _df.description,
+            days_between_posts=lambda _df: (_df.last_repost_date - _df.original_post_date).dt.days,
         )
         ####### Augment with specs ########
         # .pipe(
@@ -92,7 +93,7 @@ if __name__ == "__main__":
         #     model_threshold=80,
         # )
         # .dropna(subset=["spec_url"])
-        .query("age_at_post>-365 ")
+        .query("age_at_post>-365 and days_between_posts<365")
         .query("~price_cpi_adjusted_CAD.isna()")
         .drop(columns=["age_at_post", "country"])
     )
@@ -134,7 +135,7 @@ if __name__ == "__main__":
 
     # In[7]:
 
-    sns.set_theme()
+    # %%
 
     # In[8]:
 
@@ -236,55 +237,57 @@ if __name__ == "__main__":
 
     # Save transformation pipeline from raw ad data
     run_uuid = uuid.uuid4().hex
-    os.makedirs(os.path.join(os.getcwd(), "tmp"), exist_ok=True)
-    dump(gluon_transformer, f"./tmp/{run_uuid}-transformer-auto_mm_bikes")
-
+    tmp_dir = os.path.join(os.path.dirname(__file__), "tmp")
+    os.makedirs(tmp_dir, exist_ok=True)
+    dump(gluon_transformer, os.path.join(tmp_dir, f"{run_uuid}-transformer-auto_mm_bikes"))
     # ## Model Fitting
 
     # time_limit = 12*60*60  # set to larger value in your applications
-    model_path = f"./tmp/{run_uuid}-auto_mm_bikes"
+    model_path = os.path.join(tmp_dir, f"{run_uuid}-auto_mm_bikes")
     predictor = MultiModalPredictor(
         label="price__price_cpi_adjusted_CAD",
         problem_type="regression",
         path=model_path,
         # eval_metric="mean",
-        verbosity=4,
+        verbosity=1,
         presets="best_quality",
     )
+
     predictor.fit(
         train_data=df_train_gluon,
         tuning_data=df_valid_gluon,
         time_limit=None,
-        presets="best_quality_hpo",
-        hyperparameters={
-            "optimization.learning_rate": tune.loguniform(1e-5, 1e-2),
-            "model.hf_text.checkpoint_name": tune.choice(["microsoft/deberta-v3-base"]),
-            # "optimization.optim_type": tune.choice(["adamw", "sgd"]),
-            # "optimization.max_epochs": tune.choice(list(range(5, 31))),
-            # "env.batch_size": tune.choice([16, 32, 64, 128, 256]),
-            #     # "optimization.learning_rate": tune.uniform(0.00001, 0.00006),
-            #     "optimization.optim_type": tune.choice(["adamw"]),
-            #     # "model.names": ["hf_text", "timm_image", "clip", "categorical_mlp", "numerical_mlp", "fusion_mlp"],
-            "optimization.max_epochs": 10,
-            #     # "optimization.patience": 6,  # Num checks without valid improvement, every 0.5 epoch by default
-            "env.per_gpu_batch_size": 14,
-            #     "env.num_workers": 1,
-            #     "env.num_workers_evaluation": 1,
-            #     # "model.hf_text.checkpoint_name": tune.choice(["google/electra-base-discriminator", 'roberta-base','roberta-large']),
-            #     # "model.hf_text.checkpoint_name": 'roberta-large',
-            #     # "model.hf_text.text_trivial_aug_maxscale": tune.choice(["0.0","0.10","0.15","0.2"])
-        },
-        hyperparameter_tune_kwargs={
-            "searcher": "bayes",
-            "scheduler": "ASHA",
-            "num_trials": 10,
-        },
+        presets="best_quality",
+        # hyperparameters={
+        #     "optimization.learning_rate": tune.loguniform(1e-5, 1e-2),
+        #     "model.hf_text.checkpoint_name": tune.choice(["microsoft/deberta-v3-base"]),
+        #     # "optimization.optim_type": tune.choice(["adamw", "sgd"]),
+        #     # "optimization.max_epochs": tune.choice(list(range(5, 31))),
+        #     # "env.batch_size": tune.choice([16, 32, 64, 128, 256]),
+        #     #     # "optimization.learning_rate": tune.uniform(0.00001, 0.00006),
+            #     #     "optimization.optim_type": tune.choice(["adamw"]),
+            #     #     # "model.names": ["hf_text", "timm_image", "clip", "categorical_mlp", "numerical_mlp", "fusion_mlp"],
+            # "optimization.max_epochs": 1,
+            #     #     # "optimization.patience": 6,  # Num checks without valid improvement, every 0.5 epoch by default
+            # "env.batch_size": tune.choice([32, 64]),
+            # "env.per_gpu_batch_size": 16,
+            #     #     "env.num_workers": 1,
+            #     #     "env.num_workers_evaluation": 1,
+            #     #     # "model.hf_text.checkpoint_name": tune.choice(["google/electra-base-discriminator", 'roberta-base','roberta-large']),
+            #     #     # "model.hf_text.checkpoint_name": 'roberta-large',
+            # "model.hf_text.text_trivial_aug_maxscale": 0,
+        # },
+        # hyperparameter_tune_kwargs={
+        #     "searcher": "bayes",
+        #     "scheduler": "ASHA",
+        #     "num_trials": 2,
+        # },
     )
 
     print(predictor.fit_summary())
 
     # torch.set_float32_matmul_precision(precision='medium')
-    predictor._config.env.per_gpu_batch_size = 70
+    # predictor._config.env.per_gpu_batch_size = 70
 
     df_gluon_inspection = pd.DataFrame(
         data=gluon_transformer.transform(pd.concat([df_valid, df_train])),
