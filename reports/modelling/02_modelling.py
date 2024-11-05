@@ -258,7 +258,7 @@ if __name__ == "__main__":
         tuning_data=df_valid_gluon,
         time_limit=None,
         presets="best_quality",
-        # hyperparameters={
+        hyperparameters={
         #     "optimization.learning_rate": tune.loguniform(1e-5, 1e-2),
         #     "model.hf_text.checkpoint_name": tune.choice(["microsoft/deberta-v3-base"]),
         #     # "optimization.optim_type": tune.choice(["adamw", "sgd"]),
@@ -270,13 +270,13 @@ if __name__ == "__main__":
             # "optimization.max_epochs": 1,
             #     #     # "optimization.patience": 6,  # Num checks without valid improvement, every 0.5 epoch by default
             # "env.batch_size": tune.choice([32, 64]),
-            # "env.per_gpu_batch_size": 16,
+            "env.per_gpu_batch_size": 16,
             #     #     "env.num_workers": 1,
             #     #     "env.num_workers_evaluation": 1,
             #     #     # "model.hf_text.checkpoint_name": tune.choice(["google/electra-base-discriminator", 'roberta-base','roberta-large']),
             #     #     # "model.hf_text.checkpoint_name": 'roberta-large',
-            # "model.hf_text.text_trivial_aug_maxscale": 0,
-        # },
+            "model.hf_text.text_trivial_aug_maxscale": 0,
+        },
         # hyperparameter_tune_kwargs={
         #     "searcher": "bayes",
         #     "scheduler": "ASHA",
