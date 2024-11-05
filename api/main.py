@@ -45,7 +45,7 @@ class BikeBuddyAdPredictions(BaseModel):
 
 # Local paths to download model and pipeline files
 BASE_DIR = "/assets"
-# S3_BUCKET_NAME = "bike-buddy"
+S3_BUCKET_NAME = "bike-buddy"
 UUID = "b9f12bc7cbd34fc39bf300b88f2ab57a"
 PIPELINE_FILE = f"models/{UUID}-transformer-auto_mm_bikes.pkl"
 MODEL_FILE = f"models/{UUID}-auto_mm_bikes"
@@ -72,15 +72,11 @@ def download_assets():
 
 web_app = FastAPI(title="Bike Buddy API", description="API bike price prediction", version="0.1")
 app = App("bike-buddy-api")
-S3_BUCKET_NAME = "bike-buddy"
 image = (
     Image.debian_slim(python_version="3.11")
-    .pip_install("torch==2.0.1+cu117", extra_index_url="https://download.pytorch.org/whl/cu117")
-    .pip_install("torchvision==0.15.2+cu117", extra_index_url="https://download.pytorch.org/whl/cu117")
-    .pip_install("torchaudio==2.0.2+cu117", extra_index_url="https://download.pytorch.org/whl/cu117")
     .pip_install("autogluon.multimodal==1.1.1")
-    .pip_install("fastapi==0.68.0")
-    .pip_install("uvicorn==0.14.0")
+    .pip_install("fastapi==0.115.4")
+    .pip_install("uvicorn==0.32.0")
     .pip_install("boto3")
     .pip_install_private_repos(
         "github.com/pb-buddy/pb-buddy@master",
