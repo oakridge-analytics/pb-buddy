@@ -74,13 +74,12 @@ class PlaywrightScraper:
             return results
 
 
-def get_category_list(playwright_scraper: PlaywrightScraper) -> dict:
+def get_category_list(playwright: PlaywrightScraper) -> dict:
     """
     Get the mapping of category name to category number
-    for all categories from https://www.pinkbike.com/buysell/
+    for all categories from the given page content of the buysell listing page.
     """
-    page_content = playwright_scraper.get_page_content("https://www.pinkbike.com/buysell/")
-
+    page_content = playwright.get_page_content("https://www.pinkbike.com/buysell/")
     soup = BeautifulSoup(page_content, features="html.parser")
 
     category_dict = {}
@@ -339,10 +338,10 @@ def parse_buysell_buycycle_ad(page_content: BeautifulSoup) -> dict:
     price_element = soup.find("p", class_="text-3xl font-500 mb-0 content-sale")
     if price_element:
         price_text = price_element.text.strip()
-        price_match = re.search(r'([\D]*)(\d[\d.,]*)([\D]*)', price_text)
+        price_match = re.search(r"([\D]*)(\d[\d.,]*)([\D]*)", price_text)
         if price_match:
             pre_text, price, post_text = price_match.groups()
-            price = price.replace('.', '').replace(',', '')
+            price = price.replace(".", "").replace(",", "")
             currency = pre_text.strip() if pre_text else post_text.strip()
         else:
             price = None
@@ -354,7 +353,7 @@ def parse_buysell_buycycle_ad(page_content: BeautifulSoup) -> dict:
     original_post_date = str(pd.Timestamp.today(tz="US/Mountain"))
     country = soup.find("p", class_="text-sm content-tertiary mb-0").text.strip()
     details = []
-    
+
     # Extract brand and model
     brand_model = soup.find("div", class_="py-3")
     if brand_model:
@@ -370,7 +369,7 @@ def parse_buysell_buycycle_ad(page_content: BeautifulSoup) -> dict:
     if summary_info:
         summary_text = summary_info.text.strip()
         details.append(f"Summary: {summary_text}")
-    
+
     # Extract condition and details
     condition_details = soup.find("ul", class_="pdp-modal-bike-info-list")
     if condition_details:
@@ -379,7 +378,7 @@ def parse_buysell_buycycle_ad(page_content: BeautifulSoup) -> dict:
             span = li.find("span", class_="secondary-3")
             if strong and span:
                 details.append(f"{strong.text.strip().rstrip(':').rstrip()}: {span.text.strip()}")
-    
+
     # Extract components
     components = soup.find("div", class_="pdp-modal-bike-components-list")
     if components:
@@ -387,27 +386,27 @@ def parse_buysell_buycycle_ad(page_content: BeautifulSoup) -> dict:
             component = div.find("p", class_="d-flex align-items-center primary gap-1 mb-1")
             value = div.find("div", class_="content-secondary")
             if component and value:
-                component_text = component.text.strip().rstrip(':').rstrip().rstrip('\n')
+                component_text = component.text.strip().rstrip(":").rstrip().rstrip("\n")
                 value_text = value.text.strip()
-                if value_text and value_text != '-':
+                if value_text and value_text != "-":
                     details.append(f"{component_text}: {value_text}")
-    
+
     # Extract additional details
     additional_details = soup.find("div", class_="pdp-modal-bike-other")
     if additional_details:
         info_div = additional_details.find("div", class_="text-sm content-secondary mb-0 info-div-content")
         if info_div:
             details.append(f"Additional Details: {info_div.text.strip()}")
-    
+
     details_text = " ".join(details)
-    details_text = re.sub(r'\s+', ' ', details_text).strip()
-            
+    details_text = re.sub(r"\s+", " ", details_text).strip()
+
     data_dict["ad_title"] = ad_title
     data_dict["price"] = price
     currency_mapping = {
         "\u20ac": "EUR",  # Euro
         "\u00a3": "GBP",  # British Pound
-        "$": "USD",       # US Dollar (assuming $ is always USD)
+        "$": "USD",  # US Dollar (assuming $ is always USD)
     }
     data_dict["currency"] = currency_mapping.get(currency, currency)
     data_dict["original_post_date"] = original_post_date
