@@ -82,7 +82,7 @@ def get_dataset(category_num: int, data_type: str, region_code: Optional[int] = 
 
         if "datetime_scraped" in df_out.columns:
             df_out = df_out.assign(
-                datetime_scraped=lambda x: pd.to_datetime(x.datetime_scraped, utc=True).dt.tz_convert("US/Mountain")
+                datetime_scraped=lambda x: pd.to_datetime(x.datetime_scraped, utc=True, format="ISO8601").dt.tz_convert("US/Mountain")
             )
     return df_out
 
@@ -186,7 +186,6 @@ def get_mongodb():
         serverSelectionTimeoutMS=200000,
         connectTimeoutMS=300000,
         socketTimeoutMS=None,
-        socketKeepAlive=True,
         connect=False,
         maxPoolsize=1,
     )
