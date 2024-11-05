@@ -23,7 +23,7 @@ def main(full_refresh=False, delay_s=1, num_jobs=8, categories_to_scrape: Option
     # workflow_dispatch vs. cron scheduled runs
     num_jobs = int(num_jobs) if num_jobs else 8
     playwright_scraper = scraper.PlaywrightScraper()
-    category_dict = scraper.get_category_list(playwright_scraper=playwright_scraper)
+    category_dict = scraper.get_category_list(playwright=playwright_scraper)
     # Settings -----------------------------------------------------------------
     log_level = "INFO"
     show_progress = False if os.environ.get("PROGRESS", "0") == "0" else True
