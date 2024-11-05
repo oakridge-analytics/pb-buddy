@@ -17,6 +17,19 @@ import pb_buddy.data_processors as dt
 import pb_buddy.scraper as scraper
 import pb_buddy.utils as ut
 
+import threading
+from concurrent.futures import ThreadPoolExecutor
+
+class PlaywrightThread(threading.local):
+    def __init__(self) -> None:
+        self.scraper = scraper.PlaywrightScraper()
+        logging.debug(f"Created playwright instance in Thread {threading.current_thread().name}")
+
+def process_chunk(urls):
+    """Process a chunk of URLs using thread-local Playwright instance"""
+    thread_local = PlaywrightThread()
+    results = thread_local.scraper.process_urls(urls, scraper.get_buysell_ads)
+    return results
 
 def main(full_refresh=False, delay_s=1, num_jobs=8, categories_to_scrape: Optional[List[int]] = None, region=3):
     # TODO: Fix how we handle poor formatted inputs when using
@@ -94,11 +107,18 @@ def main(full_refresh=False, delay_s=1, num_jobs=8, categories_to_scrape: Option
             for x in pages_to_check
         ]
         url_chunks = np.array_split(page_urls, num_jobs)
-        ad_urls = Parallel(n_jobs=num_jobs)(
-            delayed(scraper.PlaywrightScraper().process_urls)(chunk, scraper.get_buysell_ads)
-            for chunk in tqdm(url_chunks, disable=(not show_progress))
-        )
-        ad_urls = {key: value for chunk in ad_urls for d in chunk for key, value in d.items()}
+        
+
+        with ThreadPoolExecutor(max_workers=num_jobs) as executor:
+            futures = [
+                executor.submit(process_chunk, chunk)
+                for chunk in url_chunks
+            ]
+            ad_urls = []
+            for future in tqdm(futures, disable=(not show_progress)):
+                ad_urls.extend(future.result())
+            
+        ad_urls = {key: value for d in ad_urls for key, value in d.items()}
 
         # Get new ad data ---------------------------------------------------------
         intermediate_ad_data = []
