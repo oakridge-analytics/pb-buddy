@@ -94,6 +94,7 @@ image = (
 
 @app.cls(
     image=image,
+    gpu="T4",
 )
 class AutoGluonModelInference:
     @enter()
