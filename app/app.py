@@ -360,6 +360,7 @@ dash_app.layout = dbc.Container(
                             color="secondary",
                             className="mt-3",
                         ),
+                        html.Br(),
                         html.Div(
                             [
                                 html.Br(),
