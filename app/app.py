@@ -16,6 +16,7 @@ from dash.dependencies import Input, Output, State
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 import yfinance as yf
+from dash.exceptions import PreventUpdate
 
 from pb_buddy.scraper import (
     AdType,
@@ -190,6 +191,23 @@ SAMPLE_URLS = [
     "https://www.pinkbike.com/buysell/3905160/",
 ]
 
+# Add this function before the layout
+def warm_up_model():
+    """Make a request to warm up the model on startup"""
+    logger.info("Warming up model with initial request...")
+    try:
+        data = [{
+            "ad_title": "2020 Test Bike",
+            "description": "This is a test description",
+            "location": "Unknown, Canada",
+            "original_post_date": str(pd.Timestamp.now().date())
+        }]
+        requests.post(API_URL, json=data, timeout=30)
+        logger.info("Model warm-up complete")
+    except Exception as e:
+        logger.error(f"Error warming up model: {e}")
+
+# Modify the layout to remove the top loading div
 dash_app.layout = dbc.Container(
     [
         html.H1("Bike Buddy", className="text-center mb-4"),
@@ -342,6 +360,19 @@ dash_app.layout = dbc.Container(
                             color="secondary",
                             className="mt-3",
                         ),
+                        html.Div(
+                            [
+                                html.Br(),
+                                html.Div(id="warmup-text", children="Model warming up...", style={"textAlign": "center"}),
+                                html.Br(),
+                                dcc.Loading(
+                                    id="model-warmup-loading",
+                                    children=[html.Div(id="model-warmup-output")],
+                                    type="dot",
+                                ),
+                            ],
+                            style={"display": "inline-block", "marginLeft": "10px"},
+                        ),
                         html.Br(),
                         html.Br(),
                         html.Br(),
@@ -365,6 +396,15 @@ dash_app.layout = dbc.Container(
         ),
     ]
 )
+
+@dash_app.callback(
+    [Output("model-warmup-output", "children"),
+     Output("warmup-text", "children")],
+    Input("model-warmup-output", "id")
+)
+def initialize_model(_):
+    warm_up_model()
+    return "", ""  # Empty string for loading output, text for warmup message
 
 @dash_app.callback(
     [
