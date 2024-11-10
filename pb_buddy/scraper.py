@@ -65,9 +65,15 @@ class PlaywrightScraper:
             page = context.new_page()
             results = []
             for url in urls:
-                page.goto(url)
-                page_content = page.content()
-                results.append(callable_func(page_content))
+                try:
+                    # Set a longer timeout and wait until network is idle
+                    page.goto(url, timeout=60000, wait_until='networkidle')
+                    page_content = page.content()
+                    results.append(callable_func(page_content))
+                except Exception as e:
+                    print(f"Error processing URL {url}: {str(e)}")
+                    results.append(None)  # or handle the error case as needed
+                    continue
 
             context.close()
             browser.close()
