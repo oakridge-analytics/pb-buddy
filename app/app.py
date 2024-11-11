@@ -16,7 +16,6 @@ from dash import dcc, html
 from dash.dependencies import Input, Output, State
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
-from playwright_stealth import stealth_sync
 import yfinance as yf
 from dash.exceptions import PreventUpdate
 
@@ -76,7 +75,7 @@ def get_page_from_playwright_scraper(url: str) -> str:
     with sync_playwright() as p:
         browser = create_browser(p, slow_mo=300)
         page = browser.new_page()
-        stealth_sync(page)
+        # stealth_sync(page)
         user_agent = random.choice(user_agents_opts)
         logger.info(f"Using user agent: {user_agent}")
         page.set_extra_http_headers({"User-Agent": user_agent})
@@ -91,7 +90,7 @@ def get_page_screenshot(url: str) -> str:
     with sync_playwright() as p:
         browser = create_browser(p)
         page = browser.new_page()
-        stealth_sync(page)
+        # stealth_sync(page)
         page.set_extra_http_headers({"User-Agent": random.choice(user_agents_opts)})
         page.goto(url)
         screenshot = page.screenshot(full_page=True)
