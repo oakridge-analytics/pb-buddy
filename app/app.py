@@ -4,6 +4,7 @@ import logging
 import os
 import random
 import re
+from typing import Optional
 
 import dash
 import dash_bootstrap_components as dbc
@@ -15,6 +16,7 @@ from dash import dcc, html
 from dash.dependencies import Input, Output, State
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
+from playwright_stealth import stealth_sync
 import yfinance as yf
 from dash.exceptions import PreventUpdate
 
@@ -35,16 +37,46 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 user_agents_opts = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    # "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    # "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"
 ]
 
-# Need to use playwright to evade Cloudflare's bot detection
-# in certain cases.
+def get_proxy_config() -> Optional[dict]:
+    """Get proxy configuration from environment variables."""
+    proxy_server = os.environ.get('PROXY_SERVER')
+    proxy_username = os.environ.get('PROXY_USERNAME')
+    proxy_password = os.environ.get('PROXY_PASSWORD')
+    
+    if not all([proxy_server, proxy_username, proxy_password]):
+        return None
+        
+    config = {
+        'server': proxy_server,
+        'username': proxy_username,
+        'password': proxy_password
+    }
+    
+    logger.info("Proxy configuration loaded successfully")
+    return config
+
+def create_browser(playwright, slow_mo: int = 0):
+    """Create a browser instance with proxy configuration if available."""
+    proxy_config = get_proxy_config()
+    launch_options = {
+        'slow_mo': slow_mo,
+    }
+    if proxy_config:
+        launch_options['proxy'] = proxy_config
+        logger.info(f"Using proxy server: {proxy_config['server']}")
+    
+    return playwright.firefox.launch(**launch_options)
+
 def get_page_from_playwright_scraper(url: str) -> str:
     with sync_playwright() as p:
-        browser = p.chromium.launch()
+        browser = create_browser(p, slow_mo=300)
         page = browser.new_page()
+        stealth_sync(page)
         user_agent = random.choice(user_agents_opts)
         logger.info(f"Using user agent: {user_agent}")
         page.set_extra_http_headers({"User-Agent": user_agent})
@@ -52,15 +84,14 @@ def get_page_from_playwright_scraper(url: str) -> str:
         if response.status == 403:
             logger.warning(f"Received 403 Forbidden status for URL: {url}")
         page_content = page.content()
-
         browser.close()
-
     return page_content
 
 def get_page_screenshot(url: str) -> str:
     with sync_playwright() as p:
-        browser = p.chromium.launch()
+        browser = create_browser(p)
         page = browser.new_page()
+        stealth_sync(page)
         page.set_extra_http_headers({"User-Agent": random.choice(user_agents_opts)})
         page.goto(url)
         screenshot = page.screenshot(full_page=True)
@@ -187,7 +218,6 @@ current_year = pd.Timestamp.now().year
 SAMPLE_URLS = [
     "https://buycycle.com/en-ca/bike/megatower-s-carbon-c-29-2019-60199",
     "https://www.pinkbike.com/buysell/3924063/",
-    "https://www.pinkbike.com/buysell/3896775/",
     "https://www.pinkbike.com/buysell/3905160/",
 ]
 
