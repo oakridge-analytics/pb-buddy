@@ -66,8 +66,7 @@ class PlaywrightScraper:
             results = []
             for url in urls:
                 try:
-                    # Set a longer timeout and wait until network is idle
-                    page.goto(url, timeout=60000, wait_until='networkidle')
+                    page.goto(url, timeout=60000,)
                     page_content = page.content()
                     results.append(callable_func(page_content))
                 except Exception as e:
@@ -89,6 +88,10 @@ def get_category_list(playwright: PlaywrightScraper) -> dict:
     soup = BeautifulSoup(page_content, features="html.parser")
 
     category_dict = {}
+
+    if len(soup.find_all("a")) == 0:
+        raise Exception("No links found on the buysell page")
+
     for link in soup.find_all("a"):
         if link.get("href") is None:
             continue
