@@ -11,7 +11,7 @@ else:
 
 app = App("bike-buddy-ui")
 image = (
-    Image.debian_slim(python_version="3.9")
+    Image.debian_slim(python_version="3.11")
     .pip_install(
         [
             "dash==2.9.1",
@@ -31,7 +31,7 @@ image = (
 )
 
 
-@app.function(image=image, secrets=[modal.Secret.from_name("openai-secret")], cpu=2.0, memory=4000, mounts=[modal.Mount.from_local_python_packages("app")])
+@app.function(image=image, secrets=[modal.Secret.from_name("openai-secret"), modal.Secret.from_name("oxy-proxy")], cpu=2.0, memory=4000, mounts=[modal.Mount.from_local_python_packages("app")])
 @wsgi_app()
 def flask_app():
     return dash_app.server
