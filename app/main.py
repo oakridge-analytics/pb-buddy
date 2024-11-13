@@ -1,17 +1,15 @@
-import os
-
 import modal
-from modal import App, Image, Secret, wsgi_app
+from browser_service import app as browser_app  # noqa
+
 from app import dash_app
 
-if os.environ.get("API_URL") is None:
-    API_URL = "https://dbandrews--bike-buddy-api-autogluonmodelinference-predict.modal.run"
-else:
-    API_URL = os.environ["API_URL"]
+# Create the main app
+app = modal.App("bike-buddy")
 
-app = App("bike-buddy-ui")
+# Merge the browser service app
+# web_app.merge(browser_app)
 image = (
-    Image.debian_slim(python_version="3.11")
+    modal.Image.debian_slim(python_version="3.11")
     .pip_install(
         [
             "dash==2.9.1",
@@ -23,15 +21,25 @@ image = (
     .pip_install_private_repos(
         "github.com/pb-buddy/pb-buddy@master",
         git_user="dbandrews",
-        secrets=[Secret.from_name("pb-buddy-github")],
+        secrets=[modal.Secret.from_name("pb-buddy-github")],
         # force_build=True,
     )
-    .run_commands("playwright install-deps")
-    .run_commands("playwright install")
 )
 
 
-@app.function(image=image, secrets=[modal.Secret.from_name("openai-secret"), modal.Secret.from_name("oxy-proxy")], cpu=2.0, memory=4000, mounts=[modal.Mount.from_local_python_packages("app")])
-@wsgi_app()
-def flask_app():
+@app.function(
+    image=image,
+    secrets=[modal.Secret.from_name("openai-secret"), modal.Secret.from_name("oxy-proxy")],
+    cpu=2.0,
+    memory=4000,
+    mounts=[modal.Mount.from_local_python_packages("app")],
+    keep_warm=1,
+    allow_concurrent_inputs=10,
+)
+@modal.wsgi_app()
+def web():
     return dash_app.server
+
+
+# if __name__ == "__main__":
+#     modal.deploy(web_app)
