@@ -1,8 +1,6 @@
-import base64
 import json
 import logging
 import os
-import random
 import re
 from typing import Optional
 
@@ -11,19 +9,19 @@ import dash_bootstrap_components as dbc
 import openai
 import pandas as pd
 import requests
+import yfinance as yf
 from bs4 import BeautifulSoup
 from dash import dcc, html
 from dash.dependencies import Input, Output, State
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
-from playwright.sync_api import sync_playwright
-import yfinance as yf
-from dash.exceptions import PreventUpdate
 
 from pb_buddy.scraper import (
     AdType,
     parse_buysell_buycycle_ad,
     parse_buysell_pinkbike_ad,
 )
+
+from .browser_service import BrowserService
 
 if os.environ.get("API_URL") is None:
     API_URL = "https://dbandrews--bike-buddy-api-autogluonmodelinference-predict.modal.run"
@@ -41,61 +39,31 @@ user_agents_opts = [
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"
 ]
 
+
 def get_proxy_config() -> Optional[dict]:
     """Get proxy configuration from environment variables."""
-    proxy_server = os.environ.get('PROXY_SERVER')
-    proxy_username = os.environ.get('PROXY_USERNAME')
-    proxy_password = os.environ.get('PROXY_PASSWORD')
-    
+    proxy_server = os.environ.get("PROXY_SERVER")
+    proxy_username = os.environ.get("PROXY_USERNAME")
+    proxy_password = os.environ.get("PROXY_PASSWORD")
+
     if not all([proxy_server, proxy_username, proxy_password]):
         return None
-        
-    config = {
-        'server': proxy_server,
-        'username': proxy_username,
-        'password': proxy_password
-    }
-    
+
+    config = {"server": proxy_server, "username": proxy_username, "password": proxy_password}
+
     logger.info("Proxy configuration loaded successfully")
     return config
 
-def create_browser(playwright, slow_mo: int = 0):
-    """Create a browser instance with proxy configuration if available."""
-    proxy_config = get_proxy_config()
-    launch_options = {
-        'slow_mo': slow_mo,
-    }
-    if proxy_config:
-        launch_options['proxy'] = proxy_config
-        logger.info(f"Using proxy server: {proxy_config['server']}")
-    
-    return playwright.firefox.launch(**launch_options)
 
 def get_page_from_playwright_scraper(url: str) -> str:
-    with sync_playwright() as p:
-        browser = create_browser(p, slow_mo=300)
-        page = browser.new_page()
-        # stealth_sync(page)
-        user_agent = random.choice(user_agents_opts)
-        logger.info(f"Using user agent: {user_agent}")
-        page.set_extra_http_headers({"User-Agent": user_agent})
-        response = page.goto(url)
-        if response.status == 403:
-            logger.warning(f"Received 403 Forbidden status for URL: {url}")
-        page_content = page.content()
-        browser.close()
-    return page_content
+    browser_service = BrowserService()
+    return browser_service.get_page_content.remote(url)
+
 
 def get_page_screenshot(url: str) -> str:
-    with sync_playwright() as p:
-        browser = create_browser(p)
-        page = browser.new_page()
-        # stealth_sync(page)
-        page.set_extra_http_headers({"User-Agent": random.choice(user_agents_opts)})
-        page.goto(url)
-        screenshot = page.screenshot(full_page=True)
-        browser.close()
-    return base64.b64encode(screenshot).decode("utf-8")
+    browser_service = BrowserService()
+    return browser_service.get_page_screenshot.remote(url)
+
 
 def parse_other_buysell_ad(url: str) -> tuple[dict, str]:
     """
@@ -143,7 +111,15 @@ def parse_other_buysell_ad(url: str) -> tuple[dict, str]:
                             "type": "string",
                         },
                     },
-                    "required": ["model_year", "ad_title", "description", "location", "original_post_date", "price", "currency"],
+                    "required": [
+                        "model_year",
+                        "ad_title",
+                        "description",
+                        "location",
+                        "original_post_date",
+                        "price",
+                        "currency",
+                    ],
                 },
             },
         }
@@ -186,6 +162,7 @@ def parse_other_buysell_ad(url: str) -> tuple[dict, str]:
             parsed_ad[key] = None
     return parsed_ad, b64_img
 
+
 def convert_currency_symbol(symbol: str) -> str:
     currency_symbols = {
         "$": "USD",
@@ -201,15 +178,16 @@ def convert_currency_symbol(symbol: str) -> str:
     }
     return currency_symbols.get(symbol, symbol)
 
+
 def convert_currency(amount: float, from_currency: str, to_currency: str) -> float:
     if from_currency == to_currency:
         return amount
-    
+
     from_currency = convert_currency_symbol(from_currency)
     to_currency = convert_currency_symbol(to_currency)
-    
+
     ticker = f"{from_currency}{to_currency}=X"
-    exchange_rate = yf.Ticker(ticker).info['regularMarketPreviousClose']
+    exchange_rate = yf.Ticker(ticker).info["regularMarketPreviousClose"]
     return amount * exchange_rate
 
 
@@ -220,21 +198,25 @@ SAMPLE_URLS = [
     "https://www.pinkbike.com/buysell/3905160/",
 ]
 
+
 # Add this function before the layout
 def warm_up_model():
     """Make a request to warm up the model on startup"""
     logger.info("Warming up model with initial request...")
     try:
-        data = [{
-            "ad_title": "2020 Test Bike",
-            "description": "This is a test description",
-            "location": "Unknown, Canada",
-            "original_post_date": str(pd.Timestamp.now().date())
-        }]
+        data = [
+            {
+                "ad_title": "2020 Test Bike",
+                "description": "This is a test description",
+                "location": "Unknown, Canada",
+                "original_post_date": str(pd.Timestamp.now().date()),
+            }
+        ]
         requests.post(API_URL, json=data, timeout=30)
         logger.info("Model warm-up complete")
     except Exception as e:
         logger.error(f"Error warming up model: {e}")
+
 
 # Modify the layout to remove the top loading div
 dash_app.layout = dbc.Container(
@@ -263,15 +245,10 @@ dash_app.layout = dbc.Container(
                             id="sample-urls",
                             options=[{"label": url, "value": url} for url in SAMPLE_URLS],
                             placeholder="Select a sample URL or enter your own below",
-                            style={'width': '100%'}
+                            style={"width": "100%"},
                         ),
                         html.Br(),
-                        dcc.Input(
-                            id="ad-url",
-                            placeholder="Enter URL",
-                            type="text",
-                            style={'width': '100%'}
-                        ),
+                        dcc.Input(id="ad-url", placeholder="Enter URL", type="text", style={"width": "100%"}),
                         html.Br(),
                         dbc.Button(
                             "Parse Ad",
@@ -347,36 +324,44 @@ dash_app.layout = dbc.Container(
                                             placeholder="Select Post Date",
                                         ),
                                         html.Br(),
-                                        dbc.Row([
-                                            dbc.Col([
-                                                dbc.Label("Listed Price", html_for="ad-price"),
-                                                dcc.Input(
-                                                    id="ad-price",
-                                                    type="number",
-                                                    placeholder="Enter Price",
-                                                    style={"width": "100%"}
-                                                ),
-                                            dbc.Tooltip(
-                                                "Enter the listed price for comparison with the predicted price.",
-                                                target="ad-price",
-                                                placement="top",
-                                            ),
-                                            ], width=8),
-                                            dbc.Col([
-                                                dbc.Label("Currency", html_for="price-currency"),
-                                                dcc.Dropdown(
-                                                    id="price-currency",
-                                                    options=[
-                                                        {"label": "CAD", "value": "CAD"},
-                                                        {"label": "USD", "value": "USD"},
-                                                        {"label": "GBP", "value": "GBP"},
-                                                        {"label": "EUR", "value": "EUR"},
+                                        dbc.Row(
+                                            [
+                                                dbc.Col(
+                                                    [
+                                                        dbc.Label("Listed Price", html_for="ad-price"),
+                                                        dcc.Input(
+                                                            id="ad-price",
+                                                            type="number",
+                                                            placeholder="Enter Price",
+                                                            style={"width": "100%"},
+                                                        ),
+                                                        dbc.Tooltip(
+                                                            "Enter the listed price for comparison with the predicted price.",
+                                                            target="ad-price",
+                                                            placement="top",
+                                                        ),
                                                     ],
-                                                    value="CAD",
-                                                    style={"width": "100%"}
+                                                    width=8,
                                                 ),
-                                            ], width=4),
-                                        ]),
+                                                dbc.Col(
+                                                    [
+                                                        dbc.Label("Currency", html_for="price-currency"),
+                                                        dcc.Dropdown(
+                                                            id="price-currency",
+                                                            options=[
+                                                                {"label": "CAD", "value": "CAD"},
+                                                                {"label": "USD", "value": "USD"},
+                                                                {"label": "GBP", "value": "GBP"},
+                                                                {"label": "EUR", "value": "EUR"},
+                                                            ],
+                                                            value="CAD",
+                                                            style={"width": "100%"},
+                                                        ),
+                                                    ],
+                                                    width=4,
+                                                ),
+                                            ]
+                                        ),
                                         html.Br(),
                                     ],
                                 ),
@@ -393,7 +378,9 @@ dash_app.layout = dbc.Container(
                         html.Div(
                             [
                                 html.Br(),
-                                html.Div(id="warmup-text", children="Model warming up...", style={"textAlign": "center"}),
+                                html.Div(
+                                    id="warmup-text", children="Model warming up...", style={"textAlign": "center"}
+                                ),
                                 html.Br(),
                                 dcc.Loading(
                                     id="model-warmup-loading",
@@ -427,14 +414,14 @@ dash_app.layout = dbc.Container(
     ]
 )
 
+
 @dash_app.callback(
-    [Output("model-warmup-output", "children"),
-     Output("warmup-text", "children")],
-    Input("model-warmup-output", "id")
+    [Output("model-warmup-output", "children"), Output("warmup-text", "children")], Input("model-warmup-output", "id")
 )
 def initialize_model(_):
     warm_up_model()
     return "", ""  # Empty string for loading output, text for warmup message
+
 
 @dash_app.callback(
     [
@@ -454,11 +441,12 @@ def initialize_model(_):
 )
 def update_button_state(title, description, country, date, model_year, price, currency):
     all_inputs_filled = all([title, description, country, date, model_year, price is not None, currency])
-    
+
     if all_inputs_filled:
         return False, "success", "Submit for Prediction"
     else:
         return True, "secondary", "Fill all input fields for prediction"
+
 
 @dash_app.callback(
     Output("collapse-section", "is_open"),
@@ -470,6 +458,7 @@ def toggle_collapse(n_clicks, is_open):
         return not is_open
     return is_open
 
+
 def determine_ad_type(url: str) -> AdType:
     if "pinkbike" in url:
         return AdType.PINKBIKE
@@ -478,12 +467,11 @@ def determine_ad_type(url: str) -> AdType:
     else:
         return AdType.OTHER
 
-@dash_app.callback(
-    Output("ad-url", "value"),
-    Input("sample-urls", "value")
-)
+
+@dash_app.callback(Output("ad-url", "value"), Input("sample-urls", "value"))
 def update_url_input(sample_url):
     return sample_url
+
 
 @dash_app.callback(
     [
@@ -512,7 +500,7 @@ def update_ad_fields(n_clicks, custom_url, sample_url):
     ad_type = determine_ad_type(ad_url)
     page_content = get_page_from_playwright_scraper(ad_url)
     soup = BeautifulSoup(page_content, features="html.parser")
-    
+
     if ad_type == AdType.PINKBIKE:
         parsed_ad = parse_buysell_pinkbike_ad(soup)
     elif ad_type == AdType.BUYCYCLE:
@@ -528,7 +516,7 @@ def update_ad_fields(n_clicks, custom_url, sample_url):
         if year_match:
             parsed_ad["model_year"] = year_match.group(1)
         else:
-            parsed_ad["model_year"] = None  
+            parsed_ad["model_year"] = None
 
     country_match = re.search(r"((Canada)|(United States)|(United Kingdom))", parsed_ad["location"])
     if country_match is None:
@@ -553,6 +541,7 @@ def update_ad_fields(n_clicks, custom_url, sample_url):
         parsed_ad["price"],
         convert_currency_symbol(parsed_ad["currency"]),
     )
+
 
 @dash_app.callback(
     Output("kpi", "children"),
@@ -604,21 +593,30 @@ def update_output(n_clicks, model_year, ad_title, ad_description, country, post_
             price_text = "Priced perfectly"
 
         kpi_element = dbc.Card(
-            dbc.CardBody([
-                html.H2(html.A(f"{ad_title}", href=ad_url, target="_blank"), className="card-title text-center"),
-                html.H3(f"Predicted Price: ${round(predicted_price_original, 2)} {price_currency} / ${round(kpi_value, 2)} CAD ", className="card-title text-center"),
-                html.H3(f"Listed Price: ${round(ad_price, 2)} {price_currency}", className="card-title text-center"),
-                html.H3(price_text, className="card-title text-center text-" + price_color)
-            ]),
-            className="mt-3"
+            dbc.CardBody(
+                [
+                    html.H2(html.A(f"{ad_title}", href=ad_url, target="_blank"), className="card-title text-center"),
+                    html.H3(
+                        f"Predicted Price: ${round(predicted_price_original, 2)} {price_currency} / ${round(kpi_value, 2)} CAD ",
+                        className="card-title text-center",
+                    ),
+                    html.H3(
+                        f"Listed Price: ${round(ad_price, 2)} {price_currency}", className="card-title text-center"
+                    ),
+                    html.H3(price_text, className="card-title text-center text-" + price_color),
+                ]
+            ),
+            className="mt-3",
         )
     else:
         kpi_element = dbc.Card(
-            dbc.CardBody([
-                html.H2(html.A(f"{ad_title}", href=ad_url, target="_blank"), className="card-title text-center"),
-                html.H3(f"Predicted Price: ${round(kpi_value, 2)} CAD", className="text-center")
-            ]),
-            className="mt-3"
+            dbc.CardBody(
+                [
+                    html.H2(html.A(f"{ad_title}", href=ad_url, target="_blank"), className="card-title text-center"),
+                    html.H3(f"Predicted Price: ${round(kpi_value, 2)} CAD", className="text-center"),
+                ]
+            ),
+            className="mt-3",
         )
 
     return kpi_element
