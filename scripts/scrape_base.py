@@ -49,7 +49,7 @@ def parse_with_retry(url, delay_s, region_code, playwright_scraper):
         raise
 
 
-def main(full_refresh=False, delay_s=1, num_jobs=8, categories_to_scrape: Optional[List[int]] = [2], region=3):
+def main(full_refresh=False, delay_s=1, num_jobs=8, categories_to_scrape: Optional[List[int]] = None, region=3):
     # TODO: Fix how we handle poor formatted inputs when using
     # workflow_dispatch vs. cron scheduled runs
     num_jobs = int(num_jobs) if num_jobs else 8
