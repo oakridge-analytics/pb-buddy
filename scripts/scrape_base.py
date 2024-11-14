@@ -1,16 +1,17 @@
 # %%
 import logging
 import os
+import threading
 import warnings
+from concurrent.futures import ThreadPoolExecutor
 from typing import List, Optional
 
 import fire
 import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
-from joblib import Parallel, delayed
-from tqdm import tqdm
 from tenacity import retry, stop_after_attempt, wait_exponential
+from tqdm import tqdm
 
 import pb_buddy.data_processors as dt
 
@@ -18,19 +19,14 @@ import pb_buddy.data_processors as dt
 import pb_buddy.scraper as scraper
 import pb_buddy.utils as ut
 
-import threading
-from concurrent.futures import ThreadPoolExecutor
 
 class PlaywrightThread(threading.local):
     def __init__(self) -> None:
         self.scraper = scraper.PlaywrightScraper()
         logging.debug(f"Created playwright instance in Thread {threading.current_thread().name}")
 
-@retry(
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=1, min=4, max=10),
-    reraise=True
-)
+
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10), reraise=True)
 def process_chunk(urls):
     """Process a chunk of URLs using thread-local Playwright instance with retries"""
     thread_local = PlaywrightThread()
@@ -41,19 +37,17 @@ def process_chunk(urls):
         logging.error(f"Error processing URLs: {e}")
         raise
 
-@retry(
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=1, min=4, max=10),
-    reraise=True
-)
-def parse_with_retry(url, delay_s, region, playwright_scraper):
+
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10), reraise=True)
+def parse_with_retry(url, delay_s, region_code, playwright_scraper):
     try:
         return scraper.parse_buysell_ad(
-            url, delay_s=delay_s, region_code=region, playwright_scraper=playwright_scraper
+            url, delay_s=delay_s, region_code=region_code, playwright_scraper=playwright_scraper
         )
     except Exception as e:
         logging.error(f"Error parsing ad {url}: {e}")
         raise
+
 
 def main(full_refresh=False, delay_s=1, num_jobs=8, categories_to_scrape: Optional[List[int]] = [2], region=3):
     # TODO: Fix how we handle poor formatted inputs when using
@@ -131,17 +125,13 @@ def main(full_refresh=False, delay_s=1, num_jobs=8, categories_to_scrape: Option
             for x in pages_to_check
         ]
         url_chunks = np.array_split(page_urls, num_jobs)
-        
 
         with ThreadPoolExecutor(max_workers=num_jobs) as executor:
-            futures = [
-                executor.submit(process_chunk, chunk)
-                for chunk in url_chunks
-            ]
+            futures = [executor.submit(process_chunk, chunk) for chunk in url_chunks]
             ad_urls = []
             for future in tqdm(futures, disable=(not show_progress)):
                 ad_urls.extend(future.result())
-            
+
         ad_urls = {key: value for d in ad_urls for key, value in d.items()}
 
         # Get new ad data ---------------------------------------------------------
@@ -160,7 +150,8 @@ def main(full_refresh=False, delay_s=1, num_jobs=8, categories_to_scrape: Option
                 )
                 if single_ad_data != {}:
                     if (
-                        pd.to_datetime(single_ad_data["last_repost_date"], utc=False).tz_localize("MST") - last_scrape_dt
+                        pd.to_datetime(single_ad_data["last_repost_date"], utc=False).tz_localize("MST")
+                        - last_scrape_dt
                     ).total_seconds() / (60 * 60) > -48 or boosted_status == "boosted":
                         # Sometimes sold ads kept in main results, ad for later
                         if "sold" in single_ad_data["still_for_sale"].lower() and url not in sold_ad_data.url.values:
