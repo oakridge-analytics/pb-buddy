@@ -10,7 +10,6 @@ import openai
 import pandas as pd
 import requests
 import yfinance as yf
-from browser_service import BrowserService
 from bs4 import BeautifulSoup
 from dash import dcc, html
 from dash.dependencies import Input, Output, State
@@ -21,6 +20,8 @@ from pb_buddy.scraper import (
     parse_buysell_buycycle_ad,
     parse_buysell_pinkbike_ad,
 )
+
+from .browser_service import BrowserService
 
 if os.environ.get("API_URL") is None:
     API_URL = "https://dbandrews--bike-buddy-api-autogluonmodelinference-predict.modal.run"
@@ -52,19 +53,6 @@ def get_proxy_config() -> Optional[dict]:
 
     logger.info("Proxy configuration loaded successfully")
     return config
-
-
-def create_browser(playwright, slow_mo: int = 0):
-    """Create a browser instance with proxy configuration if available."""
-    proxy_config = get_proxy_config()
-    launch_options = {
-        "slow_mo": slow_mo,
-    }
-    if proxy_config:
-        launch_options["proxy"] = proxy_config
-        logger.info(f"Using proxy server: {proxy_config['server']}")
-
-    return playwright.firefox.launch(**launch_options)
 
 
 def get_page_from_playwright_scraper(url: str) -> str:

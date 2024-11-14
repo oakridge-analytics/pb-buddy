@@ -1,10 +1,8 @@
 import modal
-from browser_service import app as browser_app  # noqa
 
-from app import dash_app
-
-# Create the main app
-app = modal.App("bike-buddy")
+from .browser_service import BrowserService  # noqa
+from .common import app
+from .ui import dash_app
 
 # Merge the browser service app
 # web_app.merge(browser_app)
@@ -32,12 +30,12 @@ image = (
     secrets=[modal.Secret.from_name("openai-secret"), modal.Secret.from_name("oxy-proxy")],
     cpu=2.0,
     memory=4000,
-    mounts=[modal.Mount.from_local_python_packages("app")],
+    # mounts=[modal.Mount.from_local_python_packages("app")],
     keep_warm=1,
     allow_concurrent_inputs=10,
 )
 @modal.wsgi_app()
-def web():
+def flask_app():
     return dash_app.server
 
 
