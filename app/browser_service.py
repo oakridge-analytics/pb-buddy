@@ -33,12 +33,11 @@ user_agents_opts = [
 
 @app.cls(
     image=playwright_image,
-    keep_warm=1,  # Keep one instance always running
     allow_concurrent_inputs=10,  # Allow multiple requests to be processed concurrently
-    container_idle_timeout=120,  # Keep container alive for 2 minutes after last request
+    container_idle_timeout=60,  # Keep container alive for 2 minutes after last request
     secrets=[modal.Secret.from_name("oxy-proxy")],
     cpu=2.0,
-    memory=4000,
+    memory=2000,
 )
 class BrowserService:
     def __init__(self):

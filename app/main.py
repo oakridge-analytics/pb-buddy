@@ -31,7 +31,6 @@ image = (
     cpu=2.0,
     memory=4000,
     # mounts=[modal.Mount.from_local_python_packages("app")],
-    keep_warm=1,
     allow_concurrent_inputs=10,
 )
 @modal.wsgi_app()
