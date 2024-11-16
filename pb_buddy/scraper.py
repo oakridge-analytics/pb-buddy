@@ -20,12 +20,27 @@ class PlaywrightScraper:
         self.browser = None
         self.headless = headless
         self.initialized = True
+        self.start_browser()
 
     def start_browser(self):
         if self.browser is None:
             self._playwright = sync_playwright().start()
-            self.browser = self._playwright.chromium.launch(headless=self.headless)
-            self.context = self.browser.new_context()
+            self.browser = self._playwright.chromium.launch(
+                headless=self.headless,
+                args=[
+                    "--disable-gpu",
+                    "--disable-dev-shm-usage",
+                    "--disable-setuid-sandbox",
+                    "--no-sandbox",
+                    "--disable-web-security",
+                    "--disable-javascript",
+                    "--disable-features=IsolateOrigins,site-per-process",
+                    "--disable-site-isolation-trials",
+                ],
+            )
+            self.context = self.browser.new_context(
+                viewport={"width": 1280, "height": 720}, java_script_enabled=False, bypass_csp=True
+            )
             self.context.set_extra_http_headers(self.headers)
             self.page = self.context.new_page()
 
@@ -43,9 +58,7 @@ class PlaywrightScraper:
 
     def get_page_content(self, url: str):
         "Use playwright to avoid detection for getting a page's content"
-        if self.page is None:
-            self.start_browser()
-        self.page.goto(url)
+        self.page.goto(url, wait_until="domcontentloaded", timeout=30000)
         return self.page.content()
 
     def process_urls(self, urls: list, callable_func: Callable):
@@ -58,28 +71,22 @@ class PlaywrightScraper:
         callable_func : Callable
             callable function to process the page content.
         """
-        with sync_playwright() as playwright:
-            browser = playwright.chromium.launch(headless=self.headless)
-            context = browser.new_context()
-            context.set_extra_http_headers(self.headers)
-            page = context.new_page()
-            results = []
-            for url in urls:
-                try:
-                    page.goto(
-                        url,
-                        timeout=60000,
-                    )
-                    page_content = page.content()
-                    results.append(callable_func(page_content))
-                except Exception as e:
-                    print(f"Error processing URL {url}: {str(e)}")
-                    results.append(None)  # or handle the error case as needed
-                    continue
+        results = []
+        for url in urls:
+            try:
+                self.page.goto(
+                    url,
+                    wait_until="domcontentloaded",
+                    timeout=30000,
+                )
+                page_content = self.page.content()
+                results.append(callable_func(page_content))
+            except Exception as e:
+                print(f"Error processing URL {url}: {str(e)}")
+                results.append(None)
+                continue
 
-            context.close()
-            browser.close()
-            return results
+        return results
 
 
 @retry(stop=stop_after_attempt(5), wait=wait_fixed(2))
