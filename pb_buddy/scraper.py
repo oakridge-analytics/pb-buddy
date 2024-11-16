@@ -66,7 +66,10 @@ class PlaywrightScraper:
             results = []
             for url in urls:
                 try:
-                    page.goto(url, timeout=60000,)
+                    page.goto(
+                        url,
+                        timeout=60000,
+                    )
                     page_content = page.content()
                     results.append(callable_func(page_content))
                 except Exception as e:
@@ -79,6 +82,7 @@ class PlaywrightScraper:
             return results
 
 
+@retry(stop=stop_after_attempt(5), wait=wait_fixed(2))
 def get_category_list(playwright: PlaywrightScraper) -> dict:
     """
     Get the mapping of category name to category number
@@ -100,6 +104,9 @@ def get_category_list(playwright: PlaywrightScraper) -> dict:
         if category_num_match is not None:
             category_text = link.text
             category_dict[category_text] = int(category_num_match.group(1))
+
+    if not category_dict:
+        raise Exception("No category URLs found matching expected pattern")
 
     return category_dict
 
