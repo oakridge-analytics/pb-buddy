@@ -35,7 +35,7 @@ warnings.filterwarnings("ignore")
 
 ```python
 plt.rcParams['figure.figsize'] = (15,15)
-plt.style.use('seaborn')
+plt.style.use('ggplot')
 ```
 
 ```python
