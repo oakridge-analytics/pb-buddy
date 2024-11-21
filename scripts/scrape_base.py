@@ -132,7 +132,7 @@ def main(full_refresh=False, delay_s=1, num_jobs=8, categories_to_scrape: Option
             for future in tqdm(futures, disable=(not show_progress)):
                 ad_urls.extend(future.result())
 
-        ad_urls = {key: value for d in ad_urls for key, value in d.items()}
+        ad_urls = {key: value for d in ad_urls for key, value in d.items() if d is not None}
 
         # Get new ad data ---------------------------------------------------------
         intermediate_ad_data = []
