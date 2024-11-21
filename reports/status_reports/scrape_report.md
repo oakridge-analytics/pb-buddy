@@ -54,7 +54,7 @@ df_combined = (
         ],
          axis=0)
 ).assign(
-    datetime_scraped = lambda x: pd.to_datetime(x.original_post_date).dt.date,
+    datetime_scraped = lambda x: pd.to_datetime(x.original_post_date, format='mixed').dt.date,
     category = lambda x: x.category.str.strip()
     )
 
