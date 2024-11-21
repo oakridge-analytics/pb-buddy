@@ -2,7 +2,6 @@ import json
 import logging
 import os
 import re
-from typing import Optional
 
 import dash
 import dash_bootstrap_components as dbc
@@ -38,21 +37,6 @@ user_agents_opts = [
     # "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"
 ]
-
-
-def get_proxy_config() -> Optional[dict]:
-    """Get proxy configuration from environment variables."""
-    proxy_server = os.environ.get("PROXY_SERVER")
-    proxy_username = os.environ.get("PROXY_USERNAME")
-    proxy_password = os.environ.get("PROXY_PASSWORD")
-
-    if not all([proxy_server, proxy_username, proxy_password]):
-        return None
-
-    config = {"server": proxy_server, "username": proxy_username, "password": proxy_password}
-
-    logger.info("Proxy configuration loaded successfully")
-    return config
 
 
 def get_page_from_playwright_scraper(url: str) -> str:
