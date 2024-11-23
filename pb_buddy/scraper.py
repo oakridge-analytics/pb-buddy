@@ -1,7 +1,8 @@
+import random
 import re
 import time
 from enum import Enum
-from typing import Callable
+from typing import Callable, List, Optional
 
 import pandas as pd
 from bs4 import BeautifulSoup
@@ -10,16 +11,29 @@ from tenacity import retry, stop_after_attempt, wait_fixed
 
 
 class PlaywrightScraper:
-    cookies = []
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"
-    }
+    # List of common user agents
+    USER_AGENTS = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
+    ]
+    
+    VIEWPORT_SIZES = [
+        {"width": 1920, "height": 1080},
+        {"width": 1366, "height": 768},
+        {"width": 1536, "height": 864},
+        {"width": 1440, "height": 900},
+        {"width": 1280, "height": 720},
+    ]
 
     def __init__(self, headless: bool = True):
         self.page = None
         self.browser = None
         self.headless = headless
         self.initialized = True
+        self.user_agent = random.choice(self.USER_AGENTS)
+        self.viewport = random.choice(self.VIEWPORT_SIZES)
         self.start_browser()
 
     def start_browser(self):
@@ -32,17 +46,23 @@ class PlaywrightScraper:
                     "--disable-dev-shm-usage",
                     "--disable-setuid-sandbox",
                     "--no-sandbox",
-                    "--disable-web-security",
-                    "--disable-javascript",
-                    "--disable-features=IsolateOrigins,site-per-process",
-                    "--disable-site-isolation-trials",
                 ],
             )
             self.context = self.browser.new_context(
-                viewport={"width": 1280, "height": 720}, java_script_enabled=False, bypass_csp=True
+                viewport=self.viewport,
+                user_agent=self.user_agent,
+                java_script_enabled=True,
+                bypass_csp=True,
+                color_scheme='dark' if random.random() > 0.5 else 'light',
+                locale=random.choice(['en-US', 'en-GB', 'en-CA']),
+                timezone_id=random.choice(['America/New_York', 'America/Los_Angeles', 'America/Chicago']),
             )
-            self.context.set_extra_http_headers(self.headers)
             self.page = self.context.new_page()
+
+
+    def random_delay(self, min_seconds: float = 1.0, max_seconds: float = 4.0):
+        """Add a random delay between actions"""
+        time.sleep(random.uniform(min_seconds, max_seconds))
 
     def close_browser(self):
         if self.browser:
@@ -57,8 +77,9 @@ class PlaywrightScraper:
         self.context.add_cookies(cookies)
 
     def get_page_content(self, url: str):
-        "Use playwright to avoid detection for getting a page's content"
-        self.page.goto(url, wait_until="domcontentloaded", timeout=30000)
+        """Use playwright to avoid detection for getting a page's content"""
+        self.page.goto(url, wait_until="networkidle", timeout=30000)
+        # self.random_delay()
         return self.page.content()
 
     def process_urls(self, urls: list, callable_func: Callable):
@@ -76,9 +97,11 @@ class PlaywrightScraper:
             try:
                 self.page.goto(
                     url,
-                    wait_until="domcontentloaded",
+                    wait_until="networkidle",
                     timeout=30000,
                 )
+                self.random_delay()
+                self.simulate_human_behavior()
                 page_content = self.page.content()
                 results.append(callable_func(page_content))
             except Exception as e:
