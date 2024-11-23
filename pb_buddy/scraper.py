@@ -20,12 +20,27 @@ class PlaywrightScraper:
         self.browser = None
         self.headless = headless
         self.initialized = True
+        self.start_browser()
 
     def start_browser(self):
         if self.browser is None:
             self._playwright = sync_playwright().start()
-            self.browser = self._playwright.chromium.launch(headless=self.headless)
-            self.context = self.browser.new_context()
+            self.browser = self._playwright.chromium.launch(
+                headless=self.headless,
+                args=[
+                    "--disable-gpu",
+                    "--disable-dev-shm-usage",
+                    "--disable-setuid-sandbox",
+                    "--no-sandbox",
+                    "--disable-web-security",
+                    "--disable-javascript",
+                    "--disable-features=IsolateOrigins,site-per-process",
+                    "--disable-site-isolation-trials",
+                ],
+            )
+            self.context = self.browser.new_context(
+                viewport={"width": 1280, "height": 720}, java_script_enabled=False, bypass_csp=True
+            )
             self.context.set_extra_http_headers(self.headers)
             self.page = self.context.new_page()
 
@@ -43,9 +58,7 @@ class PlaywrightScraper:
 
     def get_page_content(self, url: str):
         "Use playwright to avoid detection for getting a page's content"
-        if self.page is None:
-            self.start_browser()
-        self.page.goto(url)
+        self.page.goto(url, wait_until="domcontentloaded", timeout=30000)
         return self.page.content()
 
     def process_urls(self, urls: list, callable_func: Callable):
@@ -58,32 +71,38 @@ class PlaywrightScraper:
         callable_func : Callable
             callable function to process the page content.
         """
-        with sync_playwright() as playwright:
-            browser = playwright.chromium.launch(headless=self.headless)
-            context = browser.new_context()
-            context.set_extra_http_headers(self.headers)
-            page = context.new_page()
-            results = []
-            for url in urls:
-                page.goto(url)
-                page_content = page.content()
+        results = []
+        for url in urls:
+            try:
+                self.page.goto(
+                    url,
+                    wait_until="domcontentloaded",
+                    timeout=30000,
+                )
+                page_content = self.page.content()
                 results.append(callable_func(page_content))
+            except Exception as e:
+                print(f"Error processing URL {url}: {str(e)}")
+                results.append(None)
+                continue
 
-            context.close()
-            browser.close()
-            return results
+        return results
 
 
-def get_category_list(playwright_scraper: PlaywrightScraper) -> dict:
+@retry(stop=stop_after_attempt(5), wait=wait_fixed(2))
+def get_category_list(playwright: PlaywrightScraper) -> dict:
     """
     Get the mapping of category name to category number
-    for all categories from https://www.pinkbike.com/buysell/
+    for all categories from the given page content of the buysell listing page.
     """
-    page_content = playwright_scraper.get_page_content("https://www.pinkbike.com/buysell/")
-
+    page_content = playwright.get_page_content("https://www.pinkbike.com/buysell/")
     soup = BeautifulSoup(page_content, features="html.parser")
 
     category_dict = {}
+
+    if len(soup.find_all("a")) == 0:
+        raise Exception("No links found on the buysell page")
+
     for link in soup.find_all("a"):
         if link.get("href") is None:
             continue
@@ -92,6 +111,9 @@ def get_category_list(playwright_scraper: PlaywrightScraper) -> dict:
         if category_num_match is not None:
             category_text = link.text
             category_dict[category_text] = int(category_num_match.group(1))
+
+    if not category_dict:
+        raise Exception("No category URLs found matching expected pattern")
 
     return category_dict
 
@@ -336,28 +358,82 @@ def parse_buysell_buycycle_ad(page_content: BeautifulSoup) -> dict:
 
     ad_title = soup.find("h1", class_="text-3xl font-500 content-primary mb-1").text
     ad_title = " ".join(ad_title.split())
-    price_text = soup.find("p", class_="text-3xl font-500 mb-0 content-sale").text
-    price = price_text.split()[0].replace(".", "")
-    currency = price_text.split()[1]
+    price_element = soup.find("p", class_="text-3xl font-500 mb-0 content-sale")
+    if price_element:
+        price_text = price_element.text.strip()
+        price_match = re.search(r"([\D]*)(\d[\d.,]*)([\D]*)", price_text)
+        if price_match:
+            pre_text, price, post_text = price_match.groups()
+            price = price.replace(".", "").replace(",", "")
+            currency = pre_text.strip() if pre_text else post_text.strip()
+        else:
+            price = None
+            currency = None
+    else:
+        price = None
+        currency = None
     # No post date found on site, so using current date
     original_post_date = str(pd.Timestamp.today(tz="US/Mountain"))
     country = soup.find("p", class_="text-sm content-tertiary mb-0").text.strip()
-    details_divs = soup.find_all("div", class_="pdp-modal-content")
-    for div in details_divs:
-        if "Condition & details" in div.text:
-            # # Remove occurences of multiple whitespace in a row
-            # # with a single occurence of respective whitespace
-            details = re.sub(r" +", " ", div.text)
-            details = re.sub(r"\n +", r"\n", details)
-            details = re.sub(r"\n+", r"\n", details)
-            # Remove the newline before each colon, and then add a newline after each colon
-            details = re.sub(r"\n:", ":", details)
-            details = re.sub(r":", ":\n", details)
+    details = []
+
+    # Extract brand and model
+    brand_model = soup.find("div", class_="py-3")
+    if brand_model:
+        brand = brand_model.find("span", class_="text-sm primary d-block")
+        model = brand_model.find("strong", class_="text-lg primary d-block font-500")
+        if brand:
+            details.append(f"Brand: {brand.text.strip()}")
+        if model:
+            details.append(f"Model: {model.text.strip()}")
+
+    # Extract summary information
+    summary_info = soup.find("p", class_="text-sm content-secondary")
+    if summary_info:
+        summary_text = summary_info.text.strip()
+        details.append(f"Summary: {summary_text}")
+
+    # Extract condition and details
+    condition_details = soup.find("ul", class_="pdp-modal-bike-info-list")
+    if condition_details:
+        for li in condition_details.find_all("li"):
+            strong = li.find("strong")
+            span = li.find("span", class_="secondary-3")
+            if strong and span:
+                details.append(f"{strong.text.strip().rstrip(':').rstrip()}: {span.text.strip()}")
+
+    # Extract components
+    components = soup.find("div", class_="pdp-modal-bike-components-list")
+    if components:
+        for div in components.find_all("div", class_="pb-2 text-sm"):
+            component = div.find("p", class_="d-flex align-items-center primary gap-1 mb-1")
+            value = div.find("div", class_="content-secondary")
+            if component and value:
+                component_text = component.text.strip().rstrip(":").rstrip().rstrip("\n")
+                value_text = value.text.strip()
+                if value_text and value_text != "-":
+                    details.append(f"{component_text}: {value_text}")
+
+    # Extract additional details
+    additional_details = soup.find("div", class_="pdp-modal-bike-other")
+    if additional_details:
+        info_div = additional_details.find("div", class_="text-sm content-secondary mb-0 info-div-content")
+        if info_div:
+            details.append(f"Additional Details: {info_div.text.strip()}")
+
+    details_text = " ".join(details)
+    details_text = re.sub(r"\s+", " ", details_text).strip()
+
     data_dict["ad_title"] = ad_title
     data_dict["price"] = price
-    data_dict["currency"] = currency
+    currency_mapping = {
+        "\u20ac": "EUR",  # Euro
+        "\u00a3": "GBP",  # British Pound
+        "$": "USD",  # US Dollar (assuming $ is always USD)
+    }
+    data_dict["currency"] = currency_mapping.get(currency, currency)
     data_dict["original_post_date"] = original_post_date
     data_dict["location"] = country
-    data_dict["description"] = details
+    data_dict["description"] = details_text
 
     return data_dict

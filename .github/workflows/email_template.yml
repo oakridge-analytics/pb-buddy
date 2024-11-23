@@ -11,6 +11,10 @@ on:
         required: true
       HOTMAIL_ADDRESS:
         required: true
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
 
 jobs:
   email-alerts:
@@ -19,10 +23,10 @@ jobs:
     steps:
       - name: Setup repo
         uses: actions/checkout@v4
-      - name: Set up Python 3.9
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: 3.9
+          python-version: 3.11
       - name: Install package
         run: |
           pip install poetry
@@ -39,14 +43,5 @@ jobs:
           TWILIO_PASS: ${{ secrets.TWILIO_PASS }}
           HOTMAIL_ADDRESS: ${{ secrets.HOTMAIL_ADDRESS }}
           COSMOS_CONN_STR: ${{ secrets.COSMOS_CONN_STR }}
-      - name: Commit files
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"        
-          git add alerts/
-          git commit -m "Update alerts for $DATE"
-      - name: Push changes
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

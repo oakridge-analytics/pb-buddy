@@ -26,3 +26,5 @@ jobs:
       TWILIO_PASS: ${{ secrets.TWILIO_PASS }}
       COSMOS_CONN_STR: ${{ secrets.COSMOS_CONN_STR }}
       HOTMAIL_ADDRESS: ${{ secrets.HOTMAIL_ADDRESS }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

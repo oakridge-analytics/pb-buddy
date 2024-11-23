@@ -4,15 +4,14 @@ To demo the Bike Buddy price prediction model, a simple interface for parsing ad
 
 ### Usage:
 
-- Serve as ephemeral app with `modal`:
+- Serve as ephemeral app with `modal` from root of repo:
 
 ```console
-modal serve app.py
+modal serve app.main
 ```
 
 - To deploy once happy:
 
 ```console
-modal deploy main.py
+modal deploy app.main
 ```
-
