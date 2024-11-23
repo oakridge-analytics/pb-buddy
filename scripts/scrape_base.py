@@ -14,7 +14,6 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from tqdm import tqdm
 
 import pb_buddy.data_processors as dt
-
 # Custom code
 import pb_buddy.scraper as scraper
 import pb_buddy.utils as ut
@@ -49,11 +48,11 @@ def parse_with_retry(url, delay_s, region_code, playwright_scraper):
         raise
 
 
-def main(full_refresh=False, delay_s=1, num_jobs=8, categories_to_scrape: Optional[List[int]] = None, region=3):
+def main(full_refresh=False, delay_s=1, num_jobs=8, categories_to_scrape: Optional[List[int]] = [2], region=3, headless=True):
     # TODO: Fix how we handle poor formatted inputs when using
     # workflow_dispatch vs. cron scheduled runs
     num_jobs = int(num_jobs) if num_jobs else 8
-    playwright_scraper = scraper.PlaywrightScraper(headless=True)
+    playwright_scraper = scraper.PlaywrightScraper(headless=headless)
     category_dict = scraper.get_category_list(playwright=playwright_scraper)
     # Settings -----------------------------------------------------------------
     log_level = "INFO"
