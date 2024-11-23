@@ -112,6 +112,7 @@ def main(full_refresh=False, delay_s=1, num_jobs=8, categories_to_scrape: Option
         total_page_count = scraper.get_total_pages(
             category_to_scrape, region=region, playwright_scraper=playwright_scraper
         )
+        logging.info(f"Total pages of ads: {total_page_count}")
         if total_page_count == 0:
             continue
 
