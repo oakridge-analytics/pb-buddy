@@ -2,7 +2,7 @@ import random
 import re
 import time
 from enum import Enum
-from typing import Callable, List, Optional
+from typing import Callable
 
 import pandas as pd
 from bs4 import BeautifulSoup
@@ -18,7 +18,7 @@ class PlaywrightScraper:
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
     ]
-    
+
     VIEWPORT_SIZES = [
         {"width": 1920, "height": 1080},
         {"width": 1366, "height": 768},
@@ -53,12 +53,11 @@ class PlaywrightScraper:
                 user_agent=self.user_agent,
                 java_script_enabled=True,
                 bypass_csp=True,
-                color_scheme='dark' if random.random() > 0.5 else 'light',
-                locale=random.choice(['en-US', 'en-GB', 'en-CA']),
-                timezone_id=random.choice(['America/New_York', 'America/Los_Angeles', 'America/Chicago']),
+                color_scheme="dark" if random.random() > 0.5 else "light",
+                locale=random.choice(["en-US", "en-GB", "en-CA"]),
+                timezone_id=random.choice(["America/New_York", "America/Los_Angeles", "America/Chicago"]),
             )
             self.page = self.context.new_page()
-
 
     def random_delay(self, min_seconds: float = 1.0, max_seconds: float = 4.0):
         """Add a random delay between actions"""
@@ -78,8 +77,7 @@ class PlaywrightScraper:
 
     def get_page_content(self, url: str):
         """Use playwright to avoid detection for getting a page's content"""
-        self.page.goto(url, wait_until="networkidle", timeout=30000)
-        # self.random_delay()
+        self.page.goto(url, wait_until="domcontentloaded", timeout=30000)
         return self.page.content()
 
     def process_urls(self, urls: list, callable_func: Callable):
@@ -95,14 +93,7 @@ class PlaywrightScraper:
         results = []
         for url in urls:
             try:
-                self.page.goto(
-                    url,
-                    wait_until="networkidle",
-                    timeout=30000,
-                )
-                self.random_delay()
-                self.simulate_human_behavior()
-                page_content = self.page.content()
+                page_content = self.get_page_content(url)
                 results.append(callable_func(page_content))
             except Exception as e:
                 print(f"Error processing URL {url}: {str(e)}")
