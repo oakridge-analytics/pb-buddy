@@ -224,6 +224,10 @@ def get_total_pages(category_num: int, playwright_scraper: PlaywrightScraper, re
         # If page number is found, convert to int from only match and compare
         if page_num is not None and int(page_num.group(1)) > largest_page_num:
             largest_page_num = int(page_num.group(1))
+    
+    if largest_page_num == 0:
+        print(f"Page content: \n {soup.get_text()}")
+
     return largest_page_num
 
 
