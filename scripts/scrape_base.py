@@ -14,9 +14,18 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from tqdm import tqdm
 
 import pb_buddy.data_processors as dt
+
 # Custom code
 import pb_buddy.scraper as scraper
 import pb_buddy.utils as ut
+
+log_level = "INFO"
+logging.basicConfig(
+    level=getattr(logging, log_level.upper(), None),
+    format="%(asctime)s %(message)s",
+)
+
+logging.getLogger("pymongo").setLevel(logging.CRITICAL)
 
 
 class PlaywrightThread(threading.local):
@@ -48,12 +57,16 @@ def parse_with_retry(url, delay_s, region_code, playwright_scraper):
         raise
 
 
-def main(full_refresh=False, delay_s=1, num_jobs=8, categories_to_scrape: Optional[List[int]] = [2], region=3, headless=True):
+def main(
+    full_refresh=False, delay_s=1, num_jobs=8, categories_to_scrape: Optional[List[int]] = [2], region=3, headless=True
+):
     # TODO: Fix how we handle poor formatted inputs when using
     # workflow_dispatch vs. cron scheduled runs
     num_jobs = int(num_jobs) if num_jobs else 8
+    logging.info(f"Using {num_jobs} threads")
     playwright_scraper = scraper.PlaywrightScraper(headless=headless)
     category_dict = scraper.get_category_list(playwright=playwright_scraper)
+    logging.info(f"Number categories found: {len(category_dict)}")
     # Settings -----------------------------------------------------------------
     log_level = "INFO"
     show_progress = False if os.environ.get("PROGRESS", "0") == "0" else True
@@ -63,11 +76,6 @@ def main(full_refresh=False, delay_s=1, num_jobs=8, categories_to_scrape: Option
         start_category = min(category_dict.values())
         end_category = max(category_dict.values())
         categories_to_scrape = range(start_category, end_category + 1)
-
-    logging.basicConfig(
-        level=getattr(logging, log_level.upper(), None),
-        format="%(asctime)s %(message)s",
-    )
 
     logging.info("######## Starting new scrape session #########")
     all_base_data = dt.get_dataset(category_num=-1, data_type="base", region_code=int(region))
@@ -126,6 +134,7 @@ def main(full_refresh=False, delay_s=1, num_jobs=8, categories_to_scrape: Option
         ]
         url_chunks = np.array_split(page_urls, num_jobs)
 
+        logging.info(f"Processing {len(url_chunks)} chunks of ads across {num_jobs} threads")
         with ThreadPoolExecutor(max_workers=num_jobs) as executor:
             futures = [executor.submit(process_chunk, chunk) for chunk in url_chunks]
             ad_urls = []

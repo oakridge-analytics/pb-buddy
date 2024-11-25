@@ -1,4 +1,5 @@
 import os
+import warnings
 from io import BytesIO
 from typing import List, Optional
 
@@ -82,7 +83,9 @@ def get_dataset(category_num: int, data_type: str, region_code: Optional[int] = 
 
         if "datetime_scraped" in df_out.columns:
             df_out = df_out.assign(
-                datetime_scraped=lambda x: pd.to_datetime(x.datetime_scraped, utc=True, format="ISO8601").dt.tz_convert("US/Mountain")
+                datetime_scraped=lambda x: pd.to_datetime(x.datetime_scraped, utc=True, format="ISO8601").dt.tz_convert(
+                    "US/Mountain"
+                )
             )
     return df_out
 
@@ -180,6 +183,8 @@ def get_mongodb():
     # Replace the uri string with your MongoDB deployment's connection string.
     conn_str = os.environ["COSMOS_CONN_STR"]
     # set a 5-second connection timeout
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    warnings.filterwarnings("ignore", category=UserWarning)
     client = pymongo.MongoClient(
         conn_str,
         tlsCAFile=certifi.where(),
