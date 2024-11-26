@@ -55,7 +55,7 @@ class PlaywrightScraper:
                 bypass_csp=True,
                 color_scheme="dark" if random.random() > 0.5 else "light",
                 locale=random.choice(["en-US", "en-GB", "en-CA"]),
-                timezone_id=random.choice(["America/New_York", "America/Los_Angeles", "America/Chicago"]),
+                timezone_id=random.choice(["America/Los_Angeles", "America/Vancouver", "America/Tijuana"]),
             )
             self.page = self.context.new_page()
 
