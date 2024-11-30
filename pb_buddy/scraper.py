@@ -103,7 +103,7 @@ class PlaywrightScraper:
         return results
 
 
-@retry(stop=stop_after_attempt(5), wait=wait_fixed(2))
+@retry(stop=stop_after_attempt(5), wait=wait_fixed(10))
 def get_category_list(playwright: PlaywrightScraper) -> dict:
     """
     Get the mapping of category name to category number

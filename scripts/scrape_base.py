@@ -58,7 +58,7 @@ def parse_with_retry(url, delay_s, region_code, playwright_scraper):
 
 
 def main(
-    full_refresh=False, delay_s=1, num_jobs=8, categories_to_scrape: Optional[List[int]] = None, region=3, headless=True
+    full_refresh=False, delay_s=1, num_jobs=8, categories_to_scrape: Optional[List[int]] = None;, region=3, headless=True
 ):
     # TODO: Fix how we handle poor formatted inputs when using
     # workflow_dispatch vs. cron scheduled runs
@@ -141,7 +141,7 @@ def main(
             for future in tqdm(futures, disable=(not show_progress)):
                 ad_urls.extend(future.result())
 
-        ad_urls = {key: value for d in ad_urls for key, value in d.items() if d is not None}
+        ad_urls = {key: value for d in ad_urls if d is not None for key, value in d.items()}
 
         # Get new ad data ---------------------------------------------------------
         intermediate_ad_data = []
