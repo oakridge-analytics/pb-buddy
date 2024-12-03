@@ -14,20 +14,11 @@ logger = logging.getLogger(__name__)
 
 
 class PlaywrightScraper:
-    # List of common user agents
     USER_AGENTS = [
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
-    ]
-
-    VIEWPORT_SIZES = [
-        {"width": 1920, "height": 1080},
-        {"width": 1366, "height": 768},
-        {"width": 1536, "height": 864},
-        {"width": 1440, "height": 900},
-        {"width": 1280, "height": 720},
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
     ]
 
     def __init__(self, headless: bool = True):
@@ -35,32 +26,104 @@ class PlaywrightScraper:
         self.browser = None
         self.headless = headless
         self.initialized = True
-        self.user_agent = random.choice(self.USER_AGENTS)
-        self.viewport = random.choice(self.VIEWPORT_SIZES)
+        self.rotate_identity()
         self.start_browser()
 
+    def rotate_identity(self):
+        """Rotate browser fingerprint settings"""
+        self.user_agent = random.choice(self.USER_AGENTS)
+        # Use standardized viewport sizes
+        self.viewport = {"width": 1920, "height": 1080}
+        self.timezone = random.choice(
+            ["America/Los_Angeles", "America/New_York", "America/Chicago", "America/Denver", "America/Vancouver"]
+        )
+        self.locale = random.choice(["en-US", "en-CA", "en-GB"])
+
     def start_browser(self):
-        if self.browser is None:
-            self._playwright = sync_playwright().start()
-            self.browser = self._playwright.chromium.launch(
-                headless=self.headless,
-                args=[
-                    "--disable-gpu",
-                    "--disable-dev-shm-usage",
-                    "--disable-setuid-sandbox",
-                    "--no-sandbox",
-                ],
-            )
-            self.context = self.browser.new_context(
-                viewport=self.viewport,
-                user_agent=self.user_agent,
-                java_script_enabled=True,
-                bypass_csp=True,
-                color_scheme="dark" if random.random() > 0.5 else "light",
-                locale=random.choice(["en-US", "en-GB", "en-CA"]),
-                timezone_id=random.choice(["America/Los_Angeles", "America/Vancouver", "America/Tijuana"]),
-            )
-            self.page = self.context.new_page()
+        """Start or restart the browser with new identity"""
+        if self.browser:
+            self.browser.close()
+
+        self._playwright = sync_playwright().start()
+        self.browser = self._playwright.chromium.launch(
+            headless=self.headless,
+            args=[
+                "--disable-gpu",
+                "--disable-dev-shm-usage",
+                "--disable-setuid-sandbox",
+                "--no-sandbox",
+                "--disable-blink-features=AutomationControlled",
+            ],
+        )
+        self.context = self.browser.new_context(
+            viewport=self.viewport,
+            user_agent=self.user_agent,
+            java_script_enabled=True,
+            bypass_csp=True,
+            color_scheme="dark" if random.random() > 0.5 else "light",
+            locale=self.locale,
+            timezone_id=self.timezone,
+            permissions=["geolocation"],
+            extra_http_headers={
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.5",
+                "Accept-Encoding": "gzip, deflate, br",
+                "DNT": "1",
+                "Connection": "keep-alive",
+                "Upgrade-Insecure-Requests": "1",
+                "Sec-Fetch-Dest": "document",
+                "Sec-Fetch-Mode": "navigate",
+                "Sec-Fetch-Site": "none",
+                "Sec-Fetch-User": "?1",
+            },
+        )
+        self.page = self.context.new_page()
+        # Emulate human-like behavior
+        self.page.set_default_timeout(60000)
+        self.page.set_default_navigation_timeout(60000)
+
+    def handle_cloudflare(self, url: str, max_attempts: int = 3) -> bool:
+        """Handle Cloudflare challenge if encountered"""
+        for attempt in range(max_attempts):
+            try:
+                # Navigate to the page
+                self.page.goto(url, wait_until="domcontentloaded")
+
+                # Check for Cloudflare challenge
+                if "challenge-platform" in self.page.content():
+                    logging.info(f"Cloudflare challenge detected (attempt {attempt + 1}/{max_attempts})")
+
+                    # Wait longer for challenge to complete
+                    self.page.wait_for_load_state("networkidle", timeout=30000)
+                    time.sleep(random.uniform(5, 10))
+
+                    # If still blocked, rotate identity and retry
+                    if "challenge-platform" in self.page.content():
+                        self.rotate_identity()
+                        self.start_browser()
+                        continue
+
+                return True
+
+            except Exception as e:
+                logging.warning(f"Error handling Cloudflare (attempt {attempt + 1}/{max_attempts}): {str(e)}")
+                if attempt < max_attempts - 1:
+                    self.rotate_identity()
+                    self.start_browser()
+                    continue
+                return False
+
+        return False
+
+    def get_page_content(self, url: str) -> str:
+        """Get page content with Cloudflare handling"""
+        if self.handle_cloudflare(url):
+            content = self.page.content()
+            if "you have been blocked" in content.lower():
+                raise Exception("Blocked by Cloudflare")
+            return content
+        else:
+            raise Exception("Failed to bypass Cloudflare protection")
 
     def random_delay(self, min_seconds: float = 1.0, max_seconds: float = 4.0):
         """Add a random delay between actions"""
@@ -77,11 +140,6 @@ class PlaywrightScraper:
         if self.context is None:
             raise Exception("Browser context is not started. Call start_browser() first.")
         self.context.add_cookies(cookies)
-
-    def get_page_content(self, url: str):
-        """Use playwright to avoid detection for getting a page's content"""
-        self.page.goto(url, wait_until="domcontentloaded", timeout=60000)
-        return self.page.content()
 
     @retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=4, max=10))
     def process_urls(self, urls: list, callable_func: Callable) -> List[Optional[dict]]:
