@@ -183,7 +183,7 @@ def request_ad(url: str, playwright_scraper: PlaywrightScraper, delay_s: int = 1
     return page_content
 
 
-@retry(stop=stop_after_attempt(5), wait=wait_fixed(2))
+@retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=2, min=2, max=20))
 def get_buysell_ads(search_results: str) -> dict:
     """Grab all buysell URL's from a page of Pinkbike's buysell results
 
