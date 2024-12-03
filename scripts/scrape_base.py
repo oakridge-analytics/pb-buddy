@@ -4,10 +4,11 @@ import os
 import threading
 import warnings
 from concurrent.futures import ThreadPoolExecutor
-from typing import List, Optional
+from typing import Callable, List, Optional, Union
 
 import fire
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from dotenv import load_dotenv
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -35,23 +36,35 @@ class PlaywrightThread(threading.local):
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10), reraise=True)
-def process_chunk(urls):
-    """Process a chunk of URLs using thread-local Playwright instance with retries"""
+def process_chunk(urls: Union[List[str], npt.NDArray], callable_func: Callable) -> List[Optional[dict]]:
+    """Process a chunk of URLs using thread-local Playwright instance with retries
+
+    Parameters
+    ----------
+    urls : List[str] or numpy.ndarray
+        List of URLs to process
+    callable_func : Callable
+        Function to process each URL
+
+    Returns
+    -------
+    List[Optional[dict]]
+        Results from processing each URL
+    """
+    # Convert numpy array to list if needed
+    if not isinstance(urls, list):
+        urls = urls.tolist()
+
     thread_local = PlaywrightThread()
-    try:
-        results = thread_local.scraper.process_urls(urls, scraper.get_buysell_ads)
-        return results
-    except Exception as e:
-        logging.error(f"Error processing URLs: {e}")
-        raise
+    results = thread_local.scraper.process_urls(urls, callable_func)
+    return results
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10), reraise=True)
 def parse_with_retry(url, delay_s, region_code, playwright_scraper):
     try:
-        return scraper.parse_buysell_ad(
-            url, delay_s=delay_s, region_code=region_code, playwright_scraper=playwright_scraper
-        )
+        page_content = playwright_scraper.get_page_content(url)
+        return scraper.parse_buysell_ad(page_content=page_content, buysell_url=url, region_code=region_code)
     except Exception as e:
         logging.error(f"Error parsing ad {url}: {e}")
         raise
@@ -68,7 +81,6 @@ def main(
     category_dict = scraper.get_category_list(playwright=playwright_scraper)
     logging.info(f"Number categories found: {len(category_dict)}")
     # Settings -----------------------------------------------------------------
-    log_level = "INFO"
     show_progress = False if os.environ.get("PROGRESS", "0") == "0" else True
 
     # If categories to scrape not specified, scrape all
@@ -136,7 +148,7 @@ def main(
 
         logging.info(f"Processing {len(url_chunks)} chunks of ads across {num_jobs} threads")
         with ThreadPoolExecutor(max_workers=num_jobs) as executor:
-            futures = [executor.submit(process_chunk, chunk) for chunk in url_chunks]
+            futures = [executor.submit(process_chunk, chunk, scraper.get_buysell_ads) for chunk in url_chunks]
             ad_urls = []
             for future in tqdm(futures, disable=(not show_progress)):
                 ad_urls.extend(future.result())

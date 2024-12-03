@@ -1,13 +1,16 @@
+import logging
 import random
 import re
 import time
 from enum import Enum
-from typing import Callable
+from typing import Callable, List, Optional
 
 import pandas as pd
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
-from tenacity import retry, stop_after_attempt, wait_fixed
+from tenacity import retry, stop_after_attempt, wait_exponential, wait_fixed
+
+logger = logging.getLogger(__name__)
 
 
 class PlaywrightScraper:
@@ -77,10 +80,11 @@ class PlaywrightScraper:
 
     def get_page_content(self, url: str):
         """Use playwright to avoid detection for getting a page's content"""
-        self.page.goto(url, wait_until="load", timeout=30000)
+        self.page.goto(url, wait_until="domcontentloaded", timeout=60000)
         return self.page.content()
 
-    def process_urls(self, urls: list, callable_func: Callable):
+    @retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=4, max=10))
+    def process_urls(self, urls: list, callable_func: Callable) -> List[Optional[dict]]:
         """Process a list of URLs with a callable function.
 
         Parameters
@@ -93,14 +97,39 @@ class PlaywrightScraper:
         results = []
         for url in urls:
             try:
-                page_content = self.get_page_content(url)
-                results.append(callable_func(page_content))
+                # Add retry logic for each individual URL
+                result = self._process_single_url_with_retry(url, callable_func)
+                results.append(result)
             except Exception as e:
-                print(f"Error processing URL {url}: {str(e)}")
+                logger.error(f"Failed to process URL {url} after all retries: {str(e)}")
                 results.append(None)
-                continue
-
         return results
+
+    @retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=2, max=10))
+    def _process_single_url_with_retry(self, url: str, callable_func: Callable) -> Optional[dict]:
+        """Process a single URL with retries
+
+        Parameters
+        ----------
+        url : str
+            URL to process
+        callable_func : Callable
+            Function to process the URL
+
+        Returns
+        -------
+        Optional[dict]
+            Processed result or None if failed
+        """
+        try:
+            page_content = self.get_page_content(url)
+            if "you have been blocked" in page_content.lower():
+                raise Exception("Blocked by Cloudflare")
+            result = callable_func(page_content)
+            return result
+        except Exception as e:
+            logger.warning(f"Attempt failed for URL {url}: {str(e)}")
+            raise  # This will trigger the retry
 
 
 @retry(stop=stop_after_attempt(5), wait=wait_fixed(10))
@@ -154,6 +183,7 @@ def request_ad(url: str, playwright_scraper: PlaywrightScraper, delay_s: int = 1
     return page_content
 
 
+@retry(stop=stop_after_attempt(5), wait=wait_fixed(2))
 def get_buysell_ads(search_results: str) -> dict:
     """Grab all buysell URL's from a page of Pinkbike's buysell results
 
@@ -233,14 +263,12 @@ class AdType(Enum):
     OTHER = "other"
 
 
-def parse_buysell_ad(
+def request_buysell_ad(
     buysell_url: str,
     delay_s: int,
-    region_code: int,
     playwright_scraper: PlaywrightScraper,
-    ad_type: AdType = AdType.PINKBIKE,
-) -> dict:
-    """Takes a buysell URL and extracts all attributes listed for product.
+) -> str:
+    """Request the HTML content of a buysell ad and return raw HTML.
 
     Parameters
     ----------
@@ -248,10 +276,33 @@ def parse_buysell_ad(
         URL to the buysell ad
     delay_s : int
         Number of seconds to sleep before returning
-    region_code : int
-        Region code for the ad
     playwright_scraper : PlaywrightScraper
         PlaywrightScraper object to store playwright browser context for requests
+
+    Returns
+    -------
+    str
+        Raw HTML content of the ad page
+    """
+    return request_ad(buysell_url, delay_s=delay_s, playwright_scraper=playwright_scraper)
+
+
+def parse_buysell_ad(
+    page_content: str,
+    buysell_url: str,
+    region_code: int,
+    ad_type: AdType = AdType.PINKBIKE,
+) -> dict:
+    """Takes raw HTML buysell page content and extracts all attributes listed for product.
+
+    Parameters
+    ----------
+    page_content : str
+        Raw HTML content of the ad page
+    buysell_url : str
+        URL to the buysell ad
+    region_code : int
+        Region code for the ad
     ad_type : AdType
         Type of the ad, default is AdType.PINKBIKE
 
@@ -260,9 +311,8 @@ def parse_buysell_ad(
     dict
         Dictionary with all ad data, plus URL and datetime scraped.
     """
-    page_request = request_ad(buysell_url, delay_s=delay_s, playwright_scraper=playwright_scraper)
+    soup = BeautifulSoup(page_content, features="html.parser")
 
-    soup = BeautifulSoup(page_request, features="html.parser")
     if ad_type == AdType.PINKBIKE:
         results = parse_buysell_pinkbike_ad(soup)
     elif ad_type == AdType.BUYCYCLE:
