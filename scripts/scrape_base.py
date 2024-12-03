@@ -1,9 +1,11 @@
 # %%
 import logging
 import os
+import tempfile
 import threading
 import warnings
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 from typing import Callable, List, Optional, Union
 
 import fire
@@ -27,6 +29,39 @@ logging.basicConfig(
 )
 
 logging.getLogger("pymongo").setLevel(logging.CRITICAL)
+
+
+def get_cache_dir() -> Path:
+    """Get the cache directory path, creating it if it doesn't exist"""
+    cache_dir = Path(tempfile.gettempdir()) / "pb_buddy_cache"
+    cache_dir.mkdir(exist_ok=True)
+    return cache_dir
+
+
+def get_cache_path(category_num: int, data_type: str, region_code: int) -> Path:
+    """Get the cache file path for a specific dataset"""
+    cache_dir = get_cache_dir()
+    return cache_dir / f"{data_type}_{category_num}_{region_code}.parquet"
+
+
+def load_dataset_with_cache(category_num: int, data_type: str, region_code: int) -> pd.DataFrame:
+    """Load dataset from cache if available, otherwise from database and cache it"""
+    cache_path = get_cache_path(category_num, data_type, region_code)
+
+    if cache_path.exists():
+        logging.info(f"Loading {data_type} data from cache")
+        return pd.read_parquet(cache_path)
+
+    logging.info(f"Loading {data_type} data from database")
+    df = dt.get_dataset(category_num=category_num, data_type=data_type, region_code=region_code)
+
+    # Cast object columns to string before caching
+    object_columns = df.select_dtypes(include=["object"]).columns
+    df[object_columns] = df[object_columns].astype(str)
+
+    # Cache the data
+    df.to_parquet(cache_path)
+    return df
 
 
 class PlaywrightThread(threading.local):
@@ -71,7 +106,13 @@ def parse_with_retry(url, delay_s, region_code, playwright_scraper):
 
 
 def main(
-    full_refresh=False, delay_s=1, num_jobs=8, categories_to_scrape: Optional[List[int]] = None, region=3, headless=True
+    full_refresh=False,
+    delay_s=1,
+    num_jobs=8,
+    categories_to_scrape: Optional[List[int]] = None,
+    region=3,
+    headless=True,
+    use_cache=True,
 ):
     # TODO: Fix how we handle poor formatted inputs when using
     # workflow_dispatch vs. cron scheduled runs
@@ -87,11 +128,16 @@ def main(
     if categories_to_scrape is None:
         start_category = min(category_dict.values())
         end_category = max(category_dict.values())
-        categories_to_scrape = range(start_category, end_category + 1)
+        categories_to_scrape = list(range(start_category, end_category + 1))
 
     logging.info("######## Starting new scrape session #########")
-    all_base_data = dt.get_dataset(category_num=-1, data_type="base", region_code=int(region))
-    all_sold_data = dt.get_dataset(category_num=-1, data_type="sold", region_code=int(region))
+
+    if use_cache:
+        all_base_data = load_dataset_with_cache(category_num=-1, data_type="base", region_code=int(region))
+        all_sold_data = load_dataset_with_cache(category_num=-1, data_type="sold", region_code=int(region))
+    else:
+        all_base_data = dt.get_dataset(category_num=-1, data_type="base", region_code=int(region))
+        all_sold_data = dt.get_dataset(category_num=-1, data_type="sold", region_code=int(region))
 
     logging.info("All previous data loaded from MongoDB")
     warnings.filterwarnings(action="ignore")
@@ -100,9 +146,8 @@ def main(
     # Iterate through all categories in random order, prevent noticeable patterns?
 
     num_categories_scraped = 0
-    for category_to_scrape in np.random.choice(
-        np.asarray(categories_to_scrape), size=len(categories_to_scrape), replace=False
-    ):
+    categories_array = np.asarray(categories_to_scrape)
+    for category_to_scrape in np.random.choice(categories_array, size=len(categories_array), replace=False):
         # Get category, some don't have entries so skip to next.(category 10 etc.)
         category_name = [x for x, v in category_dict.items() if v == category_to_scrape]
         if not category_name:
@@ -229,8 +274,8 @@ def main(
             unchanged_mask = updated_ads[cols_to_check].eq(previous_versions[cols_to_check]).all(axis=1)
 
             # Filter to adds that actually had changes in columns of interest
-            updated_ads = updated_ads.loc[~unchanged_mask.values, :]
-            previous_versions = previous_versions.loc[~unchanged_mask.values, :]
+            updated_ads = updated_ads.loc[~unchanged_mask, :]
+            previous_versions = previous_versions.loc[~unchanged_mask, :]
 
             # Log the changes in each field
             if len(updated_ads) != 0:
@@ -315,6 +360,15 @@ def main(
         logging.info(
             f"Done Category {category_name} - Number: {category_to_scrape}. {num_categories_scraped} Categories Scraped So Far"
         )
+
+    # Add cache cleanup at the end of processing
+    if use_cache:
+        cache_dir = get_cache_dir()
+        for cache_file in cache_dir.glob("*.parquet"):
+            try:
+                cache_file.unlink()
+            except Exception as e:
+                logging.warning(f"Failed to delete cache file {cache_file}: {e}")
 
     logging.info("######## Finished scrape session #########")
 
