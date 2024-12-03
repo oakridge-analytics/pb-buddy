@@ -112,7 +112,7 @@ def main(
     categories_to_scrape: Optional[List[int]] = None,
     region=3,
     headless=True,
-    use_cache=True,
+    use_cache=False,
 ):
     # TODO: Fix how we handle poor formatted inputs when using
     # workflow_dispatch vs. cron scheduled runs
