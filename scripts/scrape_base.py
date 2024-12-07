@@ -108,7 +108,7 @@ def parse_with_retry(url, delay_s, region_code, playwright_scraper):
 def main(
     full_refresh=False,
     delay_s=1,
-    num_jobs=8,
+    num_jobs=4,
     categories_to_scrape: Optional[List[int]] = None,
     region=3,
     headless=True,
