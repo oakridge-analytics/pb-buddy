@@ -116,7 +116,7 @@ def main(
 ):
     # TODO: Fix how we handle poor formatted inputs when using
     # workflow_dispatch vs. cron scheduled runs
-    num_jobs = int(num_jobs) if num_jobs else 8
+    num_jobs = int(num_jobs) if num_jobs else 4
     logging.info(f"Using {num_jobs} threads")
     playwright_scraper = scraper.PlaywrightScraper(headless=headless)
     category_dict = scraper.get_category_list(playwright=playwright_scraper)
