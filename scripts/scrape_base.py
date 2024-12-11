@@ -108,7 +108,7 @@ def parse_with_retry(url, delay_s, region_code, playwright_scraper):
 def main(
     full_refresh=False,
     delay_s=1,
-    num_jobs=4,
+    num_jobs=2,
     categories_to_scrape: Optional[List[int]] = None,
     region=3,
     headless=True,
@@ -116,7 +116,7 @@ def main(
 ):
     # TODO: Fix how we handle poor formatted inputs when using
     # workflow_dispatch vs. cron scheduled runs
-    num_jobs = int(num_jobs) if num_jobs else 4
+    num_jobs = int(num_jobs) if num_jobs else 2
     logging.info(f"Using {num_jobs} threads")
     playwright_scraper = scraper.PlaywrightScraper(headless=headless)
     category_dict = scraper.get_category_list(playwright=playwright_scraper)
