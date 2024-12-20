@@ -1,6 +1,7 @@
 import pytest
 
 from pb_buddy.scraper import (
+    AdType,
     PlaywrightScraper,
     get_category_list,
     get_total_pages,
@@ -21,12 +22,17 @@ def playwright_scraper():
 
 
 @pytest.fixture
-def sample_url():
+def sample_pinkbike_url():
     return "https://www.pinkbike.com/buysell/3144637/"
 
 
+@pytest.fixture
+def sample_buycycle_url():
+    return "https://buycycle.com/en-ca/bike/gs1-custom-wedu-edition-20588"
+
+
 def test_get_category_list(category_list, playwright_scraper):
-    res = get_category_list(playwright_scraper=playwright_scraper)
+    res = get_category_list(playwright=playwright_scraper)
     # sort by values
     res = dict(sorted(res.items(), key=lambda x: x[1]))
     assert all(res[key] == value for key, value in category_list.items() if key in res)
@@ -42,9 +48,14 @@ def test_get_total_pages(playwright_scraper):
 
 def test_parse_buysell_ad_fields(playwright_scraper):
     buysell_url = "https://www.pinkbike.com/buysell/1234567"
-    delay_s = 1
+    page_content = playwright_scraper.get_page_content(buysell_url)
     region_code = 3
-    ad_data = parse_buysell_ad(buysell_url, delay_s, region_code, playwright_scraper=playwright_scraper)
+    ad_data = parse_buysell_ad(
+        page_content,
+        buysell_url,
+        region_code,
+        AdType.PINKBIKE,
+    )
     assert isinstance(ad_data, dict)
     assert "url" in ad_data
     assert "datetime_scraped" in ad_data
@@ -57,8 +68,14 @@ def test_parse_buysell_ad_fields(playwright_scraper):
     assert "region_code" in ad_data
 
 
-def test_parse_pinkbike_buysell_content(sample_url, playwright_scraper):
-    ad_data = parse_buysell_ad(sample_url, delay_s=0, region_code=3, playwright_scraper=playwright_scraper)
+def test_parse_pinkbike_buysell_content(sample_pinkbike_url, playwright_scraper):
+    page_content = playwright_scraper.get_page_content(sample_pinkbike_url)
+    ad_data = parse_buysell_ad(
+        page_content,
+        sample_pinkbike_url,
+        region_code=3,
+        ad_type=AdType.PINKBIKE,
+    )
     expected = {
         "category": "Trail Bikes",
         "condition": "Excellent - Lightly Ridden",
@@ -103,4 +120,31 @@ def test_parse_pinkbike_buysell_content(sample_url, playwright_scraper):
         "region_code",
     ]
 
+    assert all(ad_data[key] == expected[key] for key in keys_to_check), "Mismatch found in dictionary values"
+
+
+def test_parse_buycycle_ad_fields(sample_buycycle_url, playwright_scraper):
+    page_content = playwright_scraper.get_page_content(sample_buycycle_url)
+    ad_data = parse_buysell_ad(
+        page_content,
+        sample_buycycle_url,
+        region_code=3,
+        ad_type=AdType.BUYCYCLE,
+    )
+    assert isinstance(ad_data, dict)
+    expected = {
+        "ad_title": "Ventum GS1 Custom WED\u016a edition",
+        "price": "5195",
+        "currency": "CAD",
+        "original_post_date": "2024-12-20 11:17:00.087125-07:00",
+        "location": "Clermont, United States",
+        "description": "Brand: Ventum\n\nModel: GS1 Custom WED\u016a edition\n\nGeneral Information:\n\nCondition: New\n\nYear: 2022\n\nFrame sizes: 54 cm\n\nFits to height: 168 - 178cm\n\nSeller Description:\n\nSuper Rare Ventum GS1 Team WED\u016a edition. Maybe like 1 of 3. IYKYK about the founder of WEDU and here is your chance to own one!\n\n\nOriginal Parts:\n\n\nParts replaced by the seller:\n\nFork material: Carbon\n\nTires: -new continental gp5000\u2019s 700x28cc\n\nCassette: -sram rival 11/28\n\nSeatpost: Carbon\n\nHandlebars: -44mm bars\n\nChainrings: -sram rival 48x35\n\nSaddle: -new Bontrager saddle\n\nWheels: -new Bontrager Aeolus 35mm carbon rims\n\nCrank: -sram rival crank arms 172.5\n\nStem: -xxx Bontrager 90mm stem\n\nBrakes: -hydraulic disc\n\nRear derailleur: -sram rival axs rear derailleur\n\nFront derailleur: -sram rival axs front derailleur",
+    }
+    keys_to_check = [
+        "ad_title",
+        "price",
+        "currency",
+        "location",
+        "description",
+    ]
     assert all(ad_data[key] == expected[key] for key in keys_to_check), "Mismatch found in dictionary values"

@@ -44,6 +44,8 @@ class PlaywrightScraper:
         if self.browser:
             self.browser.close()
 
+        if hasattr(self, "_playwright"):
+            self._playwright.stop()
         self._playwright = sync_playwright().start()
         self.browser = self._playwright.chromium.launch(
             headless=self.headless,
@@ -84,13 +86,14 @@ class PlaywrightScraper:
 
     def handle_cloudflare(self, url: str, max_attempts: int = 3) -> bool:
         """Handle Cloudflare challenge if encountered"""
+
         for attempt in range(max_attempts):
             try:
                 # Navigate to the page
                 self.page.goto(url, wait_until="domcontentloaded")
 
                 # Check for Cloudflare challenge
-                if "challenge-platform" in self.page.content():
+                if self._check_cloudflare_challenge():
                     logging.info(f"Cloudflare challenge detected (attempt {attempt + 1}/{max_attempts})")
 
                     # Wait longer for challenge to complete
@@ -98,7 +101,7 @@ class PlaywrightScraper:
                     time.sleep(random.uniform(5, 10))
 
                     # If still blocked, rotate identity and retry
-                    if "challenge-platform" in self.page.content():
+                    if self._check_cloudflare_challenge():
                         self.rotate_identity()
                         self.start_browser()
                         continue
@@ -114,6 +117,13 @@ class PlaywrightScraper:
                 return False
 
         return False
+
+    def _check_cloudflare_challenge(self) -> bool:
+        """Check if the page is a Cloudflare challenge"""
+        return (
+            "challenge-platform" in self.page.content()
+            and "/cdn-cgi/challenge-platform/h/b/orchestrate/" in self.page.content()
+        )
 
     def get_page_content(self, url: str) -> str:
         """Get page content with Cloudflare handling"""
@@ -462,100 +472,70 @@ def parse_buysell_pinkbike_ad(page_content: BeautifulSoup) -> dict:
 
 
 def parse_buysell_buycycle_ad(page_content: BeautifulSoup) -> dict:
-    """Takes a Buycycle buysell URL and extracts all attributes listed for a product.
-
-    Parameters
-    ----------
-    page_content : BeautifulSoup
-        BeautifulSoup object representing the HTML content of the page
-
-    Returns
-    -------
-    dict
-        Dictionary with all ad data
-    """
-    soup = page_content
-
+    """Takes a Buycycle buysell URL and extracts all attributes listed for a product."""
     data_dict = {}
 
-    ad_title = soup.find("h1", class_="text-3xl font-500 content-primary mb-1").text
-    ad_title = " ".join(ad_title.split())
-    price_element = soup.find("p", class_="text-3xl font-500 mb-0 content-sale")
-    if price_element:
+    # Cache commonly used selectors
+    header_div = page_content.find("div", class_="px-3 py-4 bike-info-header")
+    data_dict["ad_title"] = " ".join(header_div.find("div").text.split()) if header_div else None
+
+    # Optimize price extraction
+    if price_element := page_content.find("p", class_="text-2xl font-500 mb-0 content-primary"):
         price_text = price_element.text.strip()
-        price_match = re.search(r"([\D]*)(\d[\d.,]*)([\D]*)", price_text)
-        if price_match:
+        if price_match := re.search(r"([\D]*)(\d[\d.,]*)([\D]*)", price_text):
             pre_text, price, post_text = price_match.groups()
-            price = price.replace(".", "").replace(",", "")
-            currency = pre_text.strip() if pre_text else post_text.strip()
+            data_dict["price"] = price.replace(".", "").replace(",", "")
+            data_dict["currency"] = pre_text.strip() or post_text.strip()
         else:
-            price = None
-            currency = None
+            data_dict["price"] = data_dict["currency"] = None
     else:
-        price = None
-        currency = None
-    # No post date found on site, so using current date
-    original_post_date = str(pd.Timestamp.today(tz="US/Mountain"))
-    country = soup.find("p", class_="text-sm content-tertiary mb-0").text.strip()
-    details = []
+        data_dict["price"] = data_dict["currency"] = None
 
-    # Extract brand and model
-    brand_model = soup.find("div", class_="py-3")
-    if brand_model:
-        brand = brand_model.find("span", class_="text-sm primary d-block")
-        model = brand_model.find("strong", class_="text-lg primary d-block font-500")
-        if brand:
-            details.append(f"Brand: {brand.text.strip()}")
-        if model:
-            details.append(f"Model: {model.text.strip()}")
+    # Set fixed values
+    data_dict["original_post_date"] = str(pd.Timestamp.today(tz="US/Mountain"))
+    data_dict["location"] = page_content.find("p", class_="text-sm content-tertiary wrap-1 mb-0").text.strip()
 
-    # Extract summary information
-    summary_info = soup.find("p", class_="text-sm content-secondary")
-    if summary_info:
-        summary_text = summary_info.text.strip()
-        details.append(f"Summary: {summary_text}")
+    # Build description more efficiently
+    text_parts = []
 
-    # Extract condition and details
-    condition_details = soup.find("ul", class_="pdp-modal-bike-info-list")
-    if condition_details:
-        for li in condition_details.find_all("li"):
-            strong = li.find("strong")
-            span = li.find("span", class_="secondary-3")
-            if strong and span:
-                details.append(f"{strong.text.strip().rstrip(':').rstrip()}: {span.text.strip()}")
+    # Extract header info - single query
+    if header := page_content.select_one("div.modal-header"):
+        if (brand := header.select_one("p.content-secondary")) and (model := header.select_one("h2.content-primary")):
+            text_parts.extend([f"Brand: {brand.text.strip()}", f"Model: {model.text.strip()}"])
 
-    # Extract components
-    components = soup.find("div", class_="pdp-modal-bike-components-list")
-    if components:
-        for div in components.find_all("div", class_="pb-2 text-sm"):
-            component = div.find("p", class_="d-flex align-items-center primary gap-1 mb-1")
-            value = div.find("div", class_="content-secondary")
-            if component and value:
-                component_text = component.text.strip().rstrip(":").rstrip().rstrip("\n")
+    # Extract general information - minimize queries
+    if gen_info := page_content.select_one("div.general-information"):
+        text_parts.append("General Information:")
+        rows = gen_info.select("div.d-flex.align-items-center.flex-nowrap")
+        for row in rows:
+            if (label := row.select_one("span.content-tertiary")) and (value := row.select_one("span.content-primary")):
                 value_text = value.text.strip()
-                if value_text and value_text != "-":
-                    details.append(f"{component_text}: {value_text}")
+                if value_text != "-":
+                    text_parts.append(f"{label.text.strip().rstrip(':')}: {value_text}")
 
-    # Extract additional details
-    additional_details = soup.find("div", class_="pdp-modal-bike-other")
-    if additional_details:
-        info_div = additional_details.find("div", class_="text-sm content-secondary mb-0 info-div-content")
-        if info_div:
-            details.append(f"Additional Details: {info_div.text.strip()}")
+    # Extract seller information - single query
+    if seller_info := page_content.select_one("div.seller-info .info-text"):
+        if seller_text := seller_info.text.strip():
+            text_parts.extend(["Seller Description:", seller_text])
 
-    details_text = " ".join(details)
-    details_text = re.sub(r"\s+", " ", details_text).strip()
+    # Extract parts information - batch process
+    for section in page_content.select("div.parts.parts-modal"):
+        if section_title := section.select_one("h3"):
+            text_parts.append(f"\n{section_title.text.strip()}:")
 
-    data_dict["ad_title"] = ad_title
-    data_dict["price"] = price
-    currency_mapping = {
-        "\u20ac": "EUR",  # Euro
-        "\u00a3": "GBP",  # British Pound
-        "$": "USD",  # US Dollar (assuming $ is always USD)
-    }
-    data_dict["currency"] = currency_mapping.get(currency, currency)
-    data_dict["original_post_date"] = original_post_date
-    data_dict["location"] = country
-    data_dict["description"] = details_text
+            rows = section.select("div.d-flex.align-items-center")
+            for row in rows:
+                if (label := row.select_one("span.content-tertiary")) and (
+                    value := row.select_one("span.content-primary")
+                ):
+                    value_text = value.text.strip()
+                    if value_text != "-":
+                        text_parts.append(f"{label.text.strip().rstrip(':')}: {value_text}")
+
+    data_dict["description"] = "\n\n".join(text_parts)
+
+    # Map currency symbols more efficiently
+    currency_mapping = {"\u20ac": "EUR", "\u00a3": "GBP", "$": "USD"}
+    data_dict["currency"] = currency_mapping.get(data_dict["currency"], data_dict["currency"])
 
     return data_dict
