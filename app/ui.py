@@ -8,7 +8,6 @@ import dash_bootstrap_components as dbc
 import openai
 import pandas as pd
 import requests
-import yfinance as yf
 from bs4 import BeautifulSoup
 from dash import dcc, html
 from dash.dependencies import Input, Output, State
@@ -19,6 +18,7 @@ from pb_buddy.scraper import (
     parse_buysell_buycycle_ad,
     parse_buysell_pinkbike_ad,
 )
+from pb_buddy.utils import convert_currency, convert_currency_symbol
 
 from .browser_service import BrowserService
 
@@ -145,34 +145,6 @@ def parse_other_buysell_ad(url: str) -> tuple[dict, str]:
         if value == "Unknown":
             parsed_ad[key] = None
     return parsed_ad, b64_img
-
-
-def convert_currency_symbol(symbol: str) -> str:
-    currency_symbols = {
-        "$": "USD",
-        "€": "EUR",
-        "£": "GBP",
-        "¥": "JPY",
-        "₣": "CHF",
-        "C$": "CAD",
-        "A$": "AUD",
-        "kr": "SEK",
-        "₹": "INR",
-        "₽": "RUB",
-    }
-    return currency_symbols.get(symbol, symbol)
-
-
-def convert_currency(amount: float, from_currency: str, to_currency: str) -> float:
-    if from_currency == to_currency:
-        return amount
-
-    from_currency = convert_currency_symbol(from_currency)
-    to_currency = convert_currency_symbol(to_currency)
-
-    ticker = f"{from_currency}{to_currency}=X"
-    exchange_rate = yf.Ticker(ticker).info["regularMarketPreviousClose"]
-    return amount * exchange_rate
 
 
 current_year = pd.Timestamp.now().year
