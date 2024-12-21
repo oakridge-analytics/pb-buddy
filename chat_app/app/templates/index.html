@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Bike Broker</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        * {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        body {
+            background-color: #1a1b2e;
+            /* Dark blue-purple */
+            margin: 0;
+            padding: 0;
+            color: #e0e0ff;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #FF6B9D, #4B0082);
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(255, 107, 157, 0.2);
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        #chat-container {
+            margin: 20px auto;
+            max-width: 1300px;
+            padding: 0 20px;
+        }
+
+        #chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #2a2b3d;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            line-height: 1.5;
+            display: flex;
+            flex-direction: column;
+            background-color: rgba(26, 27, 46, 0.8);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 12px;
+            max-width: 80%;
+            word-wrap: break-word;
+            font-size: 15px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .user-message {
+            background-color: #2d1155;
+            color: #ffc2e7;
+            align-self: flex-start;
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+            border-left: 3px solid #ff6b9d;
+        }
+
+        .assistant-message {
+            background-color: #1a2c4d;
+            color: #b7ffed;
+            align-self: flex-end;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+            border-right: 3px solid #4dc9ff;
+        }
+
+        /* Add styles for sender names */
+        .user-message strong,
+        .assistant-message strong {
+            font-weight: 700;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .user-message strong {
+            color: #ff6b9d;
+        }
+
+        .assistant-message strong {
+            color: #4dc9ff;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+            background-color: rgba(26, 27, 46, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        #message-input {
+            flex-grow: 1;
+            padding: 12px 16px;
+            border: 2px solid #2a2b3d;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: all 0.2s;
+            outline: none;
+            background-color: rgba(26, 27, 46, 0.9);
+            color: #e0e0ff;
+        }
+
+        #message-input:focus {
+            border-color: #FF6B9D;
+            box-shadow: 0 0 0 3px rgba(255, 107, 157, 0.2);
+        }
+
+        #message-input::placeholder {
+            color: #8888aa;
+        }
+
+        #send-button {
+            padding: 12px 28px;
+            background: linear-gradient(135deg, #FF6B9D, #4B0082);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            transition: all 0.2s;
+            letter-spacing: 0.5px;
+        }
+
+        #send-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(255, 107, 157, 0.3);
+            filter: brightness(1.1);
+        }
+
+        #send-button:active {
+            transform: translateY(0);
+        }
+
+        .assistant-message table {
+            background-color: rgba(26, 27, 46, 0.9);
+            border-collapse: collapse;
+            width: 100%;
+            margin: 12px 0;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .assistant-message th,
+        .assistant-message td {
+            border: 1px solid #2a2b3d;
+            padding: 10px;
+            text-align: left;
+        }
+
+        .assistant-message th {
+            background-color: #2d2b55;
+            font-weight: 600;
+            color: #ff9ecd;
+        }
+
+        .assistant-message tr:nth-child(even) {
+            background-color: rgba(45, 43, 85, 0.3);
+        }
+
+        .assistant-message pre {
+            background-color: #2d2b55;
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            border: 1px solid #2a2b3d;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            color: #e0e0ff;
+        }
+
+        .assistant-message code {
+            font-family: 'Space Mono', monospace;
+            background-color: rgba(255, 107, 157, 0.1);
+            padding: 2px 4px;
+            border-radius: 4px;
+            color: #ff9ecd;
+        }
+
+        .assistant-message a {
+            color: #FF6B9D;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .assistant-message a:hover {
+            color: #ff9ecd;
+            text-decoration: underline;
+        }
+
+        #chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #chat-messages::-webkit-scrollbar-track {
+            background: rgba(26, 27, 46, 0.8);
+            border-radius: 4px;
+        }
+
+        #chat-messages::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #FF6B9D, #4B0082);
+            border-radius: 4px;
+        }
+
+        #chat-messages::-webkit-scrollbar-thumb:hover {
+            filter: brightness(1.1);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>Bike Broker</h1>
+    </div>
+    <div id="chat-container">
+        <div id="chat-messages"></div>
+        <div class="input-container">
+            <input type="text" id="message-input" placeholder="Type your message...">
+            <button id="send-button">Send</button>
+        </div>
+    </div>
+    <script>
+        let conversationHistory = [];
+
+        // Configure marked.js with custom renderer for links
+        const renderer = new marked.Renderer();
+
+        // renderer.link = function(href, title, text) {
+        //     return `<a href="${href}" title="${title || ''}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+        // };
+
+        marked.setOptions({
+            breaks: true,
+            gfm: true,
+            tables: true,
+            renderer: renderer
+        });
+
+        // Add welcome message when page loads
+        window.onload = function () {
+            const welcomeMessage = "Hi! Let me know what type of bike you're looking for and I can find you a good deal using my proprietary pricing model. Just tell me what you're looking for!";
+            appendMessage("Bike Broker: " + welcomeMessage, true, false);
+            conversationHistory.push({
+                role: 'assistant',
+                content: welcomeMessage,
+                sender: 'Bike Broker'
+            });
+        };
+
+        async function sendMessage() {
+            const messageInput = document.getElementById('message-input');
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            appendMessage('User: ' + message, false, true);
+            messageInput.value = '';
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        history: conversationHistory
+                    })
+                });
+
+                const reader = response.body.getReader();
+                let assistantMessage = '';
+                let currentMessageElement = null;
+                const messagesDiv = document.getElementById('chat-messages');
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const text = new TextDecoder().decode(value);
+                    assistantMessage += text;
+
+                    if (!currentMessageElement) {
+                        currentMessageElement = document.createElement('div');
+                        currentMessageElement.classList.add('message', 'assistant-message');
+                        messagesDiv.appendChild(currentMessageElement);
+                    }
+
+                    currentMessageElement.innerHTML = marked.parse(assistantMessage);
+                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                }
+
+                conversationHistory.push(
+                    { role: 'user', content: message },
+                    { role: 'assistant', content: assistantMessage }
+                );
+
+            } catch (error) {
+                console.error('Error:', error);
+                appendMessage('Error: Failed to get response', false, false);
+            }
+        }
+
+        function appendMessage(message, isAssistant, isUser) {
+            const messagesDiv = document.getElementById('chat-messages');
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message');
+            messageElement.classList.add(isUser ? 'user-message' : 'assistant-message');
+
+            if (isUser) {
+                const [sender, ...rest] = message.split(': ');
+                message = `<strong>${sender}:</strong> ${rest.join(': ')}`;
+            } else {
+                const [sender, ...rest] = message.split(': ');
+                if (rest.length > 0) {
+                    message = `<strong>${sender}:</strong> ${rest.join(': ')}`;
+                }
+            }
+
+            messageElement.innerHTML = isUser ? message : marked.parse(message);
+            messagesDiv.appendChild(messageElement);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            return messageElement;
+        }
+
+        document.getElementById('send-button').onclick = sendMessage;
+        document.getElementById('message-input').onkeypress = function (e) {
+            if (e.key === 'Enter') sendMessage();
+        };
+    </script>
+</body>
+
+</html>
