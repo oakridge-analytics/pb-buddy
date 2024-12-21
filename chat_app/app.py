@@ -6,9 +6,8 @@ import pandas as pd
 import requests
 from dotenv import load_dotenv
 from flask import Flask, Response, render_template, request, stream_with_context
+from prompts import ASSISTANT_PROMPT
 from swarm import Agent, Swarm
-
-from .prompts import ASSISTANT_PROMPT
 
 app = Flask(__name__)
 
@@ -25,7 +24,6 @@ def mapbox_geocode(address: str) -> tuple[float, float]:
     """
     url = f"https://api.mapbox.com/search/geocode/v6/forward?q={address}&access_token={os.getenv('MAPBOX_API_KEY')}"
     response = requests.get(url)
-    # print(response.json())
     # Get lat,lon from response
     return tuple(response.json()["features"][0]["geometry"]["coordinates"])
 
@@ -127,7 +125,7 @@ def chat():
         client = Swarm()
         agent = Agent(
             name="Bike Broker",
-            model="gpt-4-turbo-preview",
+            model="gpt-4o-mini",
             instructions=ASSISTANT_PROMPT,
             functions=[get_user_location, get_relevant_bikes],
         )
@@ -148,16 +146,20 @@ def chat():
 
 @app.route("/")
 def home():
+    print("Current working directory:", os.getcwd())
+    print("Directory contents:", os.listdir())
+    if os.path.exists("templates"):
+        print("Templates directory contents:", os.listdir("templates"))
     return render_template("index.html")
 
 
+load_dotenv(os.path.expanduser("~/.openai/credentials"))
+load_dotenv(".env")
+
+dataset = pd.read_parquet("s3://bike-buddy/data/chat/latest_base_chat_data.parquet").assign(
+    front_travel=lambda df: df.front_travel.fillna(0), rear_travel=lambda df: df.rear_travel.fillna(0)
+)
+
 if __name__ == "__main__":
-    load_dotenv(os.path.expanduser("~/.openai/credentials"))
-    load_dotenv(".env")
-
-    dataset = pd.read_parquet("s3://bike-buddy/data/chat/latest_base_chat_data.parquet").assign(
-        front_travel=lambda df: df.front_travel.fillna(0), rear_travel=lambda df: df.rear_travel.fillna(0)
-    )
-
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
