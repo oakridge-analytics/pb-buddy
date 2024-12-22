@@ -95,7 +95,7 @@ def process_chunk(urls: Union[List[str], npt.NDArray], callable_func: Callable) 
     return results
 
 
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10), reraise=True)
+@retry(stop=stop_after_attempt(6), wait=wait_exponential(multiplier=2, min=4, max=100), reraise=True)
 def parse_with_retry(url, delay_s, region_code, playwright_scraper):
     try:
         page_content = playwright_scraper.get_page_content(url)

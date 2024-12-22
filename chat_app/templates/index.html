@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Bike Broker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #FF6B9D;
+            --secondary-color: #4B0082;
+            --dark-bg: #1a1b2e;
+            --message-bg-user: #2d1155;
+            --message-bg-assistant: #1a2c4d;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: #e0e0ff;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            padding: 1rem 0;
+            box-shadow: 0 2px 4px rgba(255, 107, 157, 0.2);
+        }
+
+        .chat-container {
+            height: calc(100vh - 180px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .messages-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            background-color: rgba(26, 27, 46, 0.8);
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .message {
+            max-width: 85%;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            border-radius: 1rem;
+            font-size: 1rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .message-user {
+            background-color: var(--message-bg-user);
+            color: #ffc2e7;
+            margin-right: auto;
+            border-bottom-left-radius: 0.25rem;
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .message-assistant {
+            background-color: var(--message-bg-assistant);
+            color: #b7ffed;
+            margin-left: auto;
+            border-bottom-right-radius: 0.25rem;
+            border-right: 3px solid #4dc9ff;
+        }
+
+        .sender-name {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .message-user .sender-name {
+            color: var(--primary-color);
+        }
+
+        .message-assistant .sender-name {
+            color: #4dc9ff;
+        }
+
+        .input-group {
+            background-color: rgba(26, 27, 46, 0.8);
+            padding: 1rem;
+            border-radius: 0.5rem;
+        }
+
+        .form-control {
+            background-color: rgba(26, 27, 46, 0.9) !important;
+            border: 2px solid #2a2b3d !important;
+            color: #e0e0ff !important;
+            font-size: 1rem;
+            padding: 0.75rem 1rem;
+        }
+
+        .form-control:focus {
+            box-shadow: 0 0 0 0.25rem rgba(255, 107, 157, 0.25) !important;
+            border-color: var(--primary-color) !important;
+        }
+
+        .form-control::placeholder {
+            color: #8888aa !important;
+        }
+
+        .btn-send {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
+            border: none;
+        }
+
+        .btn-send:hover {
+            filter: brightness(1.1);
+            color: white;
+        }
+
+        /* Table Styles */
+        .message-assistant table {
+            width: 100%;
+            margin: 1rem 0;
+            background-color: rgba(26, 27, 46, 0.9);
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        .message-assistant th,
+        .message-assistant td {
+            padding: 0.75rem;
+            border: 1px solid #2a2b3d;
+        }
+
+        .message-assistant th {
+            background-color: #2d2b55;
+            color: #ff9ecd;
+        }
+
+        /* Code Styles */
+        .message-assistant pre {
+            background-color: #2d2b55;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            border: 1px solid #2a2b3d;
+            color: #e0e0ff;
+        }
+
+        .message-assistant code {
+            font-family: 'Monaco', monospace;
+            background-color: rgba(255, 107, 157, 0.1);
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            color: #ff9ecd;
+        }
+
+        /* Scrollbar Styles */
+        .messages-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .messages-container::-webkit-scrollbar-track {
+            background: rgba(26, 27, 46, 0.8);
+            border-radius: 4px;
+        }
+
+        .messages-container::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .message {
+                max-width: 90%;
+                font-size: 1rem;
+            }
+
+            .chat-container {
+                height: calc(100vh - 160px);
+            }
+        }
+
+        @media (max-width: 576px) {
+            .message {
+                max-width: 95%;
+            }
+
+            .btn-send {
+                width: 100%;
+                margin-top: 0.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1 class="text-center mb-0 fs-2">Bike Broker</h1>
+    </div>
+
+    <div class="container py-3">
+        <div class="chat-container">
+            <div class="messages-container" id="chat-messages"></div>
+
+            <div class="input-group">
+                <input type="text" class="form-control" id="message-input" placeholder="Type your message...">
+                <button class="btn btn-send" id="send-button">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let conversationHistory = [];
+
+        const renderer = new marked.Renderer();
+        marked.setOptions({
+            breaks: true,
+            gfm: true,
+            tables: true,
+            renderer: renderer
+        });
+
+        // Add welcome message when page loads
+        window.onload = function () {
+            const welcomeMessage = "Hi! Let me know what type of bike you're looking for and I can find you a good deal using my proprietary pricing model. Just tell me what you're looking for!";
+            appendMessage("Bike Broker: " + welcomeMessage, true, false);
+            conversationHistory.push({
+                role: 'assistant',
+                content: welcomeMessage,
+                sender: 'Bike Broker'
+            });
+        };
+
+        async function sendMessage() {
+            const messageInput = document.getElementById('message-input');
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            appendMessage('User: ' + message, false, true);
+            messageInput.value = '';
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        history: conversationHistory
+                    })
+                });
+
+                const reader = response.body.getReader();
+                let assistantMessage = '';
+                let currentMessageElement = null;
+                const messagesDiv = document.getElementById('chat-messages');
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const text = new TextDecoder().decode(value);
+                    assistantMessage += text;
+
+                    if (!currentMessageElement) {
+                        currentMessageElement = document.createElement('div');
+                        currentMessageElement.classList.add('message', 'message-assistant');
+                        messagesDiv.appendChild(currentMessageElement);
+                    }
+
+                    currentMessageElement.innerHTML = marked.parse(assistantMessage);
+                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                }
+
+                conversationHistory.push(
+                    { role: 'user', content: message },
+                    { role: 'assistant', content: assistantMessage }
+                );
+
+            } catch (error) {
+                console.error('Error:', error);
+                appendMessage('Error: Failed to get response', false, false);
+            }
+        }
+
+        function appendMessage(message, isAssistant, isUser) {
+            const messagesDiv = document.getElementById('chat-messages');
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message');
+            messageElement.classList.add(isUser ? 'message-user' : 'message-assistant');
+
+            if (isUser) {
+                const [sender, ...rest] = message.split(': ');
+                message = `<div class="sender-name">${sender}:</div> ${rest.join(': ')}`;
+            } else {
+                const [sender, ...rest] = message.split(': ');
+                if (rest.length > 0) {
+                    message = `<div class="sender-name">${sender}:</div> ${rest.join(': ')}`;
+                }
+            }
+
+            messageElement.innerHTML = isUser ? message : marked.parse(message);
+            messagesDiv.appendChild(messageElement);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            return messageElement;
+        }
+
+        document.getElementById('send-button').onclick = sendMessage;
+        document.getElementById('message-input').onkeypress = function (e) {
+            if (e.key === 'Enter') sendMessage();
+        };
+    </script>
+</body>
+
+</html>

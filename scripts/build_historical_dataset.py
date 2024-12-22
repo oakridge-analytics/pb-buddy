@@ -5,13 +5,12 @@
 # -----------------------------------------------------------------------------
 
 # %%
-import pandas as pd
-import os
 import json
-from io import BytesIO
-from tqdm import tqdm
-from pb_buddy.data_processors import stream_parquet_to_blob
+
+import pandas as pd
 from dotenv import load_dotenv
+
+from pb_buddy.data_processors import stream_parquet_to_blob
 
 load_dotenv("../.env")
 

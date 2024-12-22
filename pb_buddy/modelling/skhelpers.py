@@ -1,7 +1,7 @@
-from sklearn.preprocessing import FunctionTransformer
-from sklearn.base import BaseEstimator, TransformerMixin
 import numpy as np
 import pandas as pd
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.preprocessing import FunctionTransformer
 
 from pb_buddy.specs import augment_with_specs
 
@@ -38,7 +38,7 @@ def add_age(df):
     - Columns: `ad_title`, `original_post_date`
     """
     return (
-        df.assign(original_post_date=lambda _df: pd.to_datetime(_df.original_post_date))
+        df.assign(original_post_date=lambda _df: pd.to_datetime(_df.original_post_date, format="mixed"))
         .assign(
             bike_model_date=lambda _df: pd.to_datetime(_df.ad_title.str.extract(r"((?:19|20)\d{2})", expand=False)),
             age_at_post=lambda _df: (_df.original_post_date - _df.bike_model_date).dt.days,
