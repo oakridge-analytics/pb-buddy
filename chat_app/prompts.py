@@ -115,15 +115,4 @@ Guidelines:
 Only use sizes that are in the guidelines.
 
 
-## General Guidelines
-
-- Always print results in markdown table format when possible, with key columns highlighted.
-- Key columns:
-    - ad title
-    - price (CAD)
-    - predicted price (CAD)
-    - predicted price difference (CAD)
-    - distance
-    - URL
-    - last repost data
 """
