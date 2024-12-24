@@ -20,12 +20,15 @@ from pb_buddy.scraper import (
 )
 from pb_buddy.utils import convert_currency, convert_currency_symbol
 
-from .browser_service import BrowserService
-
 if os.environ.get("API_URL") is None:
     API_URL = "https://dbandrews--bike-buddy-api-autogluonmodelinference-predict.modal.run"
 else:
     API_URL = os.environ["API_URL"]
+
+if os.environ.get("BROWSER_SERVICE_URL") is None:
+    BROWSER_SERVICE_URL = "https://dbandrews--browser-service-browserservice-web.modal.run"
+else:
+    BROWSER_SERVICE_URL = os.environ["BROWSER_SERVICE_URL"]
 
 dash_app = dash.Dash(__name__, external_stylesheets=[dbc.themes.SLATE])
 # Configure logging
@@ -40,13 +43,19 @@ user_agents_opts = [
 
 
 def get_page_from_playwright_scraper(url: str) -> str:
-    browser_service = BrowserService()
-    return browser_service.get_page_content.remote(url)
+    """Get page content from browser service API."""
+    response = requests.get(f"{BROWSER_SERVICE_URL}/page/{url}")
+    if response.status_code != 200:
+        raise Exception(f"Failed to get page content: {response.status_code}")
+    return response.json()["content"]
 
 
 def get_page_screenshot(url: str) -> str:
-    browser_service = BrowserService()
-    return browser_service.get_page_screenshot.remote(url)
+    """Get page screenshot from browser service API."""
+    response = requests.get(f"{BROWSER_SERVICE_URL}/screenshot/{url}")
+    if response.status_code != 200:
+        raise Exception(f"Failed to get screenshot: {response.status_code}")
+    return response.json()["image_base64"]
 
 
 def parse_other_buysell_ad(url: str) -> tuple[dict, str]:
@@ -137,9 +146,66 @@ def parse_other_buysell_ad(url: str) -> tuple[dict, str]:
                 ],
             },
         ],
-        tools=tools,
-        tool_choice={"type": "function", "function": {"name": f"{tool_name}"}},
+        tools=[
+            {
+                "type": "function",
+                "function": {
+                    "name": tool_name,
+                    "description": "Parse information about a bicycle ad",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "model_year": {
+                                "description": "The year the bike was manufactured",
+                                "title": "Model Year",
+                                "type": "integer",
+                            },
+                            "ad_title": {"title": "Ad Title", "type": "string"},
+                            "description": {
+                                "description": "Detailed information about the bike for sale. Should include all possible details.",
+                                "title": "Ad Description",
+                                "type": "string",
+                            },
+                            "location": {
+                                "description": 'The city and country where the bike is being sold. If city is unknown, just use "Unknown, Country_Name". The country where the bike is located, either "Canada" or "United States"',
+                                "title": "Country",
+                                "type": "string",
+                            },
+                            "original_post_date": {
+                                "description": "The original date the ad was posted",
+                                "title": "Original Post Date",
+                                "type": "string",
+                            },
+                            "price": {
+                                "description": "The price of the bike",
+                                "title": "Price",
+                                "type": "number",
+                            },
+                            "currency": {
+                                "description": "The currency of the price",
+                                "title": "Currency",
+                                "type": "string",
+                            },
+                        },
+                        "required": [
+                            "model_year",
+                            "ad_title",
+                            "description",
+                            "location",
+                            "original_post_date",
+                            "price",
+                            "currency",
+                        ],
+                    },
+                },
+            }
+        ],
+        tool_choice={"type": "function", "function": {"name": tool_name}},
     )
+
+    if not response.choices or not response.choices[0].message.tool_calls:
+        return {}, ""
+
     parsed_ad = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
     for key, value in parsed_ad.items():
         if value == "Unknown":
