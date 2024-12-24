@@ -7,7 +7,8 @@ from typing import Optional
 from urllib.parse import unquote
 
 import modal
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import Depends, FastAPI, HTTPException, Response
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from modal import App
 from playwright.async_api import Browser, BrowserContext, Page, Playwright
 from pydantic import BaseModel
@@ -32,6 +33,9 @@ playwright_image = (
     )
 )
 
+# Set up authentication scheme
+auth_scheme = HTTPBearer()
+
 user_agents_opts = [
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"
 ]
@@ -52,7 +56,7 @@ class ScreenshotResponse(BaseModel):
     image=playwright_image,
     allow_concurrent_inputs=10,
     container_idle_timeout=60,
-    secrets=[modal.Secret.from_name("oxy-proxy")],
+    secrets=[modal.Secret.from_name("oxy-proxy"), modal.Secret.from_name("browser-service-token")],
     cpu=2.0,
     memory=2000,
 )
@@ -246,17 +250,29 @@ class BrowserService:
     def web(self):
         web_app = FastAPI()
 
+        async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(auth_scheme)):
+            token = os.environ.get("BROWSER_SERVICE_TOKEN")
+            if not token:
+                raise HTTPException(status_code=500, detail="Authentication token not configured")
+            if credentials.credentials != token:
+                raise HTTPException(
+                    status_code=401,
+                    detail="Invalid authentication token",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            return credentials
+
         @web_app.get("/status")
-        async def status():
+        async def status(token: HTTPAuthorizationCredentials = Depends(verify_token)):
             return Response(status_code=200)
 
         @web_app.get("/page/{url:path}", response_model=PageResponse)
-        async def page(url: str):
+        async def page(url: str, token: HTTPAuthorizationCredentials = Depends(verify_token)):
             decoded_url = unquote(url)  # Decode the URL-encoded string
             return await self.get_page_content(decoded_url)
 
         @web_app.get("/screenshot/{url:path}", response_model=ScreenshotResponse)
-        async def screenshot(url: str):
+        async def screenshot(url: str, token: HTTPAuthorizationCredentials = Depends(verify_token)):
             decoded_url = unquote(url)  # Decode the URL-encoded string
             return await self.get_page_screenshot(decoded_url)
 

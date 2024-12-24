@@ -30,6 +30,11 @@ if os.environ.get("BROWSER_SERVICE_URL") is None:
 else:
     BROWSER_SERVICE_URL = os.environ["BROWSER_SERVICE_URL"]
 
+if os.environ.get("BROWSER_SERVICE_TOKEN") is None:
+    BROWSER_SERVICE_TOKEN = None
+else:
+    BROWSER_SERVICE_TOKEN = os.environ["BROWSER_SERVICE_TOKEN"]
+
 dash_app = dash.Dash(__name__, external_stylesheets=[dbc.themes.SLATE])
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -44,7 +49,11 @@ user_agents_opts = [
 
 def get_page_from_playwright_scraper(url: str) -> str:
     """Get page content from browser service API."""
-    response = requests.get(f"{BROWSER_SERVICE_URL}/page/{url}")
+    if BROWSER_SERVICE_TOKEN is None:
+        raise Exception("BROWSER_SERVICE_TOKEN environment variable not set")
+
+    headers = {"Authorization": f"Bearer {BROWSER_SERVICE_TOKEN}"}
+    response = requests.get(f"{BROWSER_SERVICE_URL}/page/{url}", headers=headers)
     if response.status_code != 200:
         raise Exception(f"Failed to get page content: {response.status_code}")
     return response.json()["content"]
@@ -52,7 +61,11 @@ def get_page_from_playwright_scraper(url: str) -> str:
 
 def get_page_screenshot(url: str) -> str:
     """Get page screenshot from browser service API."""
-    response = requests.get(f"{BROWSER_SERVICE_URL}/screenshot/{url}")
+    if BROWSER_SERVICE_TOKEN is None:
+        raise Exception("BROWSER_SERVICE_TOKEN environment variable not set")
+
+    headers = {"Authorization": f"Bearer {BROWSER_SERVICE_TOKEN}"}
+    response = requests.get(f"{BROWSER_SERVICE_URL}/screenshot/{url}", headers=headers)
     if response.status_code != 200:
         raise Exception(f"Failed to get screenshot: {response.status_code}")
     return response.json()["image_base64"]

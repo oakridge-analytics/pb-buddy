@@ -1,6 +1,5 @@
 import modal
 
-from .browser_service import BrowserService  # noqa
 from .common import app
 from .ui import dash_app
 
@@ -27,7 +26,11 @@ image = (
 
 @app.function(
     image=image,
-    secrets=[modal.Secret.from_name("openai-secret"), modal.Secret.from_name("oxy-proxy")],
+    secrets=[
+        modal.Secret.from_name("openai-secret"),
+        modal.Secret.from_name("oxy-proxy"),
+        modal.Secret.from_name("browser-service-token"),
+    ],
     cpu=2.0,
     memory=4000,
     # mounts=[modal.Mount.from_local_python_packages("app")],

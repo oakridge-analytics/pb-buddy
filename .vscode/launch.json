@@ -7,8 +7,8 @@
             "request": "launch",
             "program": "${file}",
             "args": [
-                "--num_jobs=4",
-                "--categories_to_scrape='12'"
+                // "--num_jobs=4",
+                // "--categories_to_scrape='12'"
             ],
             "console": "integratedTerminal",
             "justMyCode": true
