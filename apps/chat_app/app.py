@@ -146,10 +146,6 @@ def chat():
 
 @app.route("/")
 def home():
-    print("Current working directory:", os.getcwd())
-    print("Directory contents:", os.listdir())
-    if os.path.exists("templates"):
-        print("Templates directory contents:", os.listdir("templates"))
     return render_template("index.html")
 
 

@@ -225,7 +225,9 @@
 
         // Add welcome message when page loads
         window.onload = function () {
-            const welcomeMessage = "Hi! Let me know what type of bike you're looking for and I can find you a good deal using my proprietary pricing model. Just tell me what you're looking for!";
+            const welcomeMessage = "Hi! Let me know what type of bike you're looking for " +
+                "and I can find you a good deal using my proprietary pricing model. " +
+                "Just tell me what you're looking for!";
             appendMessage("Bike Broker: " + welcomeMessage, true, false);
             conversationHistory.push({
                 role: 'assistant',
