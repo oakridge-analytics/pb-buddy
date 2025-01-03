@@ -203,7 +203,7 @@ def chat():
         client = Swarm()
         agent = Agent(
             name="Bike Broker",
-            model="gpt-4o-mini",
+            model="gpt-4o",
             instructions=ASSISTANT_PROMPT,
             functions=[get_user_location, get_relevant_bikes, get_price_prediction],
         )
