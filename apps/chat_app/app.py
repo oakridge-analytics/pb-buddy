@@ -67,7 +67,6 @@ def get_relevant_bikes(
                 "url",
                 "price",
                 "currency",
-                "description",
                 "last_repost_date",
                 "predicted_price_cad",
                 "predicted_price_diff",
@@ -87,14 +86,19 @@ def process_streaming_response(response):
     content = ""
     last_sender = ""
     has_started = False
+    needs_space = False
 
     for chunk in response:
         if "sender" in chunk:
             last_sender = chunk["sender"]
 
         if "content" in chunk and chunk["content"] is not None:
+            # Add a space if we're coming from a tool call
+            if needs_space:
+                yield " "
+                needs_space = False
+
             if not has_started:
-                yield f"{last_sender}: "
                 has_started = True
             yield chunk["content"]
             content += chunk["content"]
@@ -106,8 +110,9 @@ def process_streaming_response(response):
                 if not name:
                     continue
                 # Format tool call as markdown code block
-                tool_call_msg = f"\n\n```\nCalling function: {name}\nArguments: {f['arguments']}\n```\n\n"
+                tool_call_msg = f"\n\n```\nCalling function: {name}\n```\n\n"
                 yield tool_call_msg
+                needs_space = True
 
         if "delim" in chunk and chunk["delim"] == "end" and content:
             yield "\n"
@@ -231,4 +236,4 @@ dataset = pd.read_parquet("s3://bike-buddy/data/chat/latest_base_chat_data.parqu
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, use_reloader=True)
+    app.run(host="0.0.0.0", port=port)

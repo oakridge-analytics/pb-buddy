@@ -209,6 +209,37 @@
             padding: 0;
             color: inherit;
         }
+
+        /* Spinner Styles */
+        .spinner {
+            display: inline-block;
+            width: 1.5rem;
+            height: 1.5rem;
+            border: 0.2rem solid rgba(255, 107, 157, 0.3);
+            border-right-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spinner-rotation 1s linear infinite;
+            margin-left: 0.5rem;
+        }
+
+        @keyframes spinner-rotation {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .tool-call-message {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            background-color: rgba(75, 0, 130, 0.2);
+            border-radius: 0.5rem;
+            margin: 0.5rem 0;
+        }
     </style>
 </head>
 
@@ -243,8 +274,8 @@
 
         // Add welcome message when page loads
         window.onload = function () {
-            const welcomeMessage = "Hi! I'm your Bike Broker assistant. I can help you:\n\n" +
-                "* Find undervalued bikes in your area based on my pricing model\n" +
+            const welcomeMessage = "Hi! I can help you:\n\n" +
+                "* Recommend bikes based on your criteria and find undervalued bikes in your area based on my pricing model\n" +
                 "* Estimate fair market value for any used bike listing\n" +
                 "\n\n" +
                 "Just tell me what you're looking for!";
@@ -292,15 +323,29 @@
                     // Check if this is a tool call
                     if (text.includes('```\nCalling function:')) {
                         isToolCallResponse = true;
-                        // Create new element for tool call
                         if (toolCallElement) {
                             toolCallElement.remove();
                         }
 
                         toolCallElement = document.createElement('div');
                         toolCallElement.classList.add('message', 'message-assistant');
+
+                        // Create tool call container
+                        const toolCallContainer = document.createElement('div');
+                        toolCallContainer.classList.add('tool-call-message');
+
+                        // Add the function call text
+                        const functionText = document.createElement('span');
+                        functionText.textContent = text.replace('```\nCalling function: ', '').replace('\n```\n', '');
+                        toolCallContainer.appendChild(functionText);
+
+                        // Add the spinner
+                        const spinner = document.createElement('div');
+                        spinner.classList.add('spinner');
+                        toolCallContainer.appendChild(spinner);
+
+                        toolCallElement.appendChild(toolCallContainer);
                         messagesDiv.appendChild(toolCallElement);
-                        toolCallElement.innerHTML = marked.parse(text);
                         messagesDiv.scrollTop = messagesDiv.scrollHeight;
                         continue;
                     }
@@ -313,11 +358,23 @@
                         if (!currentMessageElement) {
                             currentMessageElement = document.createElement('div');
                             currentMessageElement.classList.add('message', 'message-assistant');
+
+                            // Add the sender name with proper styling
+                            const senderDiv = document.createElement('div');
+                            senderDiv.classList.add('sender-name');
+                            senderDiv.textContent = 'Bike Broker:';
+                            currentMessageElement.appendChild(senderDiv);
+
+                            // Create a div for the message content
+                            const contentDiv = document.createElement('div');
+                            currentMessageElement.appendChild(contentDiv);
+
                             messagesDiv.appendChild(currentMessageElement);
                         }
 
                         // Update the message content
-                        currentMessageElement.innerHTML = marked.parse(assistantMessage);
+                        const contentDiv = currentMessageElement.querySelector('div:not(.sender-name)');
+                        contentDiv.innerHTML = marked.parse(assistantMessage);
                     }
 
                     // Remove tool call if it exists
@@ -363,6 +420,11 @@
                 if (rest.length > 0) {
                     message = `<div class="sender-name">${sender}:</div> ${rest.join(': ')}`;
                 }
+            }
+
+            // Ensure the assistant's name is highlighted
+            if (isAssistant) {
+                message = message.replace('Bike Broker:', '<div class="sender-name">Bike Broker:</div>');
             }
 
             messageElement.innerHTML = isUser ? message : marked.parse(message);

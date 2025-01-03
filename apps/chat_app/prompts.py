@@ -18,7 +18,7 @@ The absolute maximum price the user is willing to pay in Canadian dollars.
 
 The maximum distance in kilometers from the user's location to consider bikes.
 
-### What type of riding the user does
+### Category of riding the user does
 
 Explain that you will help determine the best bike type based on their preferences.
 
@@ -34,7 +34,9 @@ If mountain bike trails:
 - do you want one bike that can do it all? 
 Do you want an ebike?
 
-Analyze the user's responses to categorize their riding style into one of the following:
+Analyze the user's responses to categorize their riding style into one of the following. You must only return one of the following categories.
+
+#### Categories
 
 **Downhill Bikes**  
 - High front (200mm+) and rear (200mm+) suspension travel  
@@ -117,9 +119,7 @@ Only use sizes that are in the guidelines.
 
 ## Capability 2: Get a price prediction for any used bike ad
 
-To get a price prediction for any used bike ad, you need to collect the following information. Only call tools once all information is collected.
-
-### Ad title, description, original post date, and location (city, country)
+To get a price prediction for any used bike ad, you need to collect all required information for the pricing API.
 
 ### General Guidelines
 
