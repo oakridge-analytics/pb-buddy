@@ -24,6 +24,7 @@ class PlaywrightScraper:
     def __init__(self, headless: bool = True):
         self.page = None
         self.browser = None
+        self.context = None
         self.headless = headless
         self.initialized = True
         self.rotate_identity()
@@ -41,11 +42,20 @@ class PlaywrightScraper:
 
     def start_browser(self):
         """Start or restart the browser with new identity"""
+        # Clean up existing resources first
+        if self.page:
+            self.page.close()
+            self.page = None
+        if self.context:
+            self.context.close()
+            self.context = None
         if self.browser:
             self.browser.close()
+            self.browser = None
 
         if hasattr(self, "_playwright"):
             self._playwright.stop()
+
         self._playwright = sync_playwright().start()
         self.browser = self._playwright.chromium.launch(
             headless=self.headless,
@@ -140,11 +150,19 @@ class PlaywrightScraper:
         time.sleep(random.uniform(min_seconds, max_seconds))
 
     def close_browser(self):
+        """Clean up all browser resources"""
+        if self.page:
+            self.page.close()
+            self.page = None
+        if self.context:
+            self.context.close()
+            self.context = None
         if self.browser:
             self.browser.close()
             self.browser = None
         if hasattr(self, "_playwright"):
             self._playwright.stop()
+            delattr(self, "_playwright")
 
     def set_cookies(self, cookies: list):
         if self.context is None:
