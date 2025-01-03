@@ -112,7 +112,7 @@ class AutoGluonModelInference:
         return self.pipeline.get_feature_names_out()
 
     # @method()
-    @web_endpoint(method="POST")
+    @web_endpoint(method="POST", requires_proxy_auth=True)
     def predict(self, ads: List[BikeBuddyAd]) -> BikeBuddyAdPredictions:
         # Due to sklearn pipeline needing our target column price_cpi_adjusted_CAD
         # need to ensure it's present for transform() method

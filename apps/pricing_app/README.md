@@ -7,11 +7,11 @@ To demo the Bike Buddy price prediction model, a simple interface for parsing ad
 - Serve as ephemeral app with `modal` from root of repo:
 
 ```console
-modal serve app.main
+modal serve apps.pricing_app.main 
 ```
 
 - To deploy once happy:
 
 ```console
-modal deploy app.main
+modal deploy apps.pricing_app.main 
 ```

@@ -7,8 +7,8 @@ from typing import Optional
 from urllib.parse import unquote
 
 import modal
-from fastapi import Depends, FastAPI, HTTPException, Response
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import FastAPI, HTTPException, Response
+from fastapi.security import HTTPBearer
 from modal import App
 from playwright.async_api import Browser, BrowserContext, Page, Playwright
 from pydantic import BaseModel
@@ -246,33 +246,21 @@ class BrowserService:
 
         return ScreenshotResponse(image_base64=base64.b64encode(screenshot).decode("utf-8"), elapsed_time=total_time)
 
-    @modal.asgi_app()
+    @modal.asgi_app(requires_proxy_auth=True)
     def web(self):
         web_app = FastAPI()
 
-        async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(auth_scheme)):
-            token = os.environ.get("BROWSER_SERVICE_TOKEN")
-            if not token:
-                raise HTTPException(status_code=500, detail="Authentication token not configured")
-            if credentials.credentials != token:
-                raise HTTPException(
-                    status_code=401,
-                    detail="Invalid authentication token",
-                    headers={"WWW-Authenticate": "Bearer"},
-                )
-            return credentials
-
         @web_app.get("/status")
-        async def status(token: HTTPAuthorizationCredentials = Depends(verify_token)):
+        async def status():
             return Response(status_code=200)
 
         @web_app.get("/page/{url:path}", response_model=PageResponse)
-        async def page(url: str, token: HTTPAuthorizationCredentials = Depends(verify_token)):
+        async def page(url: str):
             decoded_url = unquote(url)  # Decode the URL-encoded string
             return await self.get_page_content(decoded_url)
 
         @web_app.get("/screenshot/{url:path}", response_model=ScreenshotResponse)
-        async def screenshot(url: str, token: HTTPAuthorizationCredentials = Depends(verify_token)):
+        async def screenshot(url: str):
             decoded_url = unquote(url)  # Decode the URL-encoded string
             return await self.get_page_screenshot(decoded_url)
 

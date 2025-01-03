@@ -17,6 +17,8 @@ modal serve main.py
 - Then test with:
 
 ```console
+export MODAL_TOKEN_ID=...
+export MODAL_TOKEN_SECRET=...
 curl -X POST -H "Content-Type: application/json" -d @test.json  https://dbandrews--bike-buddy-api-autogluonmodelinference-predict-dev.modal.run
 ```
 

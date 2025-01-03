@@ -29,7 +29,7 @@ image = (
     secrets=[
         modal.Secret.from_name("openai-secret"),
         modal.Secret.from_name("oxy-proxy"),
-        modal.Secret.from_name("browser-service-token"),
+        modal.Secret.from_name("modal_webhook_tokens"),
     ],
     cpu=2.0,
     memory=4000,

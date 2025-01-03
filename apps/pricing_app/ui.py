@@ -1,3 +1,4 @@
+import base64
 import json
 import logging
 import os
@@ -30,10 +31,6 @@ if os.environ.get("BROWSER_SERVICE_URL") is None:
 else:
     BROWSER_SERVICE_URL = os.environ["BROWSER_SERVICE_URL"]
 
-if os.environ.get("BROWSER_SERVICE_TOKEN") is None:
-    BROWSER_SERVICE_TOKEN = None
-else:
-    BROWSER_SERVICE_TOKEN = os.environ["BROWSER_SERVICE_TOKEN"]
 
 dash_app = dash.Dash(__name__, external_stylesheets=[dbc.themes.SLATE])
 # Configure logging
@@ -47,13 +44,22 @@ user_agents_opts = [
 ]
 
 
+def get_auth_headers() -> dict:
+    """Create authentication headers for Modal webhook endpoints."""
+    if os.environ.get("MODAL_TOKEN_ID") is None or os.environ.get("MODAL_TOKEN_SECRET") is None:
+        raise Exception("MODAL_TOKEN_ID and MODAL_TOKEN_SECRET environment variables must be set")
+
+    credentials = f"{os.environ['MODAL_TOKEN_ID']}:{os.environ['MODAL_TOKEN_SECRET']}"
+    encoded_credentials = base64.b64encode(credentials.encode()).decode()
+    return {"Proxy-Authorization": f"Basic {encoded_credentials}"}
+
+
 def get_page_from_playwright_scraper(url: str) -> str:
     """Get page content from browser service API."""
-    if BROWSER_SERVICE_TOKEN is None:
-        raise Exception("BROWSER_SERVICE_TOKEN environment variable not set")
-
-    headers = {"Authorization": f"Bearer {BROWSER_SERVICE_TOKEN}"}
+    headers = get_auth_headers()
     response = requests.get(f"{BROWSER_SERVICE_URL}/page/{url}", headers=headers)
+    if response.status_code == 407:
+        raise Exception("Authentication failed - check MODAL_TOKEN_ID and MODAL_TOKEN_SECRET")
     if response.status_code != 200:
         raise Exception(f"Failed to get page content: {response.status_code}")
     return response.json()["content"]
@@ -61,11 +67,10 @@ def get_page_from_playwright_scraper(url: str) -> str:
 
 def get_page_screenshot(url: str) -> str:
     """Get page screenshot from browser service API."""
-    if BROWSER_SERVICE_TOKEN is None:
-        raise Exception("BROWSER_SERVICE_TOKEN environment variable not set")
-
-    headers = {"Authorization": f"Bearer {BROWSER_SERVICE_TOKEN}"}
+    headers = get_auth_headers()
     response = requests.get(f"{BROWSER_SERVICE_URL}/screenshot/{url}", headers=headers)
+    if response.status_code == 407:
+        raise Exception("Authentication failed - check MODAL_TOKEN_ID and MODAL_TOKEN_SECRET")
     if response.status_code != 200:
         raise Exception(f"Failed to get screenshot: {response.status_code}")
     return response.json()["image_base64"]
@@ -76,60 +81,7 @@ def parse_other_buysell_ad(url: str) -> tuple[dict, str]:
     Use a screenshot, and gpt-4o w/ function calling to parse the ad.
     """
     tool_name = "parse_buysell_ad"
-    tools = [
-        {
-            "type": "function",
-            "function": {
-                "name": f"{tool_name}",
-                "description": "Parse information about a bicycle ad",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "model_year": {
-                            "description": "The year the bike was manufactured",
-                            "title": "Model Year",
-                            "type": "integer",
-                        },
-                        "ad_title": {"title": "Ad Title", "type": "string"},
-                        "description": {
-                            "description": "Detailed information about the bike for sale. Should include all possible details.",
-                            "title": "Ad Description",
-                            "type": "string",
-                        },
-                        "location": {
-                            "description": 'The city and country where the bike is being sold. If city is unknown, just use "Unknown, Country_Name". The country where the bike is located, either "Canada" or "United States"',
-                            "title": "Country",
-                            "type": "string",
-                        },
-                        "original_post_date": {
-                            "description": "The original date the ad was posted",
-                            "title": "Original Post Date",
-                            "type": "string",
-                        },
-                        "price": {
-                            "description": "The price of the bike",
-                            "title": "Price",
-                            "type": "number",
-                        },
-                        "currency": {
-                            "description": "The currency of the price",
-                            "title": "Currency",
-                            "type": "string",
-                        },
-                    },
-                    "required": [
-                        "model_year",
-                        "ad_title",
-                        "description",
-                        "location",
-                        "original_post_date",
-                        "price",
-                        "currency",
-                    ],
-                },
-            },
-        }
-    ]
+
     try:
         b64_img = get_page_screenshot(url)
     except PlaywrightTimeoutError:
@@ -234,6 +186,17 @@ SAMPLE_URLS = [
 ]
 
 
+def get_price_prediction(data: list) -> dict:
+    """Get price prediction from pricing API."""
+    headers = get_auth_headers()
+    response = requests.post(API_URL, json=data, headers=headers, timeout=30)
+    if response.status_code == 407:
+        raise Exception("Authentication failed - check MODAL_TOKEN_ID and MODAL_TOKEN_SECRET")
+    if response.status_code != 200:
+        raise Exception(f"Failed to get prediction: {response.status_code}")
+    return response.json()
+
+
 # Add this function before the layout
 def warm_up_model():
     """Make a request to warm up the model on startup"""
@@ -247,7 +210,7 @@ def warm_up_model():
                 "original_post_date": str(pd.Timestamp.now().date()),
             }
         ]
-        requests.post(API_URL, json=data, timeout=30)
+        get_price_prediction(data)
         logger.info("Model warm-up complete")
     except Exception as e:
         logger.error(f"Error warming up model: {e}")
@@ -596,7 +559,6 @@ def update_output(n_clicks, model_year, ad_title, ad_description, country, post_
     if n_clicks is None:
         return html.H3("")
 
-    # Single request
     data = [
         {
             "ad_title": f"{model_year} {ad_title}",
@@ -606,8 +568,7 @@ def update_output(n_clicks, model_year, ad_title, ad_description, country, post_
         }
     ]
 
-    response = requests.post(API_URL, json=data)
-    response_data = response.json()
+    response_data = get_price_prediction(data)
     kpi_value = response_data["predictions"][0]  # Assuming this is in CAD
 
     if ad_price is not None:
