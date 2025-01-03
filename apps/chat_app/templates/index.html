@@ -191,6 +191,24 @@
                 margin-top: 0.5rem;
             }
         }
+
+        /* Tool Call Styles */
+        .message-assistant pre {
+            background-color: #2d2b55;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            border: 1px solid #4dc9ff;
+            /* Highlight border for tool calls */
+            color: #b7ffed;
+            margin: 0.5rem 0;
+        }
+
+        .message-assistant pre code {
+            background-color: transparent;
+            padding: 0;
+            color: inherit;
+        }
     </style>
 </head>
 
@@ -225,8 +243,10 @@
 
         // Add welcome message when page loads
         window.onload = function () {
-            const welcomeMessage = "Hi! Let me know what type of bike you're looking for " +
-                "and I can find you a good deal using my proprietary pricing model. " +
+            const welcomeMessage = "Hi! I'm your Bike Broker assistant. I can help you:\n\n" +
+                "* Find undervalued bikes in your area based on my pricing model\n" +
+                "* Estimate fair market value for any used bike listing\n" +
+                "\n\n" +
                 "Just tell me what you're looking for!";
             appendMessage("Bike Broker: " + welcomeMessage, true, false);
             conversationHistory.push({
@@ -259,29 +279,69 @@
                 const reader = response.body.getReader();
                 let assistantMessage = '';
                 let currentMessageElement = null;
+                let toolCallElement = null;
                 const messagesDiv = document.getElementById('chat-messages');
+                let isToolCallResponse = false;
 
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
 
                     const text = new TextDecoder().decode(value);
-                    assistantMessage += text;
 
-                    if (!currentMessageElement) {
-                        currentMessageElement = document.createElement('div');
-                        currentMessageElement.classList.add('message', 'message-assistant');
-                        messagesDiv.appendChild(currentMessageElement);
+                    // Check if this is a tool call
+                    if (text.includes('```\nCalling function:')) {
+                        isToolCallResponse = true;
+                        // Create new element for tool call
+                        if (toolCallElement) {
+                            toolCallElement.remove();
+                        }
+
+                        toolCallElement = document.createElement('div');
+                        toolCallElement.classList.add('message', 'message-assistant');
+                        messagesDiv.appendChild(toolCallElement);
+                        toolCallElement.innerHTML = marked.parse(text);
+                        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                        continue;
                     }
 
-                    currentMessageElement.innerHTML = marked.parse(assistantMessage);
+                    // If this is regular message content (not a tool call)
+                    if (!isToolCallResponse) {
+                        assistantMessage += text;
+
+                        // Create new message element if we don't have one
+                        if (!currentMessageElement) {
+                            currentMessageElement = document.createElement('div');
+                            currentMessageElement.classList.add('message', 'message-assistant');
+                            messagesDiv.appendChild(currentMessageElement);
+                        }
+
+                        // Update the message content
+                        currentMessageElement.innerHTML = marked.parse(assistantMessage);
+                    }
+
+                    // Remove tool call if it exists
+                    if (toolCallElement) {
+                        toolCallElement.remove();
+                        toolCallElement = null;
+                        isToolCallResponse = false;
+                    }
+
                     messagesDiv.scrollTop = messagesDiv.scrollHeight;
                 }
 
-                conversationHistory.push(
-                    { role: 'user', content: message },
-                    { role: 'assistant', content: assistantMessage }
-                );
+                // Clean up any remaining tool call element
+                if (toolCallElement) {
+                    toolCallElement.remove();
+                }
+
+                // Only add non-empty messages to conversation history
+                if (assistantMessage.trim()) {
+                    conversationHistory.push(
+                        { role: 'user', content: message },
+                        { role: 'assistant', content: assistantMessage }
+                    );
+                }
 
             } catch (error) {
                 console.error('Error:', error);

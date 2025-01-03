@@ -1,5 +1,6 @@
+import base64
 import os
-from typing import Tuple
+from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -7,6 +8,7 @@ import requests
 from dotenv import load_dotenv
 from flask import Flask, Response, render_template, request, stream_with_context
 from prompts import ASSISTANT_PROMPT
+from pydantic import BaseModel
 from swarm import Agent, Swarm
 
 app = Flask(__name__)
@@ -103,13 +105,84 @@ def process_streaming_response(response):
                 name = f["name"]
                 if not name:
                     continue
-                # Skip outputting tool calls to the user interface
-                continue
+                # Format tool call as markdown code block
+                tool_call_msg = f"\n\n```\nCalling function: {name}\nArguments: {f['arguments']}\n```\n\n"
+                yield tool_call_msg
 
         if "delim" in chunk and chunk["delim"] == "end" and content:
             yield "\n"
             content = ""
             has_started = False
+
+
+class BikeBuddyAd(BaseModel):
+    ad_title: str
+    description: str
+    original_post_date: str
+    location: str
+
+
+class BikeBuddyAdPredictions(BaseModel):
+    predictions: List[float]
+
+
+def get_auth_headers() -> dict:
+    """Create authentication headers for Modal webhook endpoints.
+
+    Returns
+    -------
+    dict
+        Headers with Basic authentication for Modal endpoints
+    """
+    if os.environ.get("MODAL_TOKEN_ID") is None or os.environ.get("MODAL_TOKEN_SECRET") is None:
+        raise Exception("MODAL_TOKEN_ID and MODAL_TOKEN_SECRET environment variables must be set")
+
+    credentials = f"{os.environ['MODAL_TOKEN_ID']}:{os.environ['MODAL_TOKEN_SECRET']}"
+    encoded_credentials = base64.b64encode(credentials.encode()).decode()
+    return {"Proxy-Authorization": f"Basic {encoded_credentials}"}
+
+
+def get_price_prediction(
+    ad_title: str,
+    description: str,
+    location: str,
+    original_post_date: str,
+) -> float:
+    """Get a price prediction for a bike ad from the pricing API.
+
+    Parameters
+    ----------
+    ad_title : str
+        The title of the bike ad
+    description : str
+        The description of the bike ad
+    location : str
+        Location in format "city, country"
+    original_post_date : str
+        Original post date in format "YYYY-MM-DD"
+
+    Returns
+    -------
+    float
+        Predicted price in CAD
+    """
+    api_url = os.environ["PRICING_API_URL"]
+    ad = BikeBuddyAd(
+        ad_title=ad_title,
+        description=description,
+        original_post_date=original_post_date,
+        location=location,
+    )
+
+    headers = {"Content-Type": "application/json", **get_auth_headers()}
+
+    response = requests.post(api_url, json=[ad.model_dump()], headers=headers)
+
+    if response.status_code != 200:
+        raise Exception(f"API request failed: {response.text}")
+
+    predictions = BikeBuddyAdPredictions(**response.json())
+    return predictions.predictions[0]
 
 
 @app.route("/chat", methods=["POST"])
@@ -127,7 +200,7 @@ def chat():
             name="Bike Broker",
             model="gpt-4o-mini",
             instructions=ASSISTANT_PROMPT,
-            functions=[get_user_location, get_relevant_bikes],
+            functions=[get_user_location, get_relevant_bikes, get_price_prediction],
         )
 
         messages = conversation_history + [{"role": "user", "content": message}]
@@ -158,4 +231,4 @@ dataset = pd.read_parquet("s3://bike-buddy/data/chat/latest_base_chat_data.parqu
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port, use_reloader=True)

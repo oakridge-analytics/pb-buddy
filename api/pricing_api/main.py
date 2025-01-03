@@ -1,42 +1,27 @@
 import os
-from typing import List, Optional
+from typing import List
 
 import modal
 import pandas as pd
 from fastapi import FastAPI
 from modal import App, Image, enter, web_endpoint
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class BikeBuddyAd(BaseModel):
-    category: Optional[str] = None
-    original_post_date: Optional[str] = None
-    last_repost_date: Optional[str] = None
-    still_for_sale: Optional[str] = None
-    view_count: Optional[float] = None
-    watch_count: Optional[float] = None
-    price: Optional[float] = None
-    currency: Optional[str] = None
-    description: Optional[str] = None
-    ad_title: Optional[str] = None
-    location: Optional[str] = None
-    datetime_scraped: Optional[str] = None
-    url: Optional[str] = None
-    frame_size: Optional[str] = None
-    wheel_size: Optional[str] = None
-    front_travel: Optional[str] = None
-    condition: Optional[str] = None
-    material: Optional[str] = None
-    rear_travel: Optional[str] = None
-    seat_post_diameter: Optional[str] = None
-    seat_post_travel: Optional[str] = None
-    front_axle: Optional[str] = None
-    rear_axle: Optional[str] = None
-    shock_eye_to_eye: Optional[str] = None
-    shock_stroke: Optional[str] = None
-    shock_spring_rate: Optional[str] = None
-    restrictions: Optional[str] = None
-    price_cpi_adjusted_CAD: Optional[str] = None
+    ad_title: str
+    description: str
+    original_post_date: str
+    location: str
+
+    @field_validator("location")
+    def validate_location_format(cls, v):
+        if "," not in v:
+            raise ValueError('Location must be in format "city_name, country_name"')
+        city, country = v.split(",", 1)
+        if not city.strip() or not country.strip():
+            raise ValueError("Both city and country must be non-empty")
+        return v
 
 
 class BikeBuddyAdPredictions(BaseModel):

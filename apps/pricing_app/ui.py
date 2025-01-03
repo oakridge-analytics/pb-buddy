@@ -21,10 +21,10 @@ from pb_buddy.scraper import (
 )
 from pb_buddy.utils import convert_currency, convert_currency_symbol
 
-if os.environ.get("API_URL") is None:
-    API_URL = "https://dbandrews--bike-buddy-api-autogluonmodelinference-predict.modal.run"
+if os.environ.get("PRICING_API_URL") is None:
+    PRICING_API_URL = "https://dbandrews--bike-buddy-api-autogluonmodelinference-predict.modal.run"
 else:
-    API_URL = os.environ["API_URL"]
+    PRICING_API_URL = os.environ["PRICING_API_URL"]
 
 if os.environ.get("BROWSER_SERVICE_URL") is None:
     BROWSER_SERVICE_URL = "https://dbandrews--browser-service-browserservice-web.modal.run"
@@ -189,7 +189,7 @@ SAMPLE_URLS = [
 def get_price_prediction(data: list) -> dict:
     """Get price prediction from pricing API."""
     headers = get_auth_headers()
-    response = requests.post(API_URL, json=data, headers=headers, timeout=30)
+    response = requests.post(PRICING_API_URL, json=data, headers=headers, timeout=30)
     if response.status_code == 407:
         raise Exception("Authentication failed - check MODAL_TOKEN_ID and MODAL_TOKEN_SECRET")
     if response.status_code != 200:
