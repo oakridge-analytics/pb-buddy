@@ -7,6 +7,9 @@
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary-color: #FF6B9D;
@@ -20,6 +23,7 @@
             background-color: var(--dark-bg);
             color: #e0e0ff;
             min-height: 100vh;
+            font-family: 'Ubuntu Mono', monospace;
         }
 
         .header {
@@ -55,17 +59,19 @@
         .message-user {
             background-color: var(--message-bg-user);
             color: #ffc2e7;
-            margin-right: auto;
-            border-bottom-left-radius: 0.25rem;
-            border-left: 3px solid var(--primary-color);
+            margin-left: auto;
+            margin-right: 0;
+            border-bottom-right-radius: 0.25rem;
+            border-right: 3px solid var(--primary-color);
         }
 
         .message-assistant {
             background-color: var(--message-bg-assistant);
             color: #b7ffed;
-            margin-left: auto;
-            border-bottom-right-radius: 0.25rem;
-            border-right: 3px solid #4dc9ff;
+            margin-right: auto;
+            margin-left: 0;
+            border-bottom-left-radius: 0.25rem;
+            border-left: 3px solid #4dc9ff;
         }
 
         .sender-name {
@@ -85,14 +91,17 @@
             background-color: rgba(26, 27, 46, 0.8);
             padding: 1rem;
             border-radius: 0.5rem;
+            width: 100%;
         }
 
         .form-control {
+            font-family: 'Ubuntu Mono', monospace;
             background-color: rgba(26, 27, 46, 0.9) !important;
             border: 2px solid #2a2b3d !important;
             color: #e0e0ff !important;
             font-size: 1rem;
             padding: 0.75rem 1rem;
+            margin-right: 0.75rem;
         }
 
         .form-control:focus {
@@ -110,6 +119,7 @@
             padding: 0.75rem 1.5rem;
             font-weight: 500;
             border: none;
+            font-family: 'Ubuntu Mono', monospace;
         }
 
         .btn-send:hover {
@@ -148,7 +158,7 @@
         }
 
         .message-assistant code {
-            font-family: 'Monaco', monospace;
+            font-family: 'Ubuntu Mono', monospace;
             background-color: rgba(255, 107, 157, 0.1);
             padding: 0.2rem 0.4rem;
             border-radius: 0.25rem;
@@ -186,9 +196,46 @@
                 max-width: 95%;
             }
 
-            .btn-send {
+            .suggested-messages {
+                flex-direction: column;
+            }
+
+            .input-group {
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
                 width: 100%;
-                margin-top: 0.5rem;
+                padding: 1rem;
+            }
+
+            .input-group .form-control {
+                width: 100% !important;
+                min-width: 100% !important;
+            }
+
+            .form-control {
+                width: 100% !important;
+                min-width: 100% !important;
+                margin-right: 0;
+            }
+
+            .button-row {
+                display: flex;
+                gap: 0.5rem;
+                width: 100%;
+            }
+
+            .btn-send {
+                flex: 1;
+                text-align: center;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .btn-refresh {
+                width: 45px;
+                flex: 0 0 45px;
             }
         }
 
@@ -240,6 +287,67 @@
             border-radius: 0.5rem;
             margin: 0.5rem 0;
         }
+
+        .suggested-messages {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            padding: 0 0.25rem;
+            justify-content: flex-start;
+        }
+
+        .suggested-message-btn {
+            background: transparent;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            font-size: 0.9rem;
+            flex: 0 0 auto;
+            font-family: 'Ubuntu Mono', monospace;
+        }
+
+        .suggested-message-btn:hover {
+            background: rgba(255, 107, 157, 0.1);
+            transform: translateY(-1px);
+        }
+
+        @media (max-width: 576px) {
+            .suggested-messages {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .suggested-message-btn {
+                width: auto;
+            }
+        }
+
+        .btn-refresh {
+            background: transparent;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            width: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .btn-refresh:hover {
+            background: rgba(255, 107, 157, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .btn-refresh svg {
+            width: 16px;
+            height: 16px;
+        }
     </style>
 </head>
 
@@ -252,9 +360,25 @@
         <div class="chat-container">
             <div class="messages-container" id="chat-messages"></div>
 
+            <div class="suggested-messages">
+                <button class="suggested-message-btn" onclick="sendSuggestedMessage('Find me bikes you\'d recommend')">
+                    Find me bikes you'd recommend
+                </button>
+                <button class="suggested-message-btn" onclick="sendSuggestedMessage('Give me a price for a ad')">
+                    Give me a price for a ad
+                </button>
+            </div>
             <div class="input-group">
                 <input type="text" class="form-control" id="message-input" placeholder="Type your message...">
-                <button class="btn btn-send" id="send-button">Send</button>
+                <div class="button-row">
+                    <button class="btn btn-send" id="send-button">Send</button>
+                    <button class="btn-refresh" id="refresh-button" title="Clear conversation">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -437,6 +561,33 @@
         document.getElementById('message-input').onkeypress = function (e) {
             if (e.key === 'Enter') sendMessage();
         };
+
+        function sendSuggestedMessage(message) {
+            const messageInput = document.getElementById('message-input');
+            messageInput.value = message;
+            sendMessage();
+        }
+
+        function clearConversation() {
+            const messagesDiv = document.getElementById('chat-messages');
+            messagesDiv.innerHTML = '';
+            conversationHistory = [];
+
+            // Re-add the welcome message
+            const welcomeMessage = "Hi! I can help you:\n\n" +
+                "* Recommend bikes based on your criteria and find undervalued bikes in your area based on my pricing model\n" +
+                "* Estimate fair market value for any used bike listing\n" +
+                "\n\n" +
+                "Just tell me what you're looking for!";
+            appendMessage("Bike Broker: " + welcomeMessage, true, false);
+            conversationHistory.push({
+                role: 'assistant',
+                content: welcomeMessage,
+                sender: 'Bike Broker'
+            });
+        }
+
+        document.getElementById('refresh-button').onclick = clearConversation;
     </script>
 </body>
 
