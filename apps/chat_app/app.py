@@ -228,7 +228,7 @@ def home():
 
 
 load_dotenv(os.path.expanduser("~/.openai/credentials"))
-load_dotenv(".env")
+load_dotenv("../../.env")
 
 dataset = pd.read_parquet("s3://bike-buddy/data/chat/latest_base_chat_data.parquet").assign(
     front_travel=lambda df: df.front_travel.fillna(0), rear_travel=lambda df: df.rear_travel.fillna(0)

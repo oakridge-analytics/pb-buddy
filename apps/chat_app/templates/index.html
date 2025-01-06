@@ -43,7 +43,7 @@
         }
 
         .chat-container {
-            height: calc(100vh - 100px);
+            height: calc(100vh - 140px);
             display: flex;
             flex-direction: column;
             max-width: 1200px;
@@ -210,7 +210,7 @@
             }
 
             .chat-container {
-                height: calc(100vh - 120px);
+                height: calc(100vh - 160px);
             }
         }
 
@@ -283,14 +283,13 @@
 
         /* Spinner Styles */
         .spinner {
-            display: inline-block;
-            width: 1.5rem;
-            height: 1.5rem;
-            border: 0.2rem solid rgba(255, 107, 157, 0.3);
+            flex: 0 0 auto;
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(226, 232, 240, 0.1);
             border-right-color: var(--primary-color);
             border-radius: 50%;
             animation: spinner-rotation 1s linear infinite;
-            margin-left: 0.5rem;
         }
 
         @keyframes spinner-rotation {
@@ -306,10 +305,17 @@
         .tool-call-message {
             display: flex;
             align-items: center;
-            padding: 0.5rem 1rem;
-            background-color: rgba(75, 0, 130, 0.2);
-            border-radius: 0.5rem;
-            margin: 0.5rem 0;
+            justify-content: center;
+            padding: 1.5rem;
+            background: linear-gradient(145deg, #192228, #151F26);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-left: 3px solid var(--primary-color);
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            width: 100%;
+            height: 100%;
+            gap: 1rem;
         }
 
         .suggested-messages {
@@ -369,6 +375,20 @@
         .btn-refresh svg {
             width: 24px;
             height: 24px;
+        }
+
+        /* Add a container for the tool call text */
+        .tool-call-text {
+            flex: 1;
+            opacity: 0.8;
+            text-align: left;
+        }
+
+        /* Update the message-assistant class for tool calls */
+        .message-assistant.tool-call {
+            padding: 0;
+            border: none;
+            background: none;
         }
     </style>
 </head>
@@ -495,14 +515,15 @@
                         }
 
                         toolCallElement = document.createElement('div');
-                        toolCallElement.classList.add('message', 'message-assistant');
+                        toolCallElement.classList.add('message', 'message-assistant', 'tool-call');
 
                         // Create tool call container
                         const toolCallContainer = document.createElement('div');
                         toolCallContainer.classList.add('tool-call-message');
 
-                        // Add the function call text
-                        const functionText = document.createElement('span');
+                        // Add the function call text with its own container
+                        const functionText = document.createElement('div');
+                        functionText.classList.add('tool-call-text');
                         functionText.textContent = text.replace('```\nCalling function: ', '').replace('\n```\n', '');
                         toolCallContainer.appendChild(functionText);
 
