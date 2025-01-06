@@ -1,15 +1,39 @@
 import base64
+import json
+import logging
 import os
-from typing import List, Tuple
+import re
+import tempfile
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
+import openai
 import pandas as pd
 import requests
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from flask import Flask, Response, render_template, request, stream_with_context
 from prompts import ASSISTANT_PROMPT
 from pydantic import BaseModel
 from swarm import Agent, Swarm
+
+from pb_buddy.scraper import (
+    AdType,
+    parse_buysell_buycycle_ad,
+    parse_buysell_pinkbike_ad,
+)
+
+# Configure logging - use a single configuration
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    force=True,  # This will remove any existing handlers
+)
+
+# Get logger for this module
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
@@ -171,23 +195,322 @@ def get_price_prediction(
     float
         Predicted price in CAD
     """
-    api_url = os.environ["PRICING_API_URL"]
-    ad = BikeBuddyAd(
-        ad_title=ad_title,
-        description=description,
-        original_post_date=original_post_date,
-        location=location,
+    try:
+        api_url = os.environ.get(
+            "PRICING_API_URL", "https://dbandrews--bike-buddy-api-autogluonmodelinference-predict.modal.run"
+        )
+        ad = BikeBuddyAd(
+            ad_title=ad_title,
+            description=description,
+            original_post_date=original_post_date,
+            location=location,
+        )
+
+        headers = {"Content-Type": "application/json", **get_auth_headers()}
+        logger.info(f"Sending ad to pricing API: {ad.model_dump()}")
+
+        # Add timeout to prevent hanging
+        response = requests.post(
+            api_url,
+            json=[ad.model_dump()],
+            headers=headers,
+            timeout=30,  # 30 second timeout
+        )
+
+        response.raise_for_status()  # Raise error for bad status codes
+
+        logger.info(f"Pricing API response: {response.json()}")
+        predictions = BikeBuddyAdPredictions(**response.json())
+        return predictions.predictions[0]
+
+    except requests.Timeout:
+        logger.error("Timeout while connecting to pricing API", exc_info=True)
+        raise Exception("Timeout while getting price prediction. Please try again.")
+    except requests.RequestException as e:
+        logger.error(f"Error connecting to pricing API: {str(e)}", exc_info=True)
+        raise Exception(f"Failed to get price prediction: {str(e)}")
+    except Exception as e:
+        logger.error(f"Unexpected error in price prediction: {str(e)}", exc_info=True)
+        raise Exception(f"Unexpected error in price prediction: {str(e)}")
+
+
+def determine_ad_url_type(url: str) -> AdType:
+    """Determine the type of ad from the URL.
+
+    Parameters
+    ----------
+    url : str
+        URL of the ad
+
+    Returns
+    -------
+    AdType
+        Type of ad (PINKBIKE, BUYCYCLE, or OTHER)
+    """
+    if "pinkbike" in url:
+        return "pinkbike"
+    elif "buycycle" in url:
+        return "buycycle"
+    else:
+        return "other ad requires screenshot"
+
+
+def get_page_from_browser_service(url: str) -> str:
+    """Get page content from browser service.
+
+    Parameters
+    ----------
+    url : str
+        URL to get content from
+
+    Returns
+    -------
+    str
+        Page content
+    """
+    browser_service_url = os.environ.get(
+        "BROWSER_SERVICE_URL", "https://dbandrews--browser-service-browserservice-web.modal.run"
     )
-
-    headers = {"Content-Type": "application/json", **get_auth_headers()}
-
-    response = requests.post(api_url, json=[ad.model_dump()], headers=headers)
+    headers = get_auth_headers()
+    logger.info(f"Requesting page content from browser service for URL: {url}")
+    response = requests.get(f"{browser_service_url}/page/{url}", headers=headers)
 
     if response.status_code != 200:
-        raise Exception(f"API request failed: {response.text}")
+        logger.error(f"Failed to get page content: {response.text}")
+        raise Exception(f"Failed to get page content: {response.text}")
 
-    predictions = BikeBuddyAdPredictions(**response.json())
-    return predictions.predictions[0]
+    logger.info("Successfully retrieved page content")
+    return response.json()["content"]
+
+
+def normalize_parsed_ad(parsed_ad: Dict[str, Any], url: str) -> Dict[str, Any]:
+    """Normalize a parsed bike ad by adding standard fields and extracting additional information.
+
+    Parameters
+    ----------
+    parsed_ad : Dict[str, Any]
+        The raw parsed ad data
+    url : str
+        The URL of the ad
+
+    Returns
+    -------
+    Dict[str, Any]
+        Normalized ad data with additional fields
+    """
+    # Add standard fields
+    parsed_ad["url"] = url
+    parsed_ad["datetime_scraped"] = str(pd.Timestamp.today(tz="US/Mountain"))
+
+    # Extract year from title/description if not present
+    if parsed_ad.get("model_year") is None:
+        year_match = re.search(r"((?:19|20)\d{2})", f'{parsed_ad["ad_title"]}: {parsed_ad["description"]}')
+        if year_match:
+            parsed_ad["model_year"] = year_match.group(1)
+
+    # Extract country from location
+    country_match = re.search(r"((Canada)|(United States)|(United Kingdom))", parsed_ad["location"])
+    if country_match is None:
+        parsed_ad["country"] = None
+    else:
+        parsed_ad["country"] = country_match.group(1)
+
+    return parsed_ad
+
+
+def get_page_screenshot(url: str) -> Path:
+    """Get page screenshot from browser service API and save to temp file.
+
+    Parameters
+    ----------
+    url : str
+        URL to get screenshot from
+
+    Returns
+    -------
+    Path
+        Path to temporary screenshot file
+    """
+    headers = get_auth_headers()
+    browser_service_url = os.environ.get(
+        "BROWSER_SERVICE_URL", "https://dbandrews--browser-service-browserservice-web.modal.run"
+    )
+    response = requests.get(f"{browser_service_url}/screenshot/{url}", headers=headers)
+    if response.status_code == 407:
+        raise Exception("Authentication failed - check MODAL_TOKEN_ID and MODAL_TOKEN_SECRET")
+    if response.status_code != 200:
+        raise Exception(f"Failed to get screenshot: {response.status_code}")
+
+    # Create a temporary file that will be automatically cleaned up
+    temp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+    try:
+        # Decode base64 and write to temp file
+        image_data = base64.b64decode(response.json()["image_base64"])
+        temp_file.write(image_data)
+        temp_file.close()
+        return Path(temp_file.name)
+    except Exception as e:
+        # Clean up the temp file if there's an error
+        os.unlink(temp_file.name)
+        raise e
+
+
+def parse_other_adtype_from_screenshot(screenshot_path: Path) -> Dict[str, Any]:
+    """Parse a bike ad from a screenshot file using GPT-4V.
+
+    Parameters
+    ----------
+    screenshot_path : Path
+        Path to the screenshot file
+
+    Returns
+    -------
+    Dict[str, Any]
+        Parsed ad data
+    """
+    tool_name = "parse_buysell_ad"
+    current_date = pd.Timestamp.now().date().strftime("%Y-%m-%d")
+    client = openai.Client()
+
+    # Read the image file and encode to base64
+    with open(screenshot_path, "rb") as f:
+        b64_screenshot = base64.b64encode(f.read()).decode()
+
+    # Clean up the temporary file
+    try:
+        os.unlink(screenshot_path)
+    except Exception as e:
+        logger.warning(f"Failed to clean up temporary file {screenshot_path}: {e}")
+
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are a helpful assistant, for extracting information from a bike ad"
+                    " for calling a downstream function. If you can't determine a value, just leave it blank."
+                    f" The current date is {current_date} if it's a relative date."
+                ),
+            },
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "Extract the information about the main ad in this image. If the image isn't about a bicycle ad, return blanks for all fields.",
+                    },
+                    {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64_screenshot}"}},
+                ],
+            },
+        ],
+        tools=[
+            {
+                "type": "function",
+                "function": {
+                    "name": tool_name,
+                    "description": "Parse information about a bicycle ad",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "model_year": {
+                                "description": "The year the bike was manufactured",
+                                "title": "Model Year",
+                                "type": "integer",
+                            },
+                            "ad_title": {"title": "Ad Title", "type": "string"},
+                            "description": {
+                                "description": "Detailed information about the bike for sale. Should include all possible details.",
+                                "title": "Ad Description",
+                                "type": "string",
+                            },
+                            "location": {
+                                "description": 'The city and country where the bike is being sold. If city is unknown, just use "Unknown, Country_Name". The country where the bike is located, either "Canada" or "United States"',
+                                "title": "Country",
+                                "type": "string",
+                            },
+                            "original_post_date": {
+                                "description": "The original date the ad was posted",
+                                "title": "Original Post Date",
+                                "type": "string",
+                            },
+                            "price": {
+                                "description": "The price of the bike",
+                                "title": "Price",
+                                "type": "number",
+                            },
+                            "currency": {
+                                "description": "The currency of the price",
+                                "title": "Currency",
+                                "type": "string",
+                            },
+                        },
+                        "required": [
+                            "model_year",
+                            "ad_title",
+                            "description",
+                            "location",
+                            "original_post_date",
+                            "price",
+                            "currency",
+                        ],
+                    },
+                },
+            }
+        ],
+        tool_choice={"type": "function", "function": {"name": tool_name}},
+    )
+
+    if not response.choices or not response.choices[0].message.tool_calls:
+        return {}
+
+    parsed_ad = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
+    for key, value in parsed_ad.items():
+        if value == "Unknown":
+            parsed_ad[key] = None
+    return parsed_ad
+
+
+def parse_pinkbike_or_buycycle_ad(url: str) -> Optional[Dict[str, Any]]:
+    """Parse a bike ad from a URL.
+
+    Parameters
+    ----------
+    url : str
+        URL of the ad
+
+    Returns
+    -------
+    Optional[Dict[str, Any]]
+        Parsed ad data if successful, None if failed
+    """
+    try:
+        logger.info(f"Starting to parse ad from URL: {url}")
+        ad_type = determine_ad_url_type(url)
+        logger.info(f"Determined ad type: {ad_type}")
+
+        page_content = get_page_from_browser_service(url)
+        soup = BeautifulSoup(page_content, features="html.parser")
+
+        if ad_type == AdType.PINKBIKE:
+            logger.info("Parsing Pinkbike ad")
+            parsed_ad = parse_buysell_pinkbike_ad(soup)
+        elif ad_type == AdType.BUYCYCLE:
+            logger.info("Parsing Buycycle ad")
+            parsed_ad = parse_buysell_buycycle_ad(soup)
+        else:
+            logger.warning(f"Unsupported ad type: {ad_type}")
+            return None
+
+        if parsed_ad:
+            logger.info("Successfully parsed ad, normalizing data")
+            return normalize_parsed_ad(parsed_ad, url)
+
+        logger.warning("Failed to parse ad - no data returned from parser")
+        return None
+    except Exception as e:
+        logger.error(f"Error parsing ad {url}: {str(e)}", exc_info=True)
+        return None
 
 
 @app.route("/chat", methods=["POST"])
@@ -205,7 +528,16 @@ def chat():
             name="Bike Broker",
             model="gpt-4o-mini",
             instructions=ASSISTANT_PROMPT,
-            functions=[get_user_location, get_relevant_bikes, get_price_prediction],
+            functions=[
+                get_user_location,
+                get_relevant_bikes,
+                get_price_prediction,
+                parse_pinkbike_or_buycycle_ad,
+                determine_ad_url_type,
+                normalize_parsed_ad,
+                get_page_screenshot,
+                parse_other_adtype_from_screenshot,
+            ],
         )
 
         messages = conversation_history + [{"role": "user", "content": message}]
