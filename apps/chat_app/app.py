@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import re
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -20,38 +21,23 @@ from swarm import Agent, Swarm
 
 from pb_buddy.scraper import (
     AdType,
+    parse_buysell_ad,
     parse_buysell_buycycle_ad,
     parse_buysell_pinkbike_ad,
 )
+from pb_buddy.utils import convert_currency, mapbox_geocode
 
-# Configure logging - use a single configuration
+# Set up logging configuration
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    force=True,  # This will remove any existing handlers
+    handlers=[logging.StreamHandler(sys.stdout)],
 )
 
-# Get logger for this module
+# Get the logger for this module
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-
-
-def mapbox_geocode(address: str) -> tuple[float, float]:
-    """Geocode an address using Mapbox API.
-
-    Requires MAPBOX_API_KEY in environment variables.
-
-    Returns
-    -------
-    tuple[float, float]
-        Longitude and latitude of the address
-    """
-    url = f"https://api.mapbox.com/search/geocode/v6/forward?q={address}&access_token={os.getenv('MAPBOX_API_KEY')}"
-    response = requests.get(url)
-    # Get lat,lon from response
-    return tuple(response.json()["features"][0]["geometry"]["coordinates"])
 
 
 def calculate_distance_vectorized(df, ref_lat, ref_lon):
@@ -92,7 +78,7 @@ def get_relevant_bikes(
                 "price",
                 "currency",
                 "last_repost_date",
-                "predicted_price_cad",
+                "predicted_price",
                 "predicted_price_diff",
                 "distance_km",
             ]
@@ -104,44 +90,6 @@ def get_relevant_bikes(
 
 def get_user_location(user_city_and_country: str) -> Tuple[float, float]:
     return mapbox_geocode(user_city_and_country)
-
-
-def process_streaming_response(response):
-    content = ""
-    last_sender = ""
-    has_started = False
-    needs_space = False
-
-    for chunk in response:
-        if "sender" in chunk:
-            last_sender = chunk["sender"]
-
-        if "content" in chunk and chunk["content"] is not None:
-            # Add a space if we're coming from a tool call
-            if needs_space:
-                yield " "
-                needs_space = False
-
-            if not has_started:
-                has_started = True
-            yield chunk["content"]
-            content += chunk["content"]
-
-        if "tool_calls" in chunk and chunk["tool_calls"] is not None:
-            for tool_call in chunk["tool_calls"]:
-                f = tool_call["function"]
-                name = f["name"]
-                if not name:
-                    continue
-                # Format tool call as markdown code block
-                tool_call_msg = f"\n\n```\nCalling function: {name}\n```\n\n"
-                yield tool_call_msg
-                needs_space = True
-
-        if "delim" in chunk and chunk["delim"] == "end" and content:
-            yield "\n"
-            content = ""
-            has_started = False
 
 
 class BikeBuddyAd(BaseModel):
@@ -176,7 +124,7 @@ def get_price_prediction(
     description: str,
     location: str,
     original_post_date: str,
-) -> float:
+) -> tuple[float, str]:
     """Get a price prediction for a bike ad from the pricing API.
 
     Parameters
@@ -192,8 +140,8 @@ def get_price_prediction(
 
     Returns
     -------
-    float
-        Predicted price in CAD
+    tuple[float, str]
+        Predicted price in CAD and currency
     """
     try:
         api_url = os.environ.get(
@@ -221,7 +169,7 @@ def get_price_prediction(
 
         logger.info(f"Pricing API response: {response.json()}")
         predictions = BikeBuddyAdPredictions(**response.json())
-        return predictions.predictions[0]
+        return predictions.predictions[0], "CAD"
 
     except requests.Timeout:
         logger.error("Timeout while connecting to pricing API", exc_info=True)
@@ -234,7 +182,7 @@ def get_price_prediction(
         raise Exception(f"Unexpected error in price prediction: {str(e)}")
 
 
-def determine_ad_url_type(url: str) -> AdType:
+def determine_ad_url_parsing_type(url: str) -> AdType:
     """Determine the type of ad from the URL.
 
     Parameters
@@ -356,7 +304,7 @@ def get_page_screenshot(url: str) -> Path:
 
 
 def parse_other_adtype_from_screenshot(screenshot_path: Path) -> Dict[str, Any]:
-    """Parse a bike ad from a screenshot file using GPT-4V.
+    """Parse a bike ad from a screenshot file using GPT-4o.
 
     Parameters
     ----------
@@ -486,22 +434,17 @@ def parse_pinkbike_or_buycycle_ad(url: str) -> Optional[Dict[str, Any]]:
     """
     try:
         logger.info(f"Starting to parse ad from URL: {url}")
-        ad_type = determine_ad_url_type(url)
+        if "pinkbike" in url:
+            ad_type = AdType.PINKBIKE
+        elif "buycycle" in url:
+            ad_type = AdType.BUYCYCLE
+        else:
+            ad_type = AdType.OTHER
+
         logger.info(f"Determined ad type: {ad_type}")
 
         page_content = get_page_from_browser_service(url)
-        soup = BeautifulSoup(page_content, features="html.parser")
-
-        if ad_type == AdType.PINKBIKE:
-            logger.info("Parsing Pinkbike ad")
-            parsed_ad = parse_buysell_pinkbike_ad(soup)
-        elif ad_type == AdType.BUYCYCLE:
-            logger.info("Parsing Buycycle ad")
-            parsed_ad = parse_buysell_buycycle_ad(soup)
-        else:
-            logger.warning(f"Unsupported ad type: {ad_type}")
-            return None
-
+        parsed_ad = parse_buysell_ad(page_content, url, region_code=1, ad_type=ad_type)
         if parsed_ad:
             logger.info("Successfully parsed ad, normalizing data")
             return normalize_parsed_ad(parsed_ad, url)
@@ -511,6 +454,79 @@ def parse_pinkbike_or_buycycle_ad(url: str) -> Optional[Dict[str, Any]]:
     except Exception as e:
         logger.error(f"Error parsing ad {url}: {str(e)}", exc_info=True)
         return None
+
+
+def convert_currency_logging(price: float, from_currency: str, to_currency: str) -> float:
+    """Convert a price to the specified currency and log the conversion.
+
+    Parameters
+    ----------
+    price : float
+        Price to convert
+    from_currency : str
+        Currency to convert from
+    to_currency : str
+        Currency to convert to
+
+    Returns
+    -------
+    float
+        Converted price amount
+    """
+    converted_price = convert_currency(price, from_currency, to_currency)
+    logger.info(f"Converted price from {from_currency} to {to_currency}: {converted_price}")
+    return converted_price
+
+
+def process_streaming_response(response):
+    content = ""
+    last_sender = ""
+    has_started = False
+    needs_space = False
+
+    for chunk in response:
+        if "sender" in chunk:
+            last_sender = chunk["sender"]
+
+        if "content" in chunk and chunk["content"] is not None:
+            # Add a space if we're coming from a tool call
+            if needs_space:
+                yield " "
+                needs_space = False
+
+            if not has_started:
+                has_started = True
+            yield chunk["content"]
+            content += chunk["content"]
+
+        if "tool_calls" in chunk and chunk["tool_calls"] is not None:
+            for tool_call in chunk["tool_calls"]:
+                f = tool_call["function"]
+                name = f["name"]
+                if not name:
+                    continue
+                # Format tool call as markdown code block
+                tool_call_msg = f"\n\n```\nCalling function: {tool_map[name]}\n```\n\n"
+                yield tool_call_msg
+                needs_space = True
+
+        if "delim" in chunk and chunk["delim"] == "end" and content:
+            yield "\n"
+            content = ""
+            has_started = False
+
+
+tool_map = {
+    "get_user_location": "Get User Location",
+    "get_relevant_bikes": "Get Relevant Bikes",
+    "get_price_prediction": "Get Price Prediction",
+    "parse_pinkbike_or_buycycle_ad": "Parse Ad",
+    "determine_ad_url_parsing_type": "Determine Ad URL Parsing Type",
+    "normalize_parsed_ad": "Normalize Parsed Ad",
+    "get_page_screenshot": "Get Page Screenshot",
+    "parse_other_adtype_from_screenshot": "Parse Ad from Screenshot",
+    "convert_currency_logging": "Convert Currency",
+}
 
 
 @app.route("/chat", methods=["POST"])
@@ -526,18 +542,9 @@ def chat():
         client = Swarm()
         agent = Agent(
             name="Bike Broker",
-            model="gpt-4o-mini",
+            model="gpt-4o",
             instructions=ASSISTANT_PROMPT,
-            functions=[
-                get_user_location,
-                get_relevant_bikes,
-                get_price_prediction,
-                parse_pinkbike_or_buycycle_ad,
-                determine_ad_url_type,
-                normalize_parsed_ad,
-                get_page_screenshot,
-                parse_other_adtype_from_screenshot,
-            ],
+            functions=[globals()[name] for name in tool_map.keys()],
         )
 
         messages = conversation_history + [{"role": "user", "content": message}]
