@@ -28,3 +28,8 @@ max_requests_jitter = 50  # Adds randomness to max_requests
 limit_request_line = 4096
 limit_request_fields = 100
 limit_request_field_size = 8190
+
+# Worker processes
+workers = multiprocessing.cpu_count() * 2 + 1  # Common formula for number of workers
+worker_class = "gthread"  # Use threads
+threads = 4  # Number of threads per worker
