@@ -9,9 +9,11 @@ from pathlib import Path
 import fire
 import pandas as pd
 from dotenv import load_dotenv
+from sqlalchemy.exc import SQLAlchemyError
 
 from pb_buddy import utils as ut
 from pb_buddy.data_processors import get_dataset
+from pb_buddy.database import create_db_engine, write_dataframe_to_db
 from pb_buddy.modelling.inference import load_model_from_s3, predict_price
 from pb_buddy.utils import get_exchange_rate, mapbox_geocode
 
@@ -195,6 +197,7 @@ def main(model_uuid: str = "b9f12bc7cbd34fc39bf300b88f2ab57a", subsample_size: i
 
     Args:
         model_uuid: UUID of the model to use for predictions
+        subsample_size: Optional size to subsample the dataset to
     """
     logging.info("Loading base dataset...")
     df = get_bike_dataset()
@@ -241,19 +244,27 @@ def main(model_uuid: str = "b9f12bc7cbd34fc39bf300b88f2ab57a", subsample_size: i
     size_map = get_size_map()
     df_bikes["frame_size_normalized"] = df_bikes["frame_size"].str.strip().map(size_map)
 
-    logging.info("Processing complete!")
-    logging.info(f"Final dataset size: {len(df_bikes):,} rows")
-    # Save to S3 with timestamp and latest versions
+    # Write timestamped version to S3 for backup
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     timestamped_key = f"data/chat/{timestamp}_base_chat_data.parquet"
-    latest_key = "data/chat/latest_base_chat_data.parquet"
+    logging.info(f"Saving backup to S3 bucket bike-buddy with key {timestamped_key}...")
+    df_bikes.to_parquet(f"s3://bike-buddy/{timestamped_key}")
 
-    # logging.info(f"Saving to S3 bucket bike-buddy with key {timestamped_key}...")
-    # df_bikes.to_parquet(f"s3://bike-buddy/{timestamped_key}")
+    # Write to PostgreSQL database
+    logging.info("Writing data to PostgreSQL database...")
+    try:
+        engine = create_db_engine()
+        write_dataframe_to_db(df=df_bikes, table_name="base_chat", engine=engine, if_exists="replace")
+    except (SQLAlchemyError, ValueError) as e:
+        logging.error("Failed to write data to database: %s", str(e))
+        raise
 
-    logging.info("Saving latest version...")
-    df_bikes.to_parquet(f"s3://bike-buddy/{latest_key}")
+    # Keep local parquet for debugging
+    logging.info("Saving local debug copy...")
     df_bikes.to_parquet("/tmp/latest_base_chat_data.parquet")
+
+    logging.info("Processing complete!")
+    logging.info(f"Final dataset size: {len(df_bikes):,} rows")
 
 
 if __name__ == "__main__":

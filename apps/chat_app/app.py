@@ -17,8 +17,11 @@ from dotenv import load_dotenv
 from flask import Flask, Response, render_template, request, stream_with_context
 from prompts import ASSISTANT_PROMPT
 from pydantic import BaseModel
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from swarm import Agent, Swarm
 
+from pb_buddy.database import create_db_engine, db_connection
 from pb_buddy.scraper import (
     AdType,
     parse_buysell_ad,
@@ -62,30 +65,115 @@ def get_relevant_bikes(
     lat: float,
     distance_km_threshold: float,
     max_results: int = 3,
-) -> pd.DataFrame:
-    df = dataset.query("price_cad < @price_limit_cad")
-    df = df.query("front_travel >= @min_front_travel and front_travel <= @max_front_travel")
-    df = df.query("rear_travel >= @min_rear_travel and rear_travel <= @max_rear_travel")
-    df = df.query("frame_size_normalized == @frame_size")
-    df = df.query("category == @category")
-    df = df.assign(distance_km=lambda _df: calculate_distance_vectorized(_df, lat, lon))
-    df = df.query("distance_km <= @distance_km_threshold")
-    return (
-        df.sort_values(by="predicted_price_diff", ascending=False)[
-            [
-                "ad_title",
-                "url",
-                "price",
-                "currency",
-                "last_repost_date",
-                "predicted_price",
-                "predicted_price_diff",
-                "distance_km",
-            ]
-        ]
-        .head(max_results)
-        .to_markdown(index=False)
+) -> str:
+    """Get relevant bikes based on search criteria using SQL.
+
+    Parameters
+    ----------
+    price_limit_cad : float
+        Maximum price in CAD
+    min_front_travel : float
+        Minimum front suspension travel
+    max_front_travel : float
+        Maximum front suspension travel
+    min_rear_travel : float
+        Minimum rear suspension travel
+    max_rear_travel : float
+        Maximum rear suspension travel
+    frame_size : str
+        Normalized frame size
+    category : str
+        Bike category
+    lon : float
+        Longitude of reference location (in decimal degrees)
+    lat : float
+        Latitude of reference location (in decimal degrees)
+    distance_km_threshold : float
+        Maximum distance in kilometers
+    max_results : int, optional
+        Maximum number of results to return, by default 3
+
+    Returns
+    -------
+    str
+        Markdown formatted table of relevant bikes
+    """
+    query = """
+    WITH bike_distances AS (
+        SELECT
+            ad_title,
+            url,
+            price,
+            currency,
+            last_repost_date,
+            predicted_price,
+            predicted_price - price AS predicted_price_diff,
+            (
+                2 * 6371 * ASIN(
+                    SQRT(
+                        POWER(SIN(RADIANS(lat - :lat) / 2), 2) +
+                        COS(RADIANS(:lat)) * COS(RADIANS(lat)) *
+                        POWER(SIN(RADIANS(lon - :lon) / 2), 2)
+                    )
+                )
+            ) AS distance_km
+        FROM base_chat
+        WHERE 
+            price_cad < :price_limit_cad
+            AND front_travel >= :min_front_travel 
+            AND front_travel <= :max_front_travel
+            AND rear_travel >= :min_rear_travel 
+            AND rear_travel <= :max_rear_travel
+            AND frame_size_normalized = :frame_size
+            AND category = :category
     )
+    SELECT 
+        ad_title,
+        url,
+        price,
+        currency,
+        last_repost_date,
+        predicted_price,
+        predicted_price_diff,
+        ROUND(distance_km::numeric, 1) AS distance_km
+    FROM bike_distances
+    WHERE distance_km <= :distance_km_threshold
+    ORDER BY predicted_price_diff DESC
+    LIMIT :max_results;
+    """
+
+    try:
+        engine = create_db_engine()
+        with db_connection(engine) as conn:
+            df = pd.read_sql_query(
+                text(query),
+                conn,
+                params={
+                    "price_limit_cad": price_limit_cad,
+                    "min_front_travel": min_front_travel,
+                    "max_front_travel": max_front_travel,
+                    "min_rear_travel": min_rear_travel,
+                    "max_rear_travel": max_rear_travel,
+                    "frame_size": frame_size,
+                    "category": category,
+                    "lon": lon,
+                    "lat": lat,
+                    "distance_km_threshold": distance_km_threshold,
+                    "max_results": max_results,
+                },
+            )
+
+            if df.empty:
+                return "No bikes found matching your criteria."
+
+            return df.to_markdown(index=False)
+
+    except SQLAlchemyError as e:
+        logger.error(f"Database error in get_relevant_bikes: {str(e)}")
+        raise Exception("Failed to query bike database. Please try again later.")
+    except Exception as e:
+        logger.error(f"Unexpected error in get_relevant_bikes: {str(e)}")
+        raise Exception("An unexpected error occurred. Please try again later.")
 
 
 def get_user_location(user_city_and_country: str) -> Tuple[float, float]:
@@ -182,7 +270,7 @@ def get_price_prediction(
         raise Exception(f"Unexpected error in price prediction: {str(e)}")
 
 
-def determine_ad_url_parsing_type(url: str) -> AdType:
+def determine_ad_url_parsing_type(url: str) -> str:
     """Determine the type of ad from the URL.
 
     Parameters
@@ -568,7 +656,3 @@ def home():
 
 load_dotenv(os.path.expanduser("~/.openai/credentials"))
 load_dotenv("../../.env")
-
-dataset = pd.read_parquet("s3://bike-buddy/data/chat/latest_base_chat_data.parquet").assign(
-    front_travel=lambda df: df.front_travel.fillna(0), rear_travel=lambda df: df.rear_travel.fillna(0)
-)
