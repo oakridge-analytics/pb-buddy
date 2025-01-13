@@ -30,6 +30,6 @@ limit_request_fields = 100
 limit_request_field_size = 8190
 
 # Worker processes
-workers = 1  # Start with single worker
+workers = 2  # Start with single worker
 worker_class = "gthread"  # Use threads
-threads = 2  # Number of threads per worker
+threads = 4  # Number of threads per worker
