@@ -250,6 +250,11 @@ def main(model_uuid: str = "b9f12bc7cbd34fc39bf300b88f2ab57a", subsample_size: i
     logging.info(f"Saving backup to S3 bucket bike-buddy with key {timestamped_key}...")
     df_bikes.to_parquet(f"s3://bike-buddy/{timestamped_key}")
 
+    # Normalize front and rear travel
+    logging.info("Normalizing front and rear travel...")
+    df_bikes["front_travel"] = df_bikes["front_travel"].fillna(0).astype(float)
+    df_bikes["rear_travel"] = df_bikes["rear_travel"].fillna(0).astype(float)
+
     # Write to PostgreSQL database
     logging.info("Writing data to PostgreSQL database...")
     try:
