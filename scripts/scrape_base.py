@@ -69,10 +69,17 @@ class PlaywrightThread(threading.local):
         self.scraper = scraper.PlaywrightScraper()
         logging.debug(f"Created playwright instance in Thread {threading.current_thread().name}")
 
-    def __del__(self):
-        # Clean up resources when thread is done
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.cleanup()
+
+    def cleanup(self):
+        """Clean up resources explicitly"""
         if hasattr(self, "scraper"):
             self.scraper.close_browser()
+            delattr(self, "scraper")
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10), reraise=True)
@@ -82,13 +89,13 @@ def process_chunk(urls: Union[List[str], npt.NDArray], callable_func: Callable) 
     if not isinstance(urls, list):
         urls = urls.tolist()
 
-    thread_local = PlaywrightThread()
-    try:
-        results = thread_local.scraper.process_urls(urls, callable_func)
-        return results
-    finally:
-        # Ensure cleanup happens even if there's an error
-        thread_local.scraper.close_browser()
+    with PlaywrightThread() as thread_local:
+        try:
+            results = thread_local.scraper.process_urls(urls, callable_func)
+            return results
+        except Exception as e:
+            logging.error(f"Error processing chunk: {e}")
+            raise
 
 
 @retry(stop=stop_after_attempt(6), wait=wait_exponential(multiplier=2, min=4, max=100), reraise=True)
