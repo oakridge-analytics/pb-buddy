@@ -2,7 +2,7 @@ name: Scrape Europe
 
 on:
   schedule:
-    - cron: "23 3,8,13,18 * * 1-6"
+    - cron: "23 1 * * 1-6"
   workflow_dispatch:
     inputs:
       num_jobs:
