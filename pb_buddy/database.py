@@ -46,9 +46,6 @@ def create_db_engine() -> Engine:
             pool_timeout=30,
             pool_pre_ping=True,
         )
-        # Test connection
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
         return engine
     except SQLAlchemyError as e:
         logger.error("Failed to create database engine: %s", str(e))
@@ -118,7 +115,6 @@ def write_dataframe_to_db(
                 con=conn,
                 if_exists=if_exists,
                 index=False,
-                method="multi",
                 chunksize=chunk_size,
             )
             logger.info(f"Successfully wrote {len(df):,} rows to table {table_name}")

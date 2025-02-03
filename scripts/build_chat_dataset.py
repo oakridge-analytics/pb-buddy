@@ -244,12 +244,6 @@ def main(model_uuid: str = "b9f12bc7cbd34fc39bf300b88f2ab57a", subsample_size: i
     size_map = get_size_map()
     df_bikes["frame_size_normalized"] = df_bikes["frame_size"].str.strip().map(size_map)
 
-    # Write timestamped version to S3 for backup
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    timestamped_key = f"data/chat/{timestamp}_base_chat_data.parquet"
-    logging.info(f"Saving backup to S3 bucket bike-buddy with key {timestamped_key}...")
-    df_bikes.to_parquet(f"s3://bike-buddy/{timestamped_key}")
-
     # Normalize front and rear travel
     logging.info("Normalizing front and rear travel...")
     df_bikes["front_travel"] = df_bikes["front_travel"].fillna(0).astype(float)
@@ -259,7 +253,7 @@ def main(model_uuid: str = "b9f12bc7cbd34fc39bf300b88f2ab57a", subsample_size: i
     logging.info("Writing data to PostgreSQL database...")
     try:
         engine = create_db_engine()
-        write_dataframe_to_db(df=df_bikes, table_name="base_chat", engine=engine, if_exists="replace")
+        write_dataframe_to_db(df=df_bikes, table_name="base_chat", engine=engine, if_exists="replace", chunk_size=10000)
     except (SQLAlchemyError, ValueError) as e:
         logging.error("Failed to write data to database: %s", str(e))
         raise
