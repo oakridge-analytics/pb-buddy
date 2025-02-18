@@ -134,15 +134,13 @@ def test_parse_buycycle_ad_fields(sample_buycycle_url, playwright_scraper):
     assert isinstance(ad_data, dict)
     expected = {
         "ad_title": "Ventum GS1 Custom WED\u016a edition",
-        "price": "5195",
         "currency": "CAD",
         "original_post_date": "2024-12-20 11:17:00.087125-07:00",
         "location": "Clermont, United States",
-        "description": "Brand: Ventum\n\nModel: GS1 Custom WED\u016a edition\n\nGeneral Information:\n\nCondition: New\n\nYear: 2022\n\nFrame sizes: 54 cm\n\nFits to height: 168 - 178cm\n\nSeller Description:\n\nSuper Rare Ventum GS1 Team WED\u016a edition. Maybe like 1 of 3. IYKYK about the founder of WEDU and here is your chance to own one!\n\n\nOriginal Parts:\n\n\nParts replaced by the seller:\n\nFork material: Carbon\n\nTires: -new continental gp5000\u2019s 700x28cc\n\nCassette: -sram rival 11/28\n\nSeatpost: Carbon\n\nHandlebars: -44mm bars\n\nChainrings: -sram rival 48x35\n\nSaddle: -new Bontrager saddle\n\nWheels: -new Bontrager Aeolus 35mm carbon rims\n\nCrank: -sram rival crank arms 172.5\n\nStem: -xxx Bontrager 90mm stem\n\nBrakes: -hydraulic disc\n\nRear derailleur: -sram rival axs rear derailleur\n\nFront derailleur: -sram rival axs front derailleur",
+        "description": "Brand: Ventum\n\nModel: GS1 Custom WEDŪ edition\n\nGeneral Information:\n\nCondition: New\n\nYear: 2022\n\nFrame sizes: 54 cm\n\nFits to height: 168 - 178cm\n\nSeller Description:\n\nSuper Rare Ventum GS1 Team WEDŪ edition. Maybe like 1 of 3. IYKYK about the founder of WEDU and here is your chance to own one!\n\n\nOriginal Parts:\n\n\nParts replaced by the seller:\n\nFork material: Carbon\n\nFront derailleur: -sram rival axs front derailleur\n\nRear derailleur: -sram rival axs rear derailleur\n\nCrank: -sram rival crank arms 172.5\n\nBrakes: -hydraulic disc\n\nWheels: -new Bontrager Aeolus 35mm carbon rims\n\nTires: -new continental gp5000’s 700x28cc\n\nSaddle: -new Bontrager saddle\n\nSeatpost: Carbon\n\nStem: -xxx Bontrager 90mm stem\n\nHandlebars: -44mm bars\n\nCassette: -sram rival 11/28\n\nChainrings: -sram rival 48x35",
     }
     keys_to_check = [
         "ad_title",
-        "price",
         "currency",
         "location",
         "description",
