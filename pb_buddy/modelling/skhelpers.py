@@ -40,7 +40,10 @@ def add_age(df):
     return (
         df.assign(original_post_date=lambda _df: pd.to_datetime(_df.original_post_date, format="mixed"))
         .assign(
-            bike_model_date=lambda _df: pd.to_datetime(_df.ad_title.str.extract(r"((?:19|20)\d{2})", expand=False)),
+            ad_title_description=lambda _df: _df.ad_title + " " + _df.description,
+            bike_model_date=lambda _df: pd.to_datetime(
+                _df.ad_title_description.str.extract(r"((?:19|20)\d{2})", expand=False)
+            ),
             age_at_post=lambda _df: (_df.original_post_date - _df.bike_model_date).dt.days,
         )
         .fillna(-1000)
